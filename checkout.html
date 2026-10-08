@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanh toán — By:QuangMinh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background: #f4f6fb;
+            color: #0a0a0a;
+            min-height: 100vh;
+            padding: 120px 24px 60px;
+            position: relative;
+        }
+        .bg-pattern {
+            position: fixed; inset: 0; z-index: -3;
+            background-image:
+                linear-gradient(rgba(10,10,10,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10,10,10,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        .bg-orb { position: fixed; border-radius: 50%; filter: blur(80px); z-index: -2; }
+        .bg-orb-1 { width: 500px; height: 500px; top: -100px; right: -100px;
+            background: radial-gradient(circle, rgba(230,57,70,0.15), transparent 70%); }
+        .bg-orb-2 { width: 500px; height: 500px; bottom: -100px; left: -100px;
+            background: radial-gradient(circle, rgba(10,10,10,0.08), transparent 70%); }
+
+        .navbar {
+            position: fixed; top: 44px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 32px); max-width: 1200px; z-index: 100;
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.55); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.85); border-radius: 14px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 8px 32px rgba(10,10,10,0.08);
+        }
+        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #0a0a0a; }
+        .logo-badge {
+            width: 40px; height: 40px; background: #0a0a0a; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .logo-qm { font-weight: 800; font-size: 1.1rem; color: #fff; }
+        .logo-main { font-weight: 800; font-size: 1rem; display: block; line-height: 1; }
+        .logo-main i { color: #e63946; font-style: normal; }
+        .logo-sub { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+            color: #6b7280; letter-spacing: 0.1em; display: block; margin-top: 3px; }
+        .nav-links a { color: #6b7280; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+        .nav-links a:hover { color: #e63946; }
+
+        .container { max-width: 820px; margin: 0 auto; }
+
+        .step-block { margin-bottom: 28px; }
+        .step-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+        .step-number {
+            width: 40px; height: 40px; border-radius: 12px; background: #0a0a0a;
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 1rem; flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .step-head-text h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 2px; }
+        .step-head-text p { font-size: 0.82rem; color: #6b7280; }
+
+        .glass-card {
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.85);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(10,10,10,0.08);
+            padding: 24px 28px;
+        }
+
+        .checkout-info { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+        .checkout-product-name { font-size: 1.2rem; font-weight: 800; margin-bottom: 6px; }
+        .checkout-product-desc { font-size: 0.82rem; color: #6b7280; font-family: 'JetBrains Mono', monospace; }
+        .checkout-price { font-size: 2rem; font-weight: 900; color: #e63946; letter-spacing: -0.03em; }
+
+        .checkout-note {
+            display: flex; align-items: flex-start; gap: 14px;
+            padding: 18px 22px; border-radius: 14px;
+            background: rgba(230,57,70,0.05);
+            border: 1px solid rgba(230,57,70,0.2);
+            font-size: 0.87rem; line-height: 1.6;
+        }
+        .checkout-note-icon { font-size: 1.3rem; flex-shrink: 0; }
+        .checkout-note a { color: #e63946; font-weight: 700; text-decoration: none; }
+
+        .method-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .method-btn {
+            padding: 22px 18px; border-radius: 14px; text-align: center;
+            cursor: pointer; transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+            border: 2px solid rgba(10,10,10,0.1);
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: blur(20px);
+        }
+        .method-btn:hover { transform: translateY(-4px); }
+        .method-btn.active {
+            border-color: #e63946;
+            background: rgba(230,57,70,0.08);
+            box-shadow: 0 12px 30px rgba(230,57,70,0.15);
+        }
+        .method-icon { font-size: 1.8rem; margin-bottom: 8px; }
+        .method-name { font-size: 0.95rem; font-weight: 800; margin-bottom: 4px; }
+        .method-desc { font-size: 0.72rem; color: #6b7280; font-family: 'JetBrains Mono', monospace; }
+
+        .pane { display: none; animation: paneIn 0.4s cubic-bezier(0.16,1,0.3,1); }
+        .pane.active { display: block; }
+        @keyframes paneIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* QR LAYOUT */
+        .qr-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 8px 0;
+        }
+        .qr-box {
+            width: 280px;
+            height: 280px;
+            background: #fff;
+            border: 2px solid rgba(10,10,10,0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            box-shadow: 0 8px 32px rgba(10,10,10,0.08);
+            transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+        }
+        .qr-box:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(10,10,10,0.12);
+        }
+        .qr-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .qr-placeholder {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 6px; color: #6b7280;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem; background: #f4f6fb;
+        }
+        .qr-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #e63946;
+            padding: 10px 24px;
+            background: rgba(230,57,70,0.08);
+            border-radius: 12px;
+            letter-spacing: -0.02em;
+        }
+        .qr-note {
+            font-size: 0.85rem;
+            color: #6b7280;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .qr-note b { color: #0a0a0a; }
+
+        .card-note {
+            padding: 16px 20px; border-radius: 12px;
+            background: rgba(245,158,11,0.08);
+            border: 1px solid rgba(245,158,11,0.3);
+            margin-bottom: 20px;
+            font-size: 0.85rem; line-height: 1.6;
+        }
+        .card-note b { color: #d97706; font-weight: 800; }
+
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block; font-size: 0.72rem; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%; padding: 13px 16px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(10,10,10,0.15);
+            background: rgba(255,255,255,0.7);
+            font-family: inherit; font-size: 0.9rem;
+            outline: none; transition: all 0.25s;
+        }
+        .form-group input:focus {
+            border-color: #0a0a0a; background: #fff;
+            box-shadow: 0 0 0 3px rgba(10,10,10,0.08);
+        }
+        .form-group input[readonly] {
+            background: #f0f0f0;
+            cursor: not-allowed;
+            font-weight: 700;
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn {
+            padding: 12px 22px; border: none; border-radius: 10px;
+            font-size: 0.85rem; font-weight: 700; font-family: inherit;
+            cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 8px; text-transform: uppercase; letter-spacing: 0.03em;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #0a0a0a; color: #fff; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,10,10,0.3); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-full { width: 100%; padding: 16px; font-size: 0.95rem; }
+        .btn-outline {
+            background: transparent; color: #0a0a0a;
+            border: 1.5px solid #0a0a0a;
+        }
+        .btn-outline:hover { background: #0a0a0a; color: #fff; }
+
+        .success-box {
+            padding: 60px 32px; border-radius: 20px;
+            text-align: center;
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.85);
+            box-shadow: 0 12px 40px rgba(10,10,10,0.1);
+            animation: successIn 0.6s cubic-bezier(0.16,1,0.3,1);
+        }
+        @keyframes successIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .success-icon {
+            width: 88px; height: 88px; margin: 0 auto 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; font-weight: 900;
+            box-shadow: 0 16px 40px rgba(245,158,11,0.35);
+            animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+        }
+        @keyframes popIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+        .success-box h2 { font-size: 1.6rem; font-weight: 900; margin-bottom: 12px; color: #0a0a0a; }
+        .success-box p { font-size: 0.95rem; color: #6b7280; line-height: 1.6; margin-bottom: 12px; }
+        .success-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            padding: 12px 24px;
+            background: rgba(230,57,70,0.1);
+            border: 1px solid rgba(230,57,70,0.3);
+            border-radius: 10px;
+            display: inline-block;
+            margin: 12px 0 24px;
+        }
+        .success-code b { color: #e63946; letter-spacing: 0.1em; }
+        .success-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+        .success-actions .btn { min-width: 200px; }
+
+        @media (max-width: 700px) {
+            .container { padding-top: 20px; }
+            .method-row { grid-template-columns: 1fr; }
+            .checkout-price { font-size: 1.6rem; }
+            .form-row { grid-template-columns: 1fr; }
+            .success-actions .btn { width: 100%; }
+            .qr-box { width: 240px; height: 240px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-pattern"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+
+    <nav class="navbar">
+        <a href="index.html" class="logo">
+            <div class="logo-badge"><span class="logo-qm">QM</span></div>
+            <div>
+                <span class="logo-main">MOD<i>iOS</i></span>
+                <span class="logo-sub">By:QuangMinh</span>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="index.html">← Quay lại</a>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="step-block" id="step1">
+            <div class="step-head">
+                <div class="step-number">1</div>
+                <div class="step-head-text">
+                    <h3>Sản phẩm</h3>
+                    <p>Thông tin đơn hàng</p>
+                </div>
+            </div>
+            <div class="glass-card checkout-info">
+                <div>
+                    <div class="checkout-product-name" id="cpName">Đang tải...</div>
+                    <div class="checkout-product-desc" id="cpDesc"></div>
+                </div>
+                <div class="checkout-price" id="cpPrice">0K</div>
+            </div>
+        </div>
+
+        <div class="step-block" id="step2">
+            <div class="step-head">
+                <div class="step-number">2</div>
+                <div class="step-head-text">
+                    <h3>Lưu ý</h3>
+                    <p>Đọc kỹ trước khi thanh toán</p>
+                </div>
+            </div>
+            <div class="checkout-note">
+                <div class="checkout-note-icon">⚠</div>
+                <div>
+                    Tất cả sản phẩm đều là <b>file IPA</b>. Bạn <b>bắt buộc</b> phải có ứng dụng <b>chữ ký số (ESign)</b> để cài đặt. Chưa có? Mua tại <a href="https://muacert.com" target="_blank">muacert.com</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-block" id="step3">
+            <div class="step-head">
+                <div class="step-number">3</div>
+                <div class="step-head-text">
+                    <h3>Phương thức thanh toán</h3>
+                    <p>Chọn cách bạn muốn thanh toán</p>
+                </div>
+            </div>
+
+            <div class="method-row">
+                <div class="method-btn active" data-method="bank" onclick="selectMethod('bank')">
+                    <div class="method-icon">🏦</div>
+                    <div class="method-name">Chuyển khoản</div>
+                    <div class="method-desc">Quét QR</div>
+                </div>
+                <div class="method-btn" data-method="card" onclick="selectMethod('card')">
+                    <div class="method-icon">💳</div>
+                    <div class="method-name">Thẻ Card</div>
+                    <div class="method-desc">Viettel</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-block" id="step4">
+            <div class="step-head">
+                <div class="step-number">4</div>
+                <div class="step-head-text">
+                    <h3>Chi tiết thanh toán</h3>
+                    <p id="detailSubtitle">Quét mã QR để chuyển khoản</p>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="pane active" id="pane-bank">
+                    <div class="qr-layout">
+                        <div class="qr-box">
+                            <img id="qrImage" src="" alt="QR" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="qr-placeholder" style="display:none;">
+                                <span>QR CODE</span>
+                                <small style="font-size:0.7rem;">Chưa có ảnh</small>
+                            </div>
+                        </div>
+                        <div class="qr-amount" id="bankAmount">0đ</div>
+                        <div class="qr-note">
+                            Mở app ngân hàng -> Quét QR -> <b>Nhập đúng số tiền</b><br>
+                            Nội dung CK: <b id="bankCode">QM0000</b>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pane" id="pane-card">
+                    <div class="card-note">
+                        ⚠ Phương thức Card áp dụng <b>phụ phí hao hụt 25%</b> do phí xử lý thẻ cao. Mong bạn thông cảm.
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nhà mạng</label>
+                        <input type="text" value="Viettel" readonly>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Số Serial</label>
+                            <input type="text" id="cardSerial" placeholder="Nhập số serial">
+                        </div>
+                        <div class="form-group">
+                            <label>Mã thẻ</label>
+                            <input type="text" id="cardCode" placeholder="Nhập mã thẻ">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Mệnh giá thẻ (VNĐ)</label>
+                        <input type="number" id="cardValue" placeholder="VD: 50000" step="1000">
+                    </div>
+
+                    <div class="qr-amount" style="text-align:center;margin-top:20px;" id="cardAmount">0đ</div>
+                    <div class="qr-note" style="margin-top:12px;">
+                        Loại thẻ: <b>Viettel</b><br>
+                        Nội dung: <b id="cardCodeDisplay">QM0000</b>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-block" id="step5">
+            <div class="step-head">
+                <div class="step-number">5</div>
+                <div class="step-head-text">
+                    <h3>Xác nhận thanh toán</h3>
+                    <p>Bấm nút bên dưới sau khi đã chuyển khoản</p>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-full" id="confirmBtn" onclick="confirmPayment()">
+                ✓ TÔI ĐÃ THANH TOÁN
+            </button>
+        </div>
+
+        <div class="step-block" id="successBlock" style="display:none;">
+            <div class="success-box">
+                <div class="success-icon">⏳</div>
+                <h2>ĐÃ GỬI YÊU CẦU</h2>
+                <p>Cảm ơn bạn! Đơn hàng đang chờ <b>admin xác nhận</b>.</p>
+                <p>Vui lòng chờ 1-5 phút. Sau khi xác nhận, file IPA sẽ hiện trong <b>Kho tải về</b>.</p>
+                <div class="success-code">Mã đơn: <b id="successCode">QM0000</b></div>
+                <div class="success-actions">
+                    <a href="download.html" class="btn btn-primary">📁 XEM KHO TẢI VỀ</a>
+                    <a href="index.html" class="btn btn-outline">← VỀ TRANG CHỦ</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const PRODUCTS_DATA = {
+            1: { name: 'TOE3 — Mod Full', desc: 'Mod tiền, xe, logo hãng', game: 'TOE3', priceBank: 20000, priceCard: 20000, qrImage: 'images/bank-qr-toe3.jpg' },
+            2: { name: 'BUSSID — Mod Full', desc: 'Mod xe, tiền, skin, map', game: 'BUSSID', priceBank: 25000, priceCard: 40000, qrImage: 'images/bank-qr-bussid.jpg' },
+            3: { name: 'GTA San — Mod Full', desc: 'Mod tiền, xe, vũ khí, nhiệm vụ', game: 'GTA SAN', priceBank: 35000, priceCard: 40000, qrImage: 'images/bank-qr-gta.jpg' },
+            4: { name: 'Truck Sim USA EVO — Mod Full', desc: 'Mod tiền, xe, nhiên liệu', game: 'TRUCK SIM', priceBank: 25000, priceCard: 40000, qrImage: 'images/bank-qr-tsusa.jpg' },
+            5: { name: 'Combo 3 App Pre', desc: 'Locket Gold + YouTube Premium + Spotify', game: 'LOCKET', priceBank: 25000, priceCard: 40000, qrImage: 'images/bank-qr-combo.jpg' }
+        };
+
+        let currentProductId = null;
+        let currentProduct = null;
+        let currentMethod = 'bank';
+        let orderCode = '';
+
+        function getProductId() {
+            const p = new URLSearchParams(window.location.search);
+            return parseInt(p.get('id')) || 1;
+        }
+
+        function genOrderCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = 'QM';
+            for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            return code;
+        }
+
+        function formatMoney(n) {
+            return n.toLocaleString('vi-VN') + 'đ';
+        }
+
+        function loadProduct() {
+            currentProductId = getProductId();
+            currentProduct = PRODUCTS_DATA[currentProductId] || PRODUCTS_DATA[1];
+
+            document.getElementById('cpName').textContent = currentProduct.name;
+            document.getElementById('cpDesc').textContent = currentProduct.desc + ' · ' + currentProduct.game;
+
+            orderCode = genOrderCode();
+            document.getElementById('bankCode').textContent = orderCode;
+            document.getElementById('cardCodeDisplay').textContent = orderCode;
+
+            const qrImg = document.getElementById('qrImage');
+            if (qrImg && currentProduct.qrImage) {
+                qrImg.src = currentProduct.qrImage;
+            }
+
+            updatePrices();
+        }
+
+        function updatePrices() {
+            if (!currentProduct) return;
+            document.getElementById('cpPrice').textContent = formatMoney(currentProduct.priceBank);
+            document.getElementById('bankAmount').textContent = formatMoney(currentProduct.priceBank);
+            document.getElementById('cardAmount').textContent = formatMoney(currentProduct.priceCard);
+        }
+
+        function selectMethod(method) {
+            currentMethod = method;
+
+            document.querySelectorAll('.method-btn').forEach(el => {
+                el.classList.toggle('active', el.dataset.method === method);
+            });
+
+            document.querySelectorAll('.pane').forEach(el => {
+                el.classList.toggle('active', el.id === 'pane-' + method);
+            });
+
+            document.getElementById('detailSubtitle').textContent =
+                method === 'bank' ? 'Quét mã QR để chuyển khoản' : 'Nhập thông tin thẻ Viettel';
+
+            const price = method === 'bank' ? currentProduct.priceBank : currentProduct.priceCard;
+            document.getElementById('cpPrice').textContent = formatMoney(price);
+        }
+
+        async function confirmPayment() {
+            const price = currentMethod === 'bank' ? currentProduct.priceBank : currentProduct.priceCard;
+
+            if (currentMethod === 'card') {
+                const serial = document.getElementById('cardSerial').value.trim();
+                const code = document.getElementById('cardCode').value.trim();
+                const value = parseInt(document.getElementById('cardValue').value);
+
+                if (!serial || !code || !value) {
+                    return alert('Vui lòng nhập đầy đủ thông tin thẻ!');
+                }
+                if (value < price) {
+                    return alert('Mệnh giá thẻ phải từ ' + formatMoney(price) + ' trở lên!');
+                }
+            }
+
+            const btn = document.getElementById('confirmBtn');
+            btn.textContent = 'ĐANG GỬI...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        product_id: currentProductId,
+                        method: currentMethod,
+                        amount: price
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    document.getElementById('successCode').textContent = data.order_code;
+                    document.querySelectorAll('.step-block').forEach(el => el.style.display = 'none');
+                    document.getElementById('successBlock').style.display = 'block';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    alert('Lỗi: ' + (data.error || 'Không xử lý được'));
+                    btn.textContent = '✓ TÔI ĐÃ THANH TOÁN';
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                alert('Lỗi kết nối server: ' + err.message);
+                btn.textContent = '✓ TÔI ĐÃ THANH TOÁN';
+                btn.disabled = false;
+            }
+        }
+
+        async function checkLogin() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) window.location.href = 'login.html';
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLogin();
+            loadProduct();
+            selectMethod('bank');
+        });
+    </script>
+</body>
+</html>

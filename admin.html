@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel — QM Shop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background: #f4f6fb;
+            color: #0a0a0a;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            margin-bottom: 20px;
+        }
+        .login-box { max-width: 420px; margin: 100px auto; }
+        h1 { font-size: 1.5rem; margin-bottom: 20px; }
+        h2 { font-size: 1.1rem; margin-bottom: 16px; }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(10,10,10,0.15);
+            background: #f5f6f7;
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        input:focus {
+            border-color: #0a0a0a;
+            background: #fff;
+        }
+        button {
+            padding: 12px 22px;
+            background: #0a0a0a;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,10,10,0.2); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .full { width: 100%; margin-top: 8px; }
+        .upload-label {
+            display: block;
+            padding: 14px;
+            border: 1.5px dashed rgba(10,10,10,0.3);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            background: #fafbfc;
+            transition: all 0.2s;
+        }
+        .upload-label:hover {
+            background: #f0f2f5;
+            border-color: #0a0a0a;
+        }
+        .upload-label input { display: none; }
+        .item {
+            padding: 16px 18px;
+            background: #f5f6f7;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .item b { color: #e63946; }
+        .item-content { flex: 1; min-width: 200px; }
+        .item-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-confirm {
+            background: #16a34a !important;
+            color: #fff !important;
+            padding: 8px 14px !important;
+            font-size: 0.72rem !important;
+        }
+        .btn-reject {
+            background: #e63946 !important;
+            color: #fff !important;
+            padding: 8px 14px !important;
+            font-size: 0.72rem !important;
+        }
+        .btn-backup {
+            background: #0ea5e9 !important;
+        }
+        .status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-left: 6px;
+        }
+        .status-paid { background: #16a34a; color: #fff; }
+        .status-pending { background: #f59e0b; color: #fff; }
+        .status-failed { background: #e63946; color: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div id="loginBox" class="box login-box">
+        <h1>⚙ Admin Login</h1>
+        <input type="text" id="adminUser" placeholder="Username" value="admin">
+        <input type="password" id="adminPass" placeholder="Password" value="admin123">
+        <button class="full" id="loginBtn">ĐĂNG NHẬP</button>
+    </div>
+
+    <div id="panel" style="display:none;">
+
+        <div class="box">
+            <div class="header-row">
+                <h1>⚙ Admin Panel</h1>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn-backup" id="backupBtn">💾 BACKUP DB</button>
+                    <button id="logoutBtn">ĐĂNG XUẤT</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="box">
+            <h2>📤 Upload sản phẩm (IPA + VIDEO)</h2>
+            <form id="uploadForm">
+                <input type="text" name="name" placeholder="Tên sản phẩm (VD: TOE3 Mod Full)" required>
+                <input type="text" name="game" placeholder="Game (TOE3 / BUSSID / GTA SAN / TRUCK SIM / LOCKET)" required>
+                <input type="number" name="price" placeholder="Giá (K)" required>
+
+                <label class="upload-label">
+                    📁 Chọn file IPA: <span id="fileName">Chưa chọn</span>
+                    <input type="file" name="ipa" accept=".ipa">
+                </label>
+
+                <label class="upload-label">
+                    🎥 Chọn file VIDEO: <span id="videoName">Chưa chọn</span>
+                    <input type="file" name="video" accept="video/*">
+                </label>
+
+                <button type="submit" class="full" id="uploadBtn">UPLOAD</button>
+            </form>
+        </div>
+
+        <div class="box">
+            <h2>📦 Sản phẩm đã upload</h2>
+            <div id="productsList"></div>
+        </div>
+
+        <div class="box">
+            <h2>📋 Đơn hàng</h2>
+            <div id="ordersList"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    async function adminLogin() {
+        const username = document.getElementById('adminUser').value;
+        const password = document.getElementById('adminPass').value;
+
+        try {
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('loginBox').style.display = 'none';
+                document.getElementById('panel').style.display = 'block';
+                loadProducts();
+                loadOrders();
+                setInterval(loadOrders, 30000);
+            } else {
+                alert('Sai tài khoản!');
+            }
+        } catch (err) {
+            alert('Lỗi kết nối server: ' + err.message);
+        }
+    }
+
+    function adminLogout() {
+        document.cookie = 'isAdmin=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        location.reload();
+    }
+
+    async function loadProducts() {
+        try {
+            const res = await fetch('/api/admin/products');
+            const data = await res.json();
+            const el = document.getElementById('productsList');
+            if (data.length === 0) {
+                el.innerHTML = '<p style="color:#999;">Chưa có sản phẩm</p>';
+                return;
+            }
+            el.innerHTML = data.map(p => `
+                <div class="item">
+                    <div class="item-content">
+                        <b>ID ${p.id}</b> · ${p.name} · ${p.game} · ${p.price}K
+                        ${p.ipa_path ? ' · <span style="color:green;">✓ IPA</span>' : ' · <span style="color:red;">✗ Chưa IPA</span>'}
+                        ${p.video_url ? ' · <span style="color:green;">✓ Video</span>' : ' · <span style="color:red;">✗ Chưa Video</span>'}
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-reject" data-del-product="${p.id}" data-name="${p.name}">🗑 XOÁ</button>
+                    </div>
+                </div>
+            `).join('');
+
+            el.querySelectorAll('[data-del-product]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    deleteProduct(parseInt(btn.dataset.delProduct), btn.dataset.name);
+                });
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function loadOrders() {
+        try {
+            const res = await fetch('/api/admin/orders');
+            const data = await res.json();
+            const el = document.getElementById('ordersList');
+            if (data.length === 0) {
+                el.innerHTML = '<p style="color:#999;">Chưa có đơn hàng</p>';
+                return;
+            }
+            el.innerHTML = data.map(o => {
+                let statusBadge = '';
+                if (o.status === 'paid') statusBadge = '<span class="status status-paid">✓ ĐÃ XÁC NHẬN</span>';
+                else if (o.status === 'pending') statusBadge = '<span class="status status-pending">⏳ CHỜ</span>';
+                else statusBadge = '<span class="status status-failed">✗ TỪ CHỐI</span>';
+
+                const actions = o.status === 'pending'
+                    ? `<button class="btn-confirm" data-confirm="${o.order_code}">✓ XÁC NHẬN</button>
+                       <button class="btn-reject" data-reject="${o.order_code}">✗ TỪ CHỐI</button>`
+                    : `<button class="btn-reject" data-delete="${o.order_code}">🗑 XOÁ</button>`;
+
+                return `
+                    <div class="item">
+                        <div class="item-content">
+                            <b>${o.order_code}</b> · ${o.user_email} · ${o.product_name} ${statusBadge}
+                            <div style="font-size:0.75rem;color:#999;margin-top:4px;">${o.created_at}</div>
+                        </div>
+                        <div class="item-actions">${actions}</div>
+                    </div>
+                `;
+            }).join('');
+
+            el.querySelectorAll('[data-confirm]').forEach(btn => {
+                btn.addEventListener('click', () => confirmOrder(btn.dataset.confirm));
+            });
+            el.querySelectorAll('[data-reject]').forEach(btn => {
+                btn.addEventListener('click', () => rejectOrder(btn.dataset.reject));
+            });
+            el.querySelectorAll('[data-delete]').forEach(btn => {
+                btn.addEventListener('click', () => deleteOrder(btn.dataset.delete));
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function confirmOrder(code) {
+        if (!confirm('Xác nhận đã nhận được tiền cho đơn ' + code + '?')) return;
+        try {
+            const res = await fetch('/api/admin/confirm-order/' + code, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                alert('✓ Đã xác nhận đơn ' + code);
+                loadOrders();
+            } else {
+                alert('Lỗi: ' + data.error);
+            }
+        } catch (err) {
+            alert('Lỗi: ' + err.message);
+        }
+    }
+
+    async function rejectOrder(code) {
+        if (!confirm('Từ chối đơn ' + code + '?')) return;
+        try {
+            const res = await fetch('/api/admin/reject-order/' + code, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                alert('✗ Đã từ chối đơn ' + code);
+                loadOrders();
+            } else {
+                alert('Lỗi: ' + data.error);
+            }
+        } catch (err) {
+            alert('Lỗi: ' + err.message);
+        }
+    }
+
+    async function deleteOrder(code) {
+        if (!confirm('Xoá vĩnh viễn đơn ' + code + '?')) return;
+        try {
+            const res = await fetch('/api/admin/delete-order/' + code, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                alert('🗑 Đã xoá đơn ' + code);
+                loadOrders();
+            } else {
+                alert('Lỗi: ' + data.error);
+            }
+        } catch (err) {
+            alert('Lỗi: ' + err.message);
+        }
+    }
+
+    async function deleteProduct(id, name) {
+        if (!confirm('Xoá sản phẩm "' + name + '"?')) return;
+        try {
+            const res = await fetch('/api/admin/delete-product/' + id, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                alert('🗑 Đã xoá sản phẩm');
+                loadProducts();
+            } else {
+                alert('Lỗi: ' + data.error);
+            }
+        } catch (err) {
+            alert('Lỗi: ' + err.message);
+        }
+    }
+
+    function backupDB() {
+        window.location.href = '/api/admin/backup-db';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('loginBtn').addEventListener('click', adminLogin);
+        document.getElementById('logoutBtn').addEventListener('click', adminLogout);
+        document.getElementById('backupBtn').addEventListener('click', backupDB);
+
+        document.getElementById('adminPass').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') adminLogin();
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const btn = document.getElementById('uploadBtn');
+            btn.textContent = 'ĐANG UPLOAD...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/admin/upload-product', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('✓ Upload thành công! ID: ' + data.id);
+                    e.target.reset();
+                    document.getElementById('fileName').textContent = 'Chưa chọn';
+                    document.getElementById('videoName').textContent = 'Chưa chọn';
+                    loadProducts();
+                } else {
+                    alert('Lỗi: ' + data.error);
+                }
+            } catch (err) {
+                alert('Lỗi upload: ' + err.message);
+            }
+            btn.textContent = 'UPLOAD';
+            btn.disabled = false;
+        });
+
+        document.querySelector('input[name="ipa"]').addEventListener('change', function() {
+            document.getElementById('fileName').textContent = this.files[0]?.name || 'Chưa chọn';
+        });
+        document.querySelector('input[name="video"]').addEventListener('change', function() {
+            document.getElementById('videoName').textContent = this.files[0]?.name || 'Chưa chọn';
+        });
+    });
+</script>
+</body>
+</html>

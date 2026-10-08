@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QM MOD iOS — By:QuangMinh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="effects.css">
+</head>
+<body>
+
+    <div class="announce-bar">
+        <div class="announce-content">
+            <span class="announce-item">⚡ CẦN ESIGN ĐỂ CÀI ĐẶT — MUA TẠI <a href="https://muacert.com" target="_blank">MUACERT.COM</a></span>
+            <span class="announce-item">🎥 HƯỚNG DẪN MUA CHỨNG CHỈ: <a href="https://www.youtube.com/watch?v=7MsdWUH6vYU" target="_blank">XEM VIDEO</a></span>
+            <span class="announce-item">💎 BẢO HÀNH TRỌN ĐỜI</span>
+            <span class="announce-item">⚡ CẦN ESIGN ĐỂ CÀI ĐẶT — MUA TẠI <a href="https://muacert.com" target="_blank">MUACERT.COM</a></span>
+            <span class="announce-item">🎥 HƯỚNG DẪN MUA CHỨNG CHỈ: <a href="https://www.youtube.com/watch?v=7MsdWUH6vYU" target="_blank">XEM VIDEO</a></span>
+            <span class="announce-item">💎 BẢO HÀNH TRỌN ĐỜI</span>
+        </div>
+    </div>
+
+    <div class="loader-screen" id="loader">
+        <div class="rocket-track">
+            <div class="rocket">
+                <svg viewBox="0 0 60 60" width="60" height="60">
+                    <path d="M5 30 L40 20 L55 30 L40 40 Z" fill="#0a0a0a"/>
+                    <path d="M40 20 L40 40 L48 30 Z" fill="#e63946"/>
+                    <circle cx="20" cy="30" r="3" fill="#fff"/>
+                </svg>
+            </div>
+        </div>
+        <div class="loader-text">
+            <span>Q</span><span>U</span><span>A</span><span>N</span><span>G</span><span>M</span><span>I</span><span>N</span><span>H</span>
+        </div>
+        <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+        <div class="loader-percent">0%</div>
+    </div>
+
+    <div class="bg-pattern"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+
+    <nav class="navbar glass">
+        <a href="index.html" class="logo">
+            <div class="logo-badge"><span class="logo-qm">QM</span></div>
+            <div class="logo-text">
+                <span class="logo-main">MOD<i>iOS</i></span>
+                <span class="logo-sub">By:QuangMinh</span>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="#categories">Danh mục</a>
+            <a href="#products">Sản phẩm</a>
+            <a href="#guide">Cài đặt</a>
+            <a href="#support">Hỗ trợ</a>
+        </div>
+        <div class="nav-actions">
+            <button class="nav-icon-btn glass" onclick="toggleWishlist()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                <span class="wishlist-count" id="wishlistCount">0</span>
+            </button>
+            <a href="login.html" class="btn btn-primary btn-sm" id="authBtn">Đăng nhập</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-badge glass">
+            <span class="badge-line"></span>
+            <span class="badge-text">PREMIUM STORE 2026</span>
+            <span class="badge-line"></span>
+        </div>
+        <h1 class="hero-title">
+            <span class="hero-line-1">MOD GAME <em>iOS</em></span>
+            <span class="hero-line-2">CHẤT LƯỢNG CAO</span>
+        </h1>
+        <p class="hero-subtitle">
+            <span id="typing"></span><span class="typing-cursor"></span>
+        </p>
+        <div class="hero-buttons">
+            <button class="btn btn-primary morph-btn" onclick="scrollToId('products')">KHÁM PHÁ SẢN PHẨM →</button>
+            <button class="btn btn-outline glass" onclick="scrollToId('guide')">HƯỚNG DẪN CÀI</button>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="esign-box">
+            <div class="esign-left">
+                <img src="images/esign.png" alt="ESign" class="esign-icon" onerror="this.style.display='none'">
+            </div>
+            <div class="esign-right">
+                <div class="esign-tag">// BẮT BUỘC</div>
+                <h3 class="esign-title">CẦN ESIGN ĐỂ CÀI ĐẶT MOD</h3>
+                <p class="esign-desc">
+                    Để cài được file IPA mod, bạn <b>bắt buộc</b> phải có ứng dụng <b>ESign</b>.
+                    Chưa có? Mua chứng chỉ tại <a href="https://muacert.com" target="_blank" class="esign-link">muacert.com</a>
+                </p>
+                <div class="esign-actions">
+                    <a href="https://muacert.com" target="_blank" class="btn btn-primary morph-btn">MUA ESIGN NGAY</a>
+                    <a href="https://www.youtube.com/watch?v=7MsdWUH6vYU" target="_blank" class="btn btn-outline">🎥 XEM HƯỚNG DẪN</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="categories" class="section">
+        <div class="section-header">
+            <span class="section-tag">// DANH MỤC</span>
+            <h2 class="section-title">CHỌN GAME BẠN MUỐN MOD</h2>
+        </div>
+
+        <div class="categories-grid">
+
+            <div class="category-card glass reveal" onclick="filterCategory('TOE3')">
+                <div class="category-bg" style="background-image: url('images/toe3-bg.jpg');"></div>
+                <div class="category-shade"></div>
+                <div class="category-badge hot">HOT</div>
+                <div class="category-content">
+                    <img src="images/toe3-logo.png" alt="TOE3" class="category-logo">
+                    <div class="category-info">
+                        <div class="category-name">Truckers of Europe 3</div>
+                        <div class="category-note">Mod / Hack Full</div>
+                        <div class="category-price">20K</div>
+                    </div>
+                </div>
+                <div class="category-arrow">→</div>
+            </div>
+
+            <div class="category-card glass reveal" onclick="filterCategory('BUSSID')">
+                <div class="category-bg" style="background-image: url('images/bussid-bg.jpg');"></div>
+                <div class="category-shade"></div>
+                <div class="category-badge new">NEW</div>
+                <div class="category-content">
+                    <img src="images/bussid-logo.png" alt="BUSSID" class="category-logo">
+                    <div class="category-info">
+                        <div class="category-name">Bus Simulator Indonesia</div>
+                        <div class="category-note">Mod / Hack Full</div>
+                        <div class="category-price">25K</div>
+                    </div>
+                </div>
+                <div class="category-arrow">→</div>
+            </div>
+
+            <div class="category-card glass reveal" onclick="filterCategory('GTA SAN')">
+                <div class="category-bg" style="background-image: url('images/gta-bg.jpg');"></div>
+                <div class="category-shade"></div>
+                <div class="category-badge sale">SALE</div>
+                <div class="category-content">
+                    <img src="images/gta-logo.png" alt="GTA San" class="category-logo">
+                    <div class="category-info">
+                        <div class="category-name">GTA San Andreas</div>
+                        <div class="category-note">Mod / Hack Full</div>
+                        <div class="category-price">35K</div>
+                    </div>
+                </div>
+                <div class="category-arrow">→</div>
+            </div>
+
+            <div class="category-card glass reveal" onclick="filterCategory('TRUCK SIM')">
+                <div class="category-bg" style="background-image: url('images/tsusa-bg.jpg');"></div>
+                <div class="category-shade"></div>
+                <div class="category-badge">EVO</div>
+                <div class="category-content">
+                    <img src="images/tsusa-logo.png" alt="Truck Sim USA" class="category-logo">
+                    <div class="category-info">
+                        <div class="category-name">Truck Simulator USA: EVO</div>
+                        <div class="category-note">Mod / Hack Full</div>
+                        <div class="category-price">25K</div>
+                    </div>
+                </div>
+                <div class="category-arrow">→</div>
+            </div>
+
+            <div class="category-card glass reveal" onclick="filterCategory('LOCKET')">
+                <div class="category-bg" style="background-image: url('images/locket-bg.jpg');"></div>
+                <div class="category-shade"></div>
+                <div class="category-badge vip">VIP</div>
+                <div class="category-content">
+                    <img src="images/locket.png" alt="Locket" class="category-logo locket-logo">
+                    <div class="category-info">
+                        <div class="category-name">Combo 3 App Pre</div>
+                        <div class="category-note">Locket + YouTube + Spotify</div>
+                        <div class="category-price">25K</div>
+                    </div>
+                </div>
+                <div class="category-arrow">→</div>
+            </div>
+
+        </div>
+    </section>
+
+    <section id="products" class="section">
+        <div class="section-header">
+            <span class="section-tag">// SẢN PHẨM</span>
+            <h2 class="section-title" id="productTitle">TẤT CẢ SẢN PHẨM</h2>
+            <p class="section-subtitle" id="productCount">0 sản phẩm</p>
+        </div>
+
+        <div class="product-toolbar glass">
+            <div class="search-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="searchInput" placeholder="Tìm sản phẩm..." oninput="handleSearch()">
+            </div>
+            <select class="sort-select" id="sortSelect" onchange="handleSort()">
+                <option value="default">Mặc định</option>
+                <option value="price-asc">Giá thấp đến cao</option>
+                <option value="price-desc">Giá cao đến thấp</option>
+                <option value="name">Tên A-Z</option>
+            </select>
+        </div>
+
+        <div class="tabs glass">
+            <button class="tab active" data-game="all">TẤT CẢ</button>
+            <button class="tab" data-game="TOE3">TOE3</button>
+            <button class="tab" data-game="BUSSID">BUSSID</button>
+            <button class="tab" data-game="GTA SAN">GTA SAN</button>
+            <button class="tab" data-game="TRUCK SIM">TRUCK SIM</button>
+            <button class="tab" data-game="LOCKET">LOCKET</button>
+        </div>
+
+        <div class="products-grid" id="productsGrid"></div>
+    </section>
+
+    <section id="guide" class="section">
+        <div class="section-header">
+            <span class="section-tag">// HƯỚNG DẪN</span>
+            <h2 class="section-title">CÁCH CÀI ĐẶT MOD</h2>
+        </div>
+
+        <div class="guide-grid">
+            <div class="guide-step glass reveal">
+                <div class="step-num">01</div>
+                <div class="step-line"></div>
+                <div class="step-title">MUA ESIGN</div>
+                <p>Truy cập <a href="https://muacert.com" target="_blank">muacert.com</a> để mua chứng chỉ ký IPA</p>
+            </div>
+            <div class="guide-step glass reveal">
+                <div class="step-num">02</div>
+                <div class="step-line"></div>
+                <div class="step-title">CHỌN MOD</div>
+                <p>Chọn game bạn muốn — thanh toán và nhận mail tự động</p>
+            </div>
+            <div class="guide-step glass reveal">
+                <div class="step-num">03</div>
+                <div class="step-line"></div>
+                <div class="step-title">CÀI ĐẶT</div>
+                <p>Dùng ESign để ký và cài file IPA vào iPhone</p>
+            </div>
+            <div class="guide-step glass reveal">
+                <div class="step-num">04</div>
+                <div class="step-line"></div>
+                <div class="step-title">CHƠI GAME</div>
+                <p>Mở game và tận hưởng mod</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="support" class="section">
+        <div class="section-header">
+            <span class="section-tag">// HỖ TRỢ</span>
+            <h2 class="section-title">GẶP LỖI? LIÊN HỆ NGAY</h2>
+        </div>
+
+        <div class="support-grid">
+            <a href="https://zalo.me/0383415468" target="_blank" class="support-card glass reveal">
+                <div class="support-icon zl">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="#fff">
+                        <text x="12" y="17" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold">Zalo</text>
+                    </svg>
+                </div>
+                <div class="support-name">Zalo</div>
+                <div class="support-desc">0383 415 468</div>
+            </a>
+            <a href="https://www.facebook.com/share/1Fq4uBdmSF/?mibextid=wwXIfr" target="_blank" class="support-card glass reveal">
+                <div class="support-icon fb">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="#fff"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.09 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.88v2.26h3.32l-.53 3.49h-2.79V24C19.61 23.09 24 18.1 24 12.07z"/></svg>
+                </div>
+                <div class="support-name">Facebook</div>
+                <div class="support-desc">Trang cá nhân</div>
+            </a>
+            <a href="https://www.tiktok.com/@ngi.hng.bussid?_r=1&_t=ZS-9ANsQXTcIJc" target="_blank" class="support-card glass reveal">
+                <div class="support-icon tt">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="#fff"><path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+                </div>
+                <div class="support-name">TikTok</div>
+                <div class="support-desc">@ngi.hng.bussid</div>
+            </a>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="cta-card glass reveal">
+            <div class="cta-line"></div>
+            <h2>SẴN SÀNG CHƠI GAME MOD?</h2>
+            <p>Đặt hàng ngay — nhận file trong 5 phút</p>
+            <button class="btn btn-primary morph-btn" onclick="scrollToId('products')">ĐẶT HÀNG NGAY</button>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-col">
+                <div class="footer-logo">QM · MOD iOS</div>
+                <p>Shop mod game iOS uy tín từ 2024</p>
+                <p class="footer-sig">Signature: <b>QuangMinh</b></p>
+            </div>
+            <div class="footer-col">
+                <h4>DANH MỤC</h4>
+                <a href="#categories">Danh mục</a>
+                <a href="#products">Sản phẩm</a>
+                <a href="#guide">Hướng dẫn</a>
+            </div>
+            <div class="footer-col">
+                <h4>DỊCH VỤ</h4>
+                <a href="https://muacert.com" target="_blank">Mua ESign</a>
+                <a href="https://www.youtube.com/watch?v=7MsdWUH6vYU" target="_blank">Video HD</a>
+                <a href="login.html">Đăng nhập</a>
+            </div>
+            <div class="footer-col">
+                <h4>LIÊN HỆ</h4>
+                <a href="https://zalo.me/0383415468" target="_blank">Zalo: 0383 415 468</a>
+                <a href="https://www.facebook.com/share/1Fq4uBdmSF/?mibextid=wwXIfr" target="_blank">Facebook</a>
+                <a href="https://www.tiktok.com/@ngi.hng.bussid?_r=1&_t=ZS-9ANsQXTcIJc" target="_blank">TikTok</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>© 2026 QM MOD iOS</span>
+            <span class="footer-sig-bottom">SIGNATURE · <b>QUANGMINH</b></span>
+        </div>
+    </footer>
+
+    <button class="back-to-top glass" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+    <button class="chat-toggle" id="chatToggle" onclick="toggleChat()">💬</button>
+    <div class="chat-box glass" id="chatBox">
+        <div class="chat-header">
+            <div><b>Hỗ trợ trực tuyến</b><span class="chat-status">● Online</span></div>
+            <button onclick="toggleChat()" class="chat-close">✕</button>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div class="chat-msg bot">Xin chào! Mình là support của QuangMinh. Bạn cần giúp gì?</div>
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." onkeypress="if(event.key==='Enter') sendChat()">
+            <button onclick="sendChat()">Gửi</button>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
