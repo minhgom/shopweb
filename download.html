@@ -3,143 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kho tải về — By:QuangMinh</title>
+    <title>Tải file — By:QuangMinh</title>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Be Vietnam Pro', sans-serif;
-            background: #f4f6fb;
-            color: #0a0a0a;
-            min-height: 100vh;
-            padding: 120px 24px 60px;
-            position: relative;
-        }
-        .bg-pattern {
-            position: fixed; inset: 0; z-index: -3;
-            background-image:
-                linear-gradient(rgba(10,10,10,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(10,10,10,0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-        }
-        .bg-orb { position: fixed; border-radius: 50%; filter: blur(80px); z-index: -2; }
-        .bg-orb-1 { width: 500px; height: 500px; top: -100px; right: -100px;
-            background: radial-gradient(circle, rgba(230,57,70,0.15), transparent 70%); }
-        .bg-orb-2 { width: 500px; height: 500px; bottom: -100px; left: -100px;
-            background: radial-gradient(circle, rgba(10,10,10,0.08), transparent 70%); }
-
-        .navbar {
-            position: fixed; top: 44px; left: 50%; transform: translateX(-50%);
-            width: calc(100% - 32px); max-width: 1200px; z-index: 100;
-            padding: 12px 20px;
-            background: rgba(255,255,255,0.55); backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.85); border-radius: 14px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 8px 32px rgba(10,10,10,0.08);
-        }
-        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #0a0a0a; }
-        .logo-badge {
-            width: 40px; height: 40px; background: #0a0a0a; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .logo-qm { font-weight: 800; font-size: 1.1rem; color: #fff; }
-        .logo-main { font-weight: 800; font-size: 1rem; display: block; line-height: 1; }
-        .logo-main i { color: #e63946; font-style: normal; }
-        .logo-sub { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
-            color: #6b7280; letter-spacing: 0.1em; display: block; margin-top: 3px; }
-        .nav-links { display: flex; gap: 20px; }
-        .nav-links a { color: #6b7280; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
-        .nav-links a:hover { color: #e63946; }
-
-        .section { max-width: 900px; margin: 0 auto; }
-        .section-header { margin-bottom: 40px; border-left: 4px solid #e63946; padding-left: 20px; }
-        .section-tag {
-            font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
-            font-weight: 700; letter-spacing: 0.2em; color: #e63946;
-            margin-bottom: 12px; text-transform: uppercase; display: inline-block;
-        }
-        .section-title {
-            font-size: clamp(1.6rem, 3.5vw, 2.4rem);
-            font-weight: 800; color: #0a0a0a; margin-bottom: 8px;
-        }
-        .section-subtitle {
-            color: #6b7280; font-size: 0.9rem;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .download-item {
-            padding: 24px;
-            border-radius: 16px;
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-            background: rgba(255,255,255,0.55);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.85);
-            box-shadow: 0 8px 32px rgba(10,10,10,0.08);
-            transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
-        }
-        .download-info h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 6px; }
-        .download-info p {
-            font-size: 0.82rem; color: #6b7280;
-            font-family: 'JetBrains Mono', monospace;
-            margin-bottom: 4px;
-        }
-        .download-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-        .download-code {
-            font-family: 'JetBrains Mono', monospace;
-            background: rgba(230,57,70,0.1);
-            color: #e63946;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            border: 1px solid rgba(230,57,70,0.3);
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            margin-top: 6px;
-        }
-        .status-paid { background: #16a34a; color: #fff; }
-        .status-pending { background: #f59e0b; color: #fff; }
-        .status-failed { background: #e63946; color: #fff; }
-
-        .btn {
-            padding: 12px 22px; border: none; border-radius: 10px;
-            font-size: 0.85rem; font-weight: 700; font-family: inherit;
-            cursor: pointer; text-decoration: none;
-            display: inline-flex; align-items: center; justify-content: center;
-            gap: 8px; text-transform: uppercase; letter-spacing: 0.03em;
-            transition: all 0.3s;
-        }
-        .btn-primary { background: #0a0a0a; color: #fff; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,10,10,0.3); }
-        .btn-outline {
-            background: transparent; color: #0a0a0a;
-            border: 1.5px solid #0a0a0a;
-        }
-        .btn-outline:hover { background: #0a0a0a; color: #fff; }
-        .btn-sm { padding: 9px 16px; font-size: 0.78rem; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
-
-        .empty-box {
-            text-align: center;
-            padding: 80px 20px;
-            background: rgba(255,255,255,0.55);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.85);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(10,10,10,0.08);
-        }
-        .empty-box h3 { font-size: 1.2rem; font-weight: 800; margin-bottom: 10px; }
-        .empty-box p { color: #6b7280; font-size: 0.9rem; margin-bottom: 24px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="effects.css">
 </head>
 <body>
 
@@ -147,145 +14,192 @@
     <div class="bg-orb bg-orb-1"></div>
     <div class="bg-orb bg-orb-2"></div>
 
-    <nav class="navbar">
+    <nav class="navbar glass">
         <a href="index.html" class="logo">
             <div class="logo-badge"><span class="logo-qm">QM</span></div>
-            <div>
+            <div class="logo-text">
                 <span class="logo-main">MOD<i>iOS</i></span>
                 <span class="logo-sub">By:QuangMinh</span>
             </div>
         </a>
         <div class="nav-links">
             <a href="index.html">Trang chủ</a>
-            <a href="#" id="logoutBtn">Đăng xuất</a>
         </div>
     </nav>
 
-    <section class="section">
+    <section class="section" style="padding-top: 140px;">
         <div class="section-header">
-            <span class="section-tag">// KHO TẢI VỀ</span>
-            <h2 class="section-title">SẢN PHẨM CỦA BẠN</h2>
-            <p class="section-subtitle" id="userEmail"></p>
+            <span class="section-tag">// TẢI FILE</span>
+            <h2 class="section-title" id="pageTitle">ĐANG TẢI...</h2>
+            <p class="section-subtitle" id="pageSubtitle"></p>
         </div>
 
-        <div id="downloadsList">Đang tải...</div>
+        <div id="loadingBox" class="glass-card" style="text-align:center; padding: 60px 20px;">
+            <p style="color:#6b7280;">Đang kiểm tra link...</p>
+        </div>
+
+        <div id="downloadBox" style="display:none;">
+            <div class="glass-card download-success-card">
+                <div class="success-icon" style="width:72px;height:72px;margin:0 auto 20px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;">✓</div>
+
+                <h3 id="productName" class="download-title">Sản phẩm</h3>
+                <p id="productGame" class="download-subtitle">Game</p>
+
+                <div class="download-code-wrap">
+                    Mã đơn: <b id="orderCode" class="download-code">QM0000</b>
+                </div>
+
+                <div class="download-buttons">
+                    <a href="#" id="ipaBtn" class="btn btn-primary morph-btn" target="_blank">
+                        ⬇ TẢI FILE IPA
+                    </a>
+                    <a href="#" id="videoBtn" class="btn btn-outline" target="_blank" style="display:none;">
+                        🎥 VIDEO HƯỚNG DẪN
+                    </a>
+                </div>
+
+                <div class="download-note">
+                    <p>⚠ Cần ứng dụng <b>ESign</b> để cài đặt. Mua tại <a href="https://muacert.com" target="_blank">muacert.com</a></p>
+                    <p style="margin-top:8px; font-size: 0.75rem; color:#999;">Link này dành riêng cho bạn. Không chia sẻ cho người khác.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="errorBox" style="display:none;">
+            <div class="glass-card" style="text-align:center; padding: 60px 20px;">
+                <div style="font-size:3rem; margin-bottom:16px;">❌</div>
+                <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:10px;">Link không hợp lệ</h3>
+                <p style="color:#6b7280; font-size:0.9rem; margin-bottom:24px;">Link này đã hết hạn hoặc không tồn tại.</p>
+                <a href="index.html" class="btn btn-primary morph-btn">← VỀ TRANG CHỦ</a>
+            </div>
+        </div>
     </section>
 
+    <style>
+        .download-success-card {
+            text-align: center;
+            padding: 48px 32px;
+        }
+        .download-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+            color: #0a0a0a;
+        }
+        .download-subtitle {
+            font-size: 0.85rem;
+            color: #6b7280;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 24px;
+        }
+        .download-code-wrap {
+            font-size: 0.9rem;
+            color: #6b7280;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 28px;
+        }
+        .download-code {
+            background: rgba(230,57,70,0.1);
+            color: #e63946;
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(230,57,70,0.3);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+        .download-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .download-buttons .btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 0.95rem;
+        }
+        .download-note {
+            padding-top: 20px;
+            border-top: 1px solid rgba(10,10,10,0.08);
+            font-size: 0.85rem;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+        .download-note a {
+            color: #e63946;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        @media (min-width: 768px) {
+            .download-buttons { flex-direction: row; justify-content: center; }
+            .download-buttons .btn { width: auto; min-width: 200px; }
+        }
+    </style>
+
     <script>
-        async function loadDownloads() {
+        function getToken() {
+            const p = new URLSearchParams(window.location.search);
+            return p.get('token');
+        }
+
+        async function loadDownload() {
+            const token = getToken();
+
+            if (!token) {
+                showError();
+                return;
+            }
+
             try {
-                const meRes = await fetch('/api/me');
-                if (!meRes.ok) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-                const me = await meRes.json();
-                document.getElementById('userEmail').textContent = me.user.email;
-
-                const res = await fetch('/api/my-downloads');
+                const res = await fetch('/api/download-by-token/' + token);
                 const data = await res.json();
-                const el = document.getElementById('downloadsList');
 
-                if (!data.downloads || data.downloads.length === 0) {
-                    el.innerHTML = `
-                        <div class="empty-box">
-                            <h3>📁 Kho tải về trống</h3>
-                            <p>Bạn chưa có đơn hàng nào.</p>
-                            <a href="index.html" class="btn btn-primary">← VỀ TRANG CHỦ</a>
-                        </div>
-                    `;
+                if (!data.success) {
+                    showError();
                     return;
                 }
 
-                el.innerHTML = data.downloads.map(d => {
-                    let statusBadge = '';
-                    let actionBtns = '';
-
-                    if (d.status === 'paid') {
-                        statusBadge = '<span class="status-badge status-paid">✓ ĐÃ THANH TOÁN</span>';
-                        actionBtns = `
-                            ${d.video_url ? `<a href="${d.video_url}" target="_blank" class="btn btn-outline btn-sm">🎥 VIDEO HD</a>` : ''}
-                            <button class="btn btn-primary btn-sm" data-download="${d.order_code}">⬇ TẢI FILE IPA</button>
-                        `;
-                    } else if (d.status === 'pending') {
-                        statusBadge = '<span class="status-badge status-pending">⏳ CHỜ XÁC NHẬN</span>';
-                        actionBtns = `
-                            <button class="btn btn-outline btn-sm" data-check="${d.order_code}">🔄 KIỂM TRA</button>
-                            <button class="btn btn-primary btn-sm" disabled>⏳ ĐANG CHỜ</button>
-                        `;
-                    } else {
-                        statusBadge = '<span class="status-badge status-failed">✗ THẤT BẠI</span>';
-                        actionBtns = `<a href="index.html" class="btn btn-outline btn-sm">↻ MUA LẠI</a>`;
-                    }
-
-                    return `
-                        <div class="download-item">
-                            <div class="download-info">
-                                <h3>${d.product_name}</h3>
-                                <p>${d.game} · Đơn: <span class="download-code">${d.order_code}</span></p>
-                                <div>${statusBadge}</div>
-                            </div>
-                            <div class="download-actions">${actionBtns}</div>
-                        </div>
-                    `;
-                }).join('');
-
-                el.querySelectorAll('[data-download]').forEach(btn => {
-                    btn.addEventListener('click', () => downloadFile(btn.dataset.download));
-                });
-                el.querySelectorAll('[data-check]').forEach(btn => {
-                    btn.addEventListener('click', () => checkStatus(btn.dataset.check));
-                });
+                showDownload(data);
             } catch (err) {
-                alert('Lỗi: ' + err.message);
+                showError();
             }
         }
 
-        async function downloadFile(orderCode) {
-            try {
-                const res = await fetch('/api/download/' + orderCode);
-                const data = await res.json();
-                if (data.success) {
-                    window.location.href = data.url;
-                } else {
-                    alert('Lỗi: ' + data.error);
-                }
-            } catch (err) {
-                alert('Lỗi kết nối: ' + err.message);
+        function showDownload(data) {
+            document.getElementById('loadingBox').style.display = 'none';
+            document.getElementById('downloadBox').style.display = 'block';
+
+            document.getElementById('pageTitle').textContent = 'TẢI FILE IPA';
+            document.getElementById('pageSubtitle').textContent = 'Cảm ơn bạn đã mua hàng';
+
+            document.getElementById('productName').textContent = data.product_name;
+            document.getElementById('productGame').textContent = data.game;
+            document.getElementById('orderCode').textContent = data.order_code;
+
+            const ipaBtn = document.getElementById('ipaBtn');
+            if (data.ipa_path) {
+                ipaBtn.href = data.ipa_path;
+                ipaBtn.style.display = 'inline-flex';
+            } else {
+                ipaBtn.style.display = 'none';
+            }
+
+            const videoBtn = document.getElementById('videoBtn');
+            if (data.video_url) {
+                videoBtn.href = data.video_url;
+                videoBtn.style.display = 'inline-flex';
             }
         }
 
-        async function checkStatus(orderCode) {
-            try {
-                const res = await fetch('/api/order-status/' + orderCode);
-                const data = await res.json();
-                if (data.status === 'paid') {
-                    alert('Đơn đã được xác nhận! Tải file ngay.');
-                    loadDownloads();
-                } else if (data.status === 'pending') {
-                    alert('Đơn vẫn đang chờ admin xác nhận. Vui lòng đợi thêm.');
-                } else {
-                    alert('Đơn đã bị từ chối.');
-                    loadDownloads();
-                }
-            } catch (err) {
-                alert('Lỗi: ' + err.message);
-            }
+        function showError() {
+            document.getElementById('loadingBox').style.display = 'none';
+            document.getElementById('errorBox').style.display = 'block';
+            document.getElementById('pageTitle').textContent = 'LỖI';
+            document.getElementById('pageSubtitle').textContent = '';
         }
 
-        async function logout() {
-            await fetch('/api/logout', { method: 'POST' });
-            localStorage.removeItem('user');
-            window.location.href = 'index.html';
-        }
-
-        document.getElementById('logoutBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            logout();
-        });
-
-        loadDownloads();
-        setInterval(loadDownloads, 30000);
+        document.addEventListener('DOMContentLoaded', loadDownload);
     </script>
+
 </body>
 </html>
