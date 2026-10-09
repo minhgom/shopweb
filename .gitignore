@@ -5,3 +5,5 @@ uploads/
 *.db
 *.log
 backup_*.db
+*.txt
+github_pat_*
