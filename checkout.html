@@ -12,9 +12,7 @@
             --bg: #f4f6fb;
             --text: #0a0a0a;
             --text-dim: #6b7280;
-            --text-dim2: #9ca3af;
             --accent: #e63946;
-            --accent-glow: rgba(230, 57, 70, 0.3);
             --line: rgba(10, 10, 10, 0.08);
             --line-hi: rgba(10, 10, 10, 0.15);
             --shadow: 0 4px 20px rgba(10, 10, 10, 0.06);
@@ -37,7 +35,6 @@
             line-height: 1.5;
         }
 
-        /* BG */
         .bg-pattern {
             position: fixed; inset: 0; z-index: -3;
             background-image:
@@ -55,7 +52,6 @@
         .bg-orb-2 { width: 500px; height: 500px; bottom: -100px; left: -100px;
             background: radial-gradient(circle, rgba(10,10,10,0.08), transparent 70%); }
 
-        /* NAVBAR */
         .navbar {
             position: fixed; top: 20px; left: 50%;
             transform: translateX(-50%);
@@ -87,10 +83,8 @@
         }
         .nav-back:hover { color: var(--accent); }
 
-        /* CONTAINER */
         .container { max-width: 720px; margin: 0 auto; }
 
-        /* STEP BLOCK */
         .step-block { margin-bottom: 20px; animation: fadeUp 0.5s ease both; }
         .step-block:nth-child(1) { animation-delay: 0s; }
         .step-block:nth-child(2) { animation-delay: 0.05s; }
@@ -121,14 +115,12 @@
         .step-head-text h3 {
             font-size: 1rem; font-weight: 800;
             color: var(--text); margin-bottom: 2px;
-            letter-spacing: -0.01em;
         }
         .step-head-text p {
             font-size: 0.75rem; color: var(--text-dim);
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* GLASS CARD */
         .card {
             background: var(--glass);
             backdrop-filter: blur(20px) saturate(180%);
@@ -148,7 +140,6 @@
             pointer-events: none;
         }
 
-        /* PRODUCT INFO */
         .product-info {
             display: flex; justify-content: space-between;
             align-items: center; gap: 16px; flex-wrap: wrap;
@@ -156,7 +147,6 @@
         .product-name {
             font-size: 1.1rem; font-weight: 800;
             color: var(--text); margin-bottom: 4px;
-            letter-spacing: -0.01em;
         }
         .product-desc {
             font-size: 0.78rem; color: var(--text-dim);
@@ -168,7 +158,6 @@
             letter-spacing: -0.03em;
         }
 
-        /* NOTE */
         .note {
             display: flex; align-items: flex-start; gap: 12px;
             padding: 14px 18px; border-radius: 14px;
@@ -188,7 +177,6 @@
         }
         .note a { color: var(--accent); font-weight: 700; text-decoration: none; }
 
-        /* METHOD */
         .method-row {
             display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
         }
@@ -199,8 +187,6 @@
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             border: 2px solid var(--line);
             background: rgba(255,255,255,0.5);
-            position: relative;
-            overflow: hidden;
         }
         .method-btn:hover {
             transform: translateY(-3px);
@@ -209,7 +195,7 @@
         .method-btn.active {
             border-color: var(--accent);
             background: rgba(230,57,70,0.06);
-            box-shadow: 0 8px 24px var(--accent-glow);
+            box-shadow: 0 8px 24px rgba(230,57,70,0.15);
         }
         .method-icon { font-size: 1.6rem; margin-bottom: 6px; }
         .method-name {
@@ -222,7 +208,6 @@
             text-transform: uppercase; letter-spacing: 0.05em;
         }
 
-        /* PANE */
         .pane { display: none; animation: paneIn 0.4s ease; }
         .pane.active { display: block; }
         @keyframes paneIn {
@@ -230,7 +215,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* QR LAYOUT */
         .qr-layout {
             display: flex; flex-direction: column; align-items: center;
             gap: 16px; padding: 8px 0;
@@ -243,17 +227,17 @@
             overflow: hidden;
             padding: 10px;
             box-shadow: 0 8px 32px rgba(10,10,10,0.08);
-            transition: transform 0.4s ease;
+            display: flex; align-items: center; justify-content: center;
         }
-        .qr-box:hover { transform: translateY(-4px); }
         .qr-box img { width: 100%; height: 100%; object-fit: contain; }
-        .qr-placeholder {
+        .qr-ph {
             width: 100%; height: 100%;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             gap: 6px; color: var(--text-dim);
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem; background: #f4f6fb;
+            font-size: 0.75rem;
+            background: #f4f6fb;
             border-radius: 12px;
         }
         .qr-amount {
@@ -263,7 +247,6 @@
             padding: 10px 24px;
             background: rgba(230,57,70,0.08);
             border-radius: 12px;
-            letter-spacing: -0.02em;
         }
         .qr-note {
             font-size: 0.8rem; color: var(--text-dim);
@@ -282,14 +265,12 @@
             letter-spacing: 0.1em;
         }
 
-        /* CARD FORM */
         .card-note {
             padding: 12px 16px; border-radius: 12px;
             background: rgba(245,158,11,0.08);
             border: 1px solid rgba(245,158,11,0.3);
             margin-bottom: 18px;
             font-size: 0.8rem; line-height: 1.5;
-            color: var(--text);
         }
         .card-note b { color: #d97706; font-weight: 800; }
 
@@ -317,7 +298,7 @@
         }
         .form-group input[readonly] {
             background: #f0f0f0; cursor: not-allowed;
-            font-weight: 700; color: var(--text);
+            font-weight: 700;
         }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
@@ -332,14 +313,13 @@
         .card-total-label {
             font-size: 0.72rem; color: var(--text-dim);
             font-family: 'JetBrains Mono', monospace;
-            text-transform: uppercase; letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
         .card-total-value {
             font-size: 1.2rem; font-weight: 900;
             color: var(--accent);
         }
 
-        /* BUTTON */
         .btn {
             padding: 14px 24px;
             border: none; border-radius: 12px;
@@ -371,7 +351,6 @@
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-full { width: 100%; padding: 16px; font-size: 0.95rem; }
 
-        /* SUCCESS */
         .success-box {
             padding: 48px 24px; border-radius: 20px;
             text-align: center;
@@ -393,16 +372,10 @@
             display: flex; align-items: center; justify-content: center;
             font-size: 2rem; font-weight: 900;
             box-shadow: 0 16px 40px rgba(22,163,74,0.3);
-            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
-        }
-        @keyframes popIn {
-            from { transform: scale(0); }
-            to { transform: scale(1); }
         }
         .success-box h2 {
             font-size: 1.4rem; font-weight: 900;
             margin-bottom: 10px; color: var(--text);
-            letter-spacing: -0.02em;
         }
         .success-box p {
             font-size: 0.88rem; color: var(--text-dim);
@@ -417,7 +390,6 @@
             border-radius: 10px;
             display: inline-block;
             margin: 12px 0 20px;
-            color: var(--text);
         }
         .success-code b { color: var(--accent); letter-spacing: 0.1em; }
 
@@ -457,7 +429,11 @@
             font-size: 1.8rem; font-weight: 900;
         }
 
-        /* MOBILE */
+        .btn-row {
+            display: flex; gap: 10px; justify-content: center;
+            flex-wrap: wrap; margin-top: 16px;
+        }
+
         @media (max-width: 640px) {
             body { padding: 80px 12px 40px; }
             .navbar { top: 12px; padding: 10px 14px; }
@@ -473,7 +449,7 @@
             .step-head-text h3 { font-size: 0.92rem; }
             .step-head-text p { font-size: 0.68rem; }
 
-            .card { padding: 16px 16px; border-radius: 16px; }
+            .card { padding: 16px; border-radius: 16px; }
             .product-name { font-size: 0.95rem; }
             .product-desc { font-size: 0.7rem; }
             .product-price { font-size: 1.3rem; }
@@ -529,7 +505,6 @@
 
     <div class="container">
 
-        <!-- STEP 1: SẢN PHẨM -->
         <div class="step-block" id="step1">
             <div class="step-head">
                 <div class="step-number">1</div>
@@ -549,7 +524,6 @@
             </div>
         </div>
 
-        <!-- STEP 2: LƯU Ý -->
         <div class="step-block" id="step2">
             <div class="step-head">
                 <div class="step-number">2</div>
@@ -566,7 +540,6 @@
             </div>
         </div>
 
-        <!-- STEP 3: PHƯƠNG THỨC -->
         <div class="step-block" id="step3">
             <div class="step-head">
                 <div class="step-number">3</div>
@@ -590,7 +563,6 @@
             </div>
         </div>
 
-        <!-- STEP 4: CHI TIẾT -->
         <div class="step-block" id="step4">
             <div class="step-head">
                 <div class="step-number">4</div>
@@ -604,10 +576,9 @@
                 <div class="pane active" id="pane-bank">
                     <div class="qr-layout">
                         <div class="qr-box">
-                            <img id="qrImage" src="" alt="QR" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div class="qr-placeholder" style="display:none;">
-                                <span>QR CODE</span>
-                                <small style="font-size:0.65rem;">Chưa có ảnh</small>
+                            <img id="qrImage" src="" alt="QR" style="display:none;">
+                            <div class="qr-ph" id="qrPh" style="display:flex;">
+                                <span>Đang tải QR...</span>
                             </div>
                         </div>
                         <div class="qr-amount" id="bankAmount">0đ</div>
@@ -658,7 +629,6 @@
             </div>
         </div>
 
-        <!-- STEP 5: XÁC NHẬN -->
         <div class="step-block" id="step5">
             <div class="step-head">
                 <div class="step-number">5</div>
@@ -672,7 +642,6 @@
             </button>
         </div>
 
-        <!-- VERIFY -->
         <div class="step-block" id="verifyBlock" style="display:none;">
             <div class="success-box">
                 <div class="verify-spinner"></div>
@@ -683,7 +652,6 @@
             </div>
         </div>
 
-        <!-- EMAIL -->
         <div class="step-block" id="emailBlock" style="display:none;">
             <div class="step-head">
                 <div class="step-number">6</div>
@@ -703,21 +671,19 @@
             </div>
         </div>
 
-        <!-- ERROR -->
         <div class="step-block" id="errorBlock" style="display:none;">
             <div class="success-box">
                 <div class="error-icon-box">✕</div>
                 <h2 style="color: #e63946;">CHƯA NHẬN ĐƯỢC THANH TOÁN</h2>
                 <p>Hệ thống chưa xác minh được giao dịch của bạn.</p>
                 <p style="font-size: 0.8rem; color: #999;">Vui lòng kiểm tra lại số tiền + nội dung CK, hoặc liên hệ Zalo để được hỗ trợ.</p>
-                <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
+                <div class="btn-row">
                     <button class="btn btn-primary" onclick="retryVerify()">🔄 THỬ LẠI</button>
                     <a href="https://zalo.me/0383415468" target="_blank" class="btn btn-primary" style="background:#0068ff;">💬 LIÊN HỆ ZALO</a>
                 </div>
             </div>
         </div>
 
-        <!-- SUCCESS -->
         <div class="step-block" id="successBlock" style="display:none;">
             <div class="success-box">
                 <div class="success-icon">✓</div>
@@ -725,7 +691,7 @@
                 <p>Cảm ơn bạn! Link tải đã được gửi đến email của bạn.</p>
                 <p>Bạn có thể tải ngay bằng nút bên dưới.</p>
                 <div class="success-code">Mã đơn: <b id="successCode">QM0000</b></div>
-                <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <div class="btn-row">
                     <a href="#" id="downloadBtn" class="btn btn-primary">⬇ TẢI FILE NGAY</a>
                     <a href="index.html" class="btn btn-primary" style="background:#6b7280;">← VỀ TRANG CHỦ</a>
                 </div>
@@ -767,8 +733,22 @@
             document.getElementById('cpName').textContent = currentProduct.name;
             document.getElementById('cpDesc').textContent = currentProduct.desc + ' · ' + currentProduct.game;
 
+            // Load QR với xử lý cache
             const qrImg = document.getElementById('qrImage');
-            if (qrImg && currentProduct.qrImage) qrImg.src = currentProduct.qrImage;
+            const qrPh = document.getElementById('qrPh');
+
+            if (qrImg && qrPh && currentProduct.qrImage) {
+                qrImg.onload = function() {
+                    qrImg.style.display = 'block';
+                    qrPh.style.display = 'none';
+                };
+                qrImg.onerror = function() {
+                    qrImg.style.display = 'none';
+                    qrPh.innerHTML = '<span>Không tải được QR</span><small style="font-size:0.65rem;">Liên hệ Zalo</small>';
+                    qrPh.style.display = 'flex';
+                };
+                qrImg.src = currentProduct.qrImage + '?v=' + Date.now();
+            }
 
             updatePrices();
         }
