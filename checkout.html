@@ -5,8 +5,510 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thanh toán — By:QuangMinh</title>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="effects.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #f4f6fb;
+            --text: #0a0a0a;
+            --text-dim: #6b7280;
+            --text-dim2: #9ca3af;
+            --accent: #e63946;
+            --accent-glow: rgba(230, 57, 70, 0.3);
+            --line: rgba(10, 10, 10, 0.08);
+            --line-hi: rgba(10, 10, 10, 0.15);
+            --shadow: 0 4px 20px rgba(10, 10, 10, 0.06);
+            --shadow-hi: 0 12px 40px rgba(10, 10, 10, 0.12);
+            --glass: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.9);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Be Vietnam Pro', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 100px 16px 60px;
+            position: relative;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.5;
+        }
+
+        /* BG */
+        .bg-pattern {
+            position: fixed; inset: 0; z-index: -3;
+            background-image:
+                linear-gradient(rgba(10,10,10,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10,10,10,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+        .bg-orb {
+            position: fixed; border-radius: 50%;
+            filter: blur(80px); z-index: -2; pointer-events: none;
+        }
+        .bg-orb-1 { width: 500px; height: 500px; top: -100px; right: -100px;
+            background: radial-gradient(circle, rgba(230,57,70,0.15), transparent 70%); }
+        .bg-orb-2 { width: 500px; height: 500px; bottom: -100px; left: -100px;
+            background: radial-gradient(circle, rgba(10,10,10,0.08), transparent 70%); }
+
+        /* NAVBAR */
+        .navbar {
+            position: fixed; top: 20px; left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px); max-width: 900px;
+            z-index: 100;
+            padding: 12px 20px;
+            background: var(--glass);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: var(--shadow);
+        }
+        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+        .logo-badge {
+            width: 36px; height: 36px; background: #0a0a0a; border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .logo-qm { font-weight: 800; font-size: 1rem; color: #fff; }
+        .logo-text { display: flex; flex-direction: column; line-height: 1; }
+        .logo-main { font-weight: 800; font-size: 0.9rem; }
+        .logo-main i { color: var(--accent); font-style: normal; }
+        .logo-sub { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem;
+            color: var(--text-dim); letter-spacing: 0.1em; margin-top: 3px; }
+        .nav-back {
+            color: var(--text-dim); text-decoration: none; font-size: 0.82rem;
+            font-weight: 600; transition: color 0.3s;
+        }
+        .nav-back:hover { color: var(--accent); }
+
+        /* CONTAINER */
+        .container { max-width: 720px; margin: 0 auto; }
+
+        /* STEP BLOCK */
+        .step-block { margin-bottom: 20px; animation: fadeUp 0.5s ease both; }
+        .step-block:nth-child(1) { animation-delay: 0s; }
+        .step-block:nth-child(2) { animation-delay: 0.05s; }
+        .step-block:nth-child(3) { animation-delay: 0.1s; }
+        .step-block:nth-child(4) { animation-delay: 0.15s; }
+        .step-block:nth-child(5) { animation-delay: 0.2s; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-head {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+        .step-number {
+            width: 32px; height: 32px; border-radius: 10px;
+            background: linear-gradient(135deg, #0a0a0a, #333);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+            box-shadow: 0 4px 12px rgba(10,10,10,0.2);
+        }
+        .step-head-text { flex: 1; min-width: 0; }
+        .step-head-text h3 {
+            font-size: 1rem; font-weight: 800;
+            color: var(--text); margin-bottom: 2px;
+            letter-spacing: -0.01em;
+        }
+        .step-head-text p {
+            font-size: 0.75rem; color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* GLASS CARD */
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 20px 22px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,1), transparent);
+            pointer-events: none;
+        }
+
+        /* PRODUCT INFO */
+        .product-info {
+            display: flex; justify-content: space-between;
+            align-items: center; gap: 16px; flex-wrap: wrap;
+        }
+        .product-name {
+            font-size: 1.1rem; font-weight: 800;
+            color: var(--text); margin-bottom: 4px;
+            letter-spacing: -0.01em;
+        }
+        .product-desc {
+            font-size: 0.78rem; color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .product-price {
+            font-size: 1.6rem; font-weight: 900;
+            color: var(--accent);
+            letter-spacing: -0.03em;
+        }
+
+        /* NOTE */
+        .note {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 14px 18px; border-radius: 14px;
+            background: rgba(230,57,70,0.06);
+            border: 1px solid rgba(230,57,70,0.2);
+            font-size: 0.85rem; line-height: 1.6;
+            color: var(--text);
+        }
+        .note-icon {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .note a { color: var(--accent); font-weight: 700; text-decoration: none; }
+
+        /* METHOD */
+        .method-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+        }
+        .method-btn {
+            padding: 18px 16px;
+            border-radius: 16px;
+            text-align: center; cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 2px solid var(--line);
+            background: rgba(255,255,255,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .method-btn:hover {
+            transform: translateY(-3px);
+            border-color: var(--line-hi);
+        }
+        .method-btn.active {
+            border-color: var(--accent);
+            background: rgba(230,57,70,0.06);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+        .method-icon { font-size: 1.6rem; margin-bottom: 6px; }
+        .method-name {
+            font-size: 0.9rem; font-weight: 800;
+            color: var(--text); margin-bottom: 2px;
+        }
+        .method-desc {
+            font-size: 0.68rem; color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+
+        /* PANE */
+        .pane { display: none; animation: paneIn 0.4s ease; }
+        .pane.active { display: block; }
+        @keyframes paneIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* QR LAYOUT */
+        .qr-layout {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 16px; padding: 8px 0;
+        }
+        .qr-box {
+            width: 240px; height: 240px;
+            background: #fff;
+            border: 2px solid var(--line);
+            border-radius: 20px;
+            overflow: hidden;
+            padding: 10px;
+            box-shadow: 0 8px 32px rgba(10,10,10,0.08);
+            transition: transform 0.4s ease;
+        }
+        .qr-box:hover { transform: translateY(-4px); }
+        .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+        .qr-placeholder {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 6px; color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem; background: #f4f6fb;
+            border-radius: 12px;
+        }
+        .qr-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem; font-weight: 900;
+            color: var(--accent);
+            padding: 10px 24px;
+            background: rgba(230,57,70,0.08);
+            border-radius: 12px;
+            letter-spacing: -0.02em;
+        }
+        .qr-note {
+            font-size: 0.8rem; color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center; line-height: 1.7;
+        }
+        .qr-note b { color: var(--text); font-weight: 800; }
+        .qr-code-hl {
+            display: inline-block;
+            background: rgba(230,57,70,0.1);
+            color: var(--accent);
+            padding: 3px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(230,57,70,0.3);
+            font-weight: 800;
+            letter-spacing: 0.1em;
+        }
+
+        /* CARD FORM */
+        .card-note {
+            padding: 12px 16px; border-radius: 12px;
+            background: rgba(245,158,11,0.08);
+            border: 1px solid rgba(245,158,11,0.3);
+            margin-bottom: 18px;
+            font-size: 0.8rem; line-height: 1.5;
+            color: var(--text);
+        }
+        .card-note b { color: #d97706; font-weight: 800; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label {
+            display: block;
+            font-size: 0.68rem; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            margin-bottom: 6px; color: var(--text);
+        }
+        .form-group input {
+            width: 100%; padding: 12px 14px;
+            border-radius: 10px;
+            border: 1.5px solid var(--line-hi);
+            background: rgba(255,255,255,0.7);
+            font-family: inherit; font-size: 0.88rem;
+            color: var(--text);
+            outline: none;
+            transition: all 0.25s;
+        }
+        .form-group input:focus {
+            border-color: #0a0a0a;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(10,10,10,0.06);
+        }
+        .form-group input[readonly] {
+            background: #f0f0f0; cursor: not-allowed;
+            font-weight: 700; color: var(--text);
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .card-total {
+            margin-top: 16px; padding: 14px 18px;
+            background: rgba(230,57,70,0.06);
+            border-radius: 12px;
+            border: 1px solid rgba(230,57,70,0.15);
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .card-total-label {
+            font-size: 0.72rem; color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .card-total-value {
+            font-size: 1.2rem; font-weight: 900;
+            color: var(--accent);
+        }
+
+        /* BUTTON */
+        .btn {
+            padding: 14px 24px;
+            border: none; border-radius: 12px;
+            font-size: 0.88rem; font-weight: 700;
+            font-family: inherit; cursor: pointer;
+            text-decoration: none;
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 8px; text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s;
+            position: relative; overflow: hidden;
+        }
+        .btn-primary {
+            background: #0a0a0a; color: #fff;
+            box-shadow: 0 8px 24px rgba(10,10,10,0.2);
+        }
+        .btn-primary::before {
+            content: '';
+            position: absolute; top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(230,57,70,0.5), transparent);
+            transition: left 0.6s;
+        }
+        .btn-primary:hover::before { left: 100%; }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(10,10,10,0.3);
+        }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-full { width: 100%; padding: 16px; font-size: 0.95rem; }
+
+        /* SUCCESS */
+        .success-box {
+            padding: 48px 24px; border-radius: 20px;
+            text-align: center;
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-hi);
+            animation: successIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes successIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .success-icon {
+            width: 76px; height: 76px; margin: 0 auto 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; font-weight: 900;
+            box-shadow: 0 16px 40px rgba(22,163,74,0.3);
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+        }
+        @keyframes popIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+        .success-box h2 {
+            font-size: 1.4rem; font-weight: 900;
+            margin-bottom: 10px; color: var(--text);
+            letter-spacing: -0.02em;
+        }
+        .success-box p {
+            font-size: 0.88rem; color: var(--text-dim);
+            line-height: 1.6; margin-bottom: 10px;
+        }
+        .success-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            padding: 10px 20px;
+            background: rgba(230,57,70,0.08);
+            border: 1px solid rgba(230,57,70,0.25);
+            border-radius: 10px;
+            display: inline-block;
+            margin: 12px 0 20px;
+            color: var(--text);
+        }
+        .success-code b { color: var(--accent); letter-spacing: 0.1em; }
+
+        .verify-spinner {
+            width: 60px; height: 60px; margin: 0 auto;
+            border: 4px solid rgba(230,57,70,0.15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .verify-timer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem; font-weight: 900;
+            color: var(--accent); margin: 16px 0;
+        }
+        .verify-progress {
+            width: 100%; max-width: 280px; height: 5px;
+            background: rgba(230,57,70,0.15);
+            border-radius: 3px; margin: 16px auto 0;
+            overflow: hidden;
+        }
+        .verify-progress-bar {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--accent), #ff6b7a);
+            border-radius: 3px;
+            transition: width 1s linear;
+        }
+
+        .error-icon-box {
+            width: 60px; height: 60px; margin: 0 auto 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e63946, #ff6b7a);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; font-weight: 900;
+        }
+
+        /* MOBILE */
+        @media (max-width: 640px) {
+            body { padding: 80px 12px 40px; }
+            .navbar { top: 12px; padding: 10px 14px; }
+            .logo-badge { width: 32px; height: 32px; }
+            .logo-qm { font-size: 0.85rem; }
+            .logo-main { font-size: 0.8rem; }
+            .logo-sub { font-size: 0.52rem; }
+            .nav-back { font-size: 0.75rem; }
+
+            .step-block { margin-bottom: 16px; }
+            .step-head { gap: 10px; margin-bottom: 10px; }
+            .step-number { width: 28px; height: 28px; font-size: 0.75rem; border-radius: 8px; }
+            .step-head-text h3 { font-size: 0.92rem; }
+            .step-head-text p { font-size: 0.68rem; }
+
+            .card { padding: 16px 16px; border-radius: 16px; }
+            .product-name { font-size: 0.95rem; }
+            .product-desc { font-size: 0.7rem; }
+            .product-price { font-size: 1.3rem; }
+
+            .note { padding: 12px 14px; font-size: 0.78rem; gap: 10px; }
+            .note-icon { width: 20px; height: 20px; font-size: 0.7rem; }
+
+            .method-row { grid-template-columns: 1fr; gap: 10px; }
+            .method-btn { padding: 14px 12px; }
+            .method-icon { font-size: 1.4rem; }
+            .method-name { font-size: 0.85rem; }
+            .method-desc { font-size: 0.62rem; }
+
+            .qr-box { width: 200px; height: 200px; }
+            .qr-amount { font-size: 1.2rem; padding: 8px 18px; }
+            .qr-note { font-size: 0.7rem; }
+
+            .form-row { grid-template-columns: 1fr; gap: 8px; }
+            .form-group label { font-size: 0.62rem; }
+            .form-group input { padding: 10px 12px; font-size: 0.82rem; }
+
+            .card-total { padding: 12px 14px; }
+            .card-total-value { font-size: 1rem; }
+
+            .btn-full { padding: 14px; font-size: 0.85rem; }
+
+            .success-box { padding: 36px 18px; border-radius: 18px; }
+            .success-icon { width: 64px; height: 64px; font-size: 1.7rem; }
+            .success-box h2 { font-size: 1.1rem; }
+            .success-box p { font-size: 0.8rem; }
+            .success-code { font-size: 0.78rem; padding: 8px 14px; }
+
+            .verify-timer { font-size: 1.4rem; }
+        }
+    </style>
 </head>
 <body>
 
@@ -14,7 +516,7 @@
     <div class="bg-orb bg-orb-1"></div>
     <div class="bg-orb bg-orb-2"></div>
 
-    <nav class="navbar glass">
+    <nav class="navbar">
         <a href="index.html" class="logo">
             <div class="logo-badge"><span class="logo-qm">QM</span></div>
             <div class="logo-text">
@@ -22,9 +524,7 @@
                 <span class="logo-sub">By:QuangMinh</span>
             </div>
         </a>
-        <div class="nav-links">
-            <a href="index.html">← Quay lại</a>
-        </div>
+        <a href="index.html" class="nav-back">← Quay lại</a>
     </nav>
 
     <div class="container">
@@ -38,12 +538,14 @@
                     <p>Thông tin đơn hàng</p>
                 </div>
             </div>
-            <div class="glass-card checkout-info">
-                <div>
-                    <div class="checkout-product-name" id="cpName">Đang tải...</div>
-                    <div class="checkout-product-desc" id="cpDesc"></div>
+            <div class="card">
+                <div class="product-info">
+                    <div>
+                        <div class="product-name" id="cpName">Đang tải...</div>
+                        <div class="product-desc" id="cpDesc"></div>
+                    </div>
+                    <div class="product-price" id="cpPrice">0đ</div>
                 </div>
-                <div class="checkout-price" id="cpPrice">0đ</div>
             </div>
         </div>
 
@@ -52,14 +554,14 @@
             <div class="step-head">
                 <div class="step-number">2</div>
                 <div class="step-head-text">
-                    <h3>Lưu ý</h3>
+                    <h3>Lưu ý quan trọng</h3>
                     <p>Đọc kỹ trước khi thanh toán</p>
                 </div>
             </div>
-            <div class="checkout-note">
-                <div class="checkout-note-icon">⚠</div>
+            <div class="note">
+                <div class="note-icon">!</div>
                 <div>
-                    Tất cả sản phẩm đều là <b>file IPA</b>. Bạn <b>bắt buộc</b> phải có ứng dụng <b>chữ ký số (ESign)</b> để cài đặt. Chưa có? Mua tại <a href="https://muacert.com" target="_blank">muacert.com</a>
+                    Tất cả sản phẩm đều là <b>file IPA</b>. Bạn <b>bắt buộc</b> phải có ứng dụng <b>ESign</b> để cài đặt. Chưa có? Mua tại <a href="https://muacert.com" target="_blank">muacert.com</a>
                 </div>
             </div>
         </div>
@@ -78,7 +580,7 @@
                 <div class="method-btn active" data-method="bank" onclick="selectMethod('bank')">
                     <div class="method-icon">🏦</div>
                     <div class="method-name">Chuyển khoản</div>
-                    <div class="method-desc">Quét QR</div>
+                    <div class="method-desc">Ngân hàng / Momo</div>
                 </div>
                 <div class="method-btn" data-method="card" onclick="selectMethod('card')">
                     <div class="method-icon">💳</div>
@@ -98,20 +600,20 @@
                 </div>
             </div>
 
-            <div class="glass-card">
+            <div class="card">
                 <div class="pane active" id="pane-bank">
                     <div class="qr-layout">
                         <div class="qr-box">
                             <img id="qrImage" src="" alt="QR" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <div class="qr-placeholder" style="display:none;">
                                 <span>QR CODE</span>
-                                <small style="font-size:0.7rem;">Chưa có ảnh</small>
+                                <small style="font-size:0.65rem;">Chưa có ảnh</small>
                             </div>
                         </div>
                         <div class="qr-amount" id="bankAmount">0đ</div>
                         <div class="qr-note">
-                            Mở app ngân hàng → Quét QR → <b>Nhập đúng số tiền</b><br>
-                            Nội dung CK: <b id="bankCode">QM0000</b>
+                            Mở app ngân hàng → Quét QR → Nhập đúng số tiền<br>
+                            Nội dung CK: <span class="qr-code-hl" id="bankCode">QM0000</span>
                         </div>
                     </div>
                 </div>
@@ -142,10 +644,15 @@
                         <input type="number" id="cardValue" placeholder="VD: 50000" step="1000">
                     </div>
 
-                    <div class="qr-amount" style="text-align:center;margin-top:20px;" id="cardAmount">0đ</div>
-                    <div class="qr-note" style="margin-top:12px;">
-                        Loại thẻ: <b>Viettel</b><br>
-                        Nội dung: <b id="cardCodeDisplay">QM0000</b>
+                    <div class="card-total">
+                        <div>
+                            <div class="card-total-label">Cần thanh toán</div>
+                            <div class="card-total-value" id="cardAmount">0đ</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div class="card-total-label">Loại thẻ</div>
+                            <div style="font-weight:800;font-size:0.9rem;">Viettel</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -160,12 +667,23 @@
                     <p>Bấm nút bên dưới sau khi đã chuyển khoản</p>
                 </div>
             </div>
-            <button class="btn btn-primary btn-full morph-btn" id="confirmBtn" onclick="confirmPayment()">
+            <button class="btn btn-primary btn-full" id="confirmBtn" onclick="confirmPayment()">
                 ✓ TÔI ĐÃ THANH TOÁN
             </button>
         </div>
 
-        <!-- STEP 6: NHẬP EMAIL (hiện sau khi thanh toán) -->
+        <!-- VERIFY -->
+        <div class="step-block" id="verifyBlock" style="display:none;">
+            <div class="success-box">
+                <div class="verify-spinner"></div>
+                <h2 style="margin-top:20px;">ĐANG XÁC MINH</h2>
+                <p>Hệ thống đang kiểm tra giao dịch của bạn...</p>
+                <div class="verify-timer" id="verifyTimer">60s</div>
+                <div class="verify-progress"><div class="verify-progress-bar" id="verifyProgress"></div></div>
+            </div>
+        </div>
+
+        <!-- EMAIL -->
         <div class="step-block" id="emailBlock" style="display:none;">
             <div class="step-head">
                 <div class="step-number">6</div>
@@ -174,18 +692,32 @@
                     <p>Hệ thống sẽ gửi link tải + hiện ngay bên dưới</p>
                 </div>
             </div>
-            <div class="glass-card">
+            <div class="card">
                 <div class="form-group">
                     <label>Email của bạn *</label>
                     <input type="email" id="customerEmail" placeholder="your-email@example.com" required>
                 </div>
-                <button class="btn btn-primary btn-full morph-btn" id="emailBtn" onclick="submitEmail()">
+                <button class="btn btn-primary btn-full" id="emailBtn" onclick="submitEmail()">
                     📧 GỬI LINK TẢI
                 </button>
             </div>
         </div>
 
-        <!-- STEP 7: THÀNH CÔNG -->
+        <!-- ERROR -->
+        <div class="step-block" id="errorBlock" style="display:none;">
+            <div class="success-box">
+                <div class="error-icon-box">✕</div>
+                <h2 style="color: #e63946;">CHƯA NHẬN ĐƯỢC THANH TOÁN</h2>
+                <p>Hệ thống chưa xác minh được giao dịch của bạn.</p>
+                <p style="font-size: 0.8rem; color: #999;">Vui lòng kiểm tra lại số tiền + nội dung CK, hoặc liên hệ Zalo để được hỗ trợ.</p>
+                <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
+                    <button class="btn btn-primary" onclick="retryVerify()">🔄 THỬ LẠI</button>
+                    <a href="https://zalo.me/0383415468" target="_blank" class="btn btn-primary" style="background:#0068ff;">💬 LIÊN HỆ ZALO</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUCCESS -->
         <div class="step-block" id="successBlock" style="display:none;">
             <div class="success-box">
                 <div class="success-icon">✓</div>
@@ -193,9 +725,9 @@
                 <p>Cảm ơn bạn! Link tải đã được gửi đến email của bạn.</p>
                 <p>Bạn có thể tải ngay bằng nút bên dưới.</p>
                 <div class="success-code">Mã đơn: <b id="successCode">QM0000</b></div>
-                <div class="success-actions">
-                    <a href="#" id="downloadBtn" class="btn btn-primary morph-btn" target="_blank">⬇ TẢI FILE NGAY</a>
-                    <a href="index.html" class="btn btn-outline">← VỀ TRANG CHỦ</a>
+                <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                    <a href="#" id="downloadBtn" class="btn btn-primary">⬇ TẢI FILE NGAY</a>
+                    <a href="index.html" class="btn btn-primary" style="background:#6b7280;">← VỀ TRANG CHỦ</a>
                 </div>
             </div>
         </div>
@@ -216,6 +748,8 @@
         let currentMethod = 'bank';
         let orderCode = '';
         let orderToken = '';
+        let verifyInterval = null;
+        let pollInterval = null;
 
         function getProductId() {
             const p = new URLSearchParams(window.location.search);
@@ -296,12 +830,13 @@
                     orderCode = data.order_code;
                     orderToken = data.download_token;
 
-                    // Ẩn step 3-5, hiện step 6 (nhập email)
                     document.getElementById('step3').style.display = 'none';
                     document.getElementById('step4').style.display = 'none';
                     document.getElementById('step5').style.display = 'none';
-                    document.getElementById('emailBlock').style.display = 'block';
+                    document.getElementById('verifyBlock').style.display = 'block';
                     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                    startVerify();
                 } else {
                     alert('Lỗi: ' + (data.error || 'Không xử lý được'));
                     btn.textContent = '✓ TÔI ĐÃ THANH TOÁN';
@@ -312,6 +847,65 @@
                 btn.textContent = '✓ TÔI ĐÃ THANH TOÁN';
                 btn.disabled = false;
             }
+        }
+
+        function startVerify() {
+            let seconds = 60;
+            const timerEl = document.getElementById('verifyTimer');
+            const progressEl = document.getElementById('verifyProgress');
+
+            if (verifyInterval) clearInterval(verifyInterval);
+            if (pollInterval) clearInterval(pollInterval);
+
+            verifyInterval = setInterval(() => {
+                seconds--;
+                if (timerEl) timerEl.textContent = seconds + 's';
+                if (progressEl) progressEl.style.width = ((60 - seconds) / 60 * 100) + '%';
+
+                if (seconds <= 0) {
+                    clearInterval(verifyInterval);
+                    showError();
+                }
+            }, 1000);
+
+            pollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/check-order/' + orderCode);
+                    const data = await res.json();
+
+                    if (data.status === 'paid') {
+                        clearInterval(pollInterval);
+                        clearInterval(verifyInterval);
+                        showEmailForm();
+                    }
+                } catch (e) {}
+            }, 3000);
+        }
+
+        function showEmailForm() {
+            if (verifyInterval) clearInterval(verifyInterval);
+            if (pollInterval) clearInterval(pollInterval);
+
+            document.getElementById('verifyBlock').style.display = 'none';
+            document.getElementById('emailBlock').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showError() {
+            if (verifyInterval) clearInterval(verifyInterval);
+            if (pollInterval) clearInterval(pollInterval);
+
+            document.getElementById('verifyBlock').style.display = 'none';
+            document.getElementById('errorBlock').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function retryVerify() {
+            document.getElementById('errorBlock').style.display = 'none';
+            document.getElementById('verifyBlock').style.display = 'block';
+            document.getElementById('verifyProgress').style.width = '0%';
+            document.getElementById('verifyTimer').textContent = '60s';
+            startVerify();
         }
 
         async function submitEmail() {
