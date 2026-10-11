@@ -1,4 +1,4 @@
-/* QM MOD iOS — v7 */
+/* QM MOD iOS — v9 FINAL */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
@@ -17,7 +17,6 @@
 }
 
 html { scroll-behavior: smooth; }
-
 body {
     font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     background: var(--bg); color: var(--text);
@@ -34,7 +33,6 @@ body {
     pointer-events: none;
 }
 
-/* ANNOUNCE */
 .announce-bar {
     position: fixed; top: 0; left: 0; right: 0; height: 36px;
     background: #0a0a0a; color: rgba(255,255,255,0.85);
@@ -55,7 +53,6 @@ body {
     background: radial-gradient(ellipse at center, #fff 0%, var(--bg) 100%);
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     transition: opacity .5s ease, visibility .5s ease;
-    will-change: opacity;
 }
 .loader-screen.done { opacity: 0; visibility: hidden; pointer-events: none; }
 .loader-rings {
@@ -63,7 +60,7 @@ body {
     margin-bottom: 28px;
     display: flex; align-items: center; justify-content: center;
 }
-.loader-ring { position: absolute; border-radius: 50%; border: 2px solid transparent; will-change: transform; }
+.loader-ring { position: absolute; border-radius: 50%; border: 2px solid transparent; }
 .loader-ring-1 { inset: 0; border-top-color: var(--accent); border-right-color: var(--accent); animation: spin 1.4s linear infinite; }
 .loader-ring-2 { inset: 14px; border-bottom-color: var(--text); border-left-color: var(--text); animation: spin 2s linear infinite reverse; }
 .loader-ring-3 { inset: 28px; border-top-color: var(--dim-2); animation: spin 2.6s linear infinite; }
@@ -164,13 +161,49 @@ body {
     transition: all 0.3s;
     text-decoration: none; white-space: nowrap;
     text-transform: uppercase; letter-spacing: 0.04em;
+    position: relative; overflow: hidden;
 }
 .btn-sm { padding: 9px 16px; font-size: 0.75rem; border-radius: 10px; }
 .btn-full { width: 100%; padding: 15px; font-size: 0.9rem; }
 .btn-primary { background: #0a0a0a; color: #fff; }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(10,10,10,0.28); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-outline { background: rgba(255,255,255,0.7); color: var(--text); border: 1px solid var(--line-2); }
 .btn-outline:hover { background: #0a0a0a; color: #fff; border-color: #0a0a0a; transform: translateY(-2px); }
+
+/* Ripple click cho MUA NGAY */
+.product-card .btn::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease, opacity 0.6s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+.product-card .btn.clicked::before {
+    width: 400px; height: 400px;
+    opacity: 0;
+}
+.product-card .btn span { position: relative; z-index: 2; }
+
+/* Particle bay ra */
+.click-particle {
+    position: fixed;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    pointer-events: none;
+    z-index: 9999;
+    animation: particleFly 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes particleFly {
+    0% { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+}
 
 /* HERO */
 .hero {
@@ -228,10 +261,10 @@ body {
 }
 .section-subtitle { color: var(--dim); font-size: 0.9rem; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
 
-/* ESIGN — ICON BÊN PHẢI */
+/* ESIGN */
 .esign-box {
     display: flex;
-    flex-direction: row;
+    flex-direction: row-reverse;
     justify-content: space-between;
     align-items: center;
     gap: 28px;
@@ -248,8 +281,6 @@ body {
     background: radial-gradient(circle at 100% 0%, rgba(230,57,70,0.25), transparent 60%);
     pointer-events: none;
 }
-.esign-left { order: 2; flex-shrink: 0; }
-.esign-right { order: 1; flex: 1; min-width: 0; position: relative; z-index: 1; }
 .esign-icon {
     width: 100px;
     height: 100px;
@@ -261,7 +292,9 @@ body {
     display: block;
     background: #fff;
     padding: 6px;
+    flex-shrink: 0;
 }
+.esign-right { flex: 1; min-width: 0; position: relative; z-index: 1; }
 .esign-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
     color: var(--accent-2); letter-spacing: 0.22em; margin-bottom: 8px; font-weight: 700; }
 .esign-title { font-size: 1.25rem; font-weight: 900; margin-bottom: 10px; color: #fff; }
@@ -279,9 +312,8 @@ body {
 .category-card {
     position: relative; height: 300px; border-radius: 20px; overflow: hidden;
     cursor: pointer; transition: transform 0.4s ease, box-shadow 0.4s ease;
-    background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+    background: #1a1a1a;
     box-shadow: var(--shadow);
-    will-change: transform;
 }
 .category-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
 .category-bg {
@@ -361,7 +393,7 @@ body {
 .tab:hover { color: var(--text); }
 .tab.active { color: #fff; background: #0a0a0a; }
 
-/* PRODUCTS — CARD ĐỀU NHAU */
+/* PRODUCTS */
 .products-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -380,26 +412,12 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 280px;
-    will-change: transform;
 }
 .product-card:hover {
     transform: translateY(-6px);
     border-color: var(--accent);
     box-shadow: 0 20px 48px rgba(230,57,70,0.15);
 }
-/* Liquid glass layer */
-.product-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 40%, rgba(230,57,70,0.08) 100%);
-    opacity: 0;
-    transition: opacity 0.5s;
-    pointer-events: none;
-    z-index: 1;
-}
-.product-card:hover::before { opacity: 1; }
-
 .product-badge {
     position: absolute; top: 16px; left: 16px;
     font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 800;
@@ -424,16 +442,15 @@ body {
     background: rgba(230,57,70,0.08); color: var(--accent);
     margin-bottom: 14px; margin-top: 8px; letter-spacing: 0.08em;
     align-self: flex-start;
-    position: relative; z-index: 2;
 }
-.product-name { font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; line-height: 1.3; position: relative; z-index: 2; min-height: 2.6em; }
-.product-desc { font-size: 0.82rem; color: var(--dim); margin-bottom: 14px; line-height: 1.5; flex-grow: 1; position: relative; z-index: 2; }
-.product-price { font-size: 1.7rem; font-weight: 900; color: var(--text); margin-bottom: 16px; margin-top: auto; position: relative; z-index: 2; }
-.product-card .btn { width: 100%; position: relative; z-index: 2; }
+.product-name { font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; line-height: 1.3; min-height: 2.6em; }
+.product-desc { font-size: 0.82rem; color: var(--dim); margin-bottom: 14px; line-height: 1.5; flex-grow: 1; }
+.product-price { font-size: 1.7rem; font-weight: 900; color: var(--text); margin-bottom: 16px; margin-top: auto; }
+.product-card .btn { width: 100%; }
 .empty-state { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--dim-2);
     font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
 
-/* ============ MORPH MODAL (PowerPoint style) ============ */
+/* MORPH MODAL */
 .morph-overlay {
     position: fixed; inset: 0; z-index: 9000;
     background: rgba(0,0,0,0.5);
@@ -446,7 +463,6 @@ body {
     transition: opacity 0.4s ease, visibility 0.4s ease;
 }
 .morph-overlay.on { opacity: 1; visibility: visible; }
-
 .morph-card {
     width: 100%; max-width: 480px;
     background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
@@ -455,31 +471,14 @@ body {
     border: 1px solid rgba(255,255,255,0.95);
     border-radius: 28px;
     padding: 32px 28px;
-    box-shadow:
-        0 40px 100px rgba(0,0,0,0.25),
-        inset 0 1px 0 rgba(255,255,255,1),
-        inset 0 -1px 0 rgba(0,0,0,0.05);
+    box-shadow: 0 40px 100px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,1);
     position: relative;
     overflow: hidden;
     transform: scale(0.7) translateY(40px);
     opacity: 0;
     transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
 }
-.morph-overlay.on .morph-card {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-}
-/* Liquid shine */
-.morph-card::before {
-    content: '';
-    position: absolute; top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
-    transition: left 1.2s ease;
-    pointer-events: none;
-}
-.morph-overlay.on .morph-card::before { left: 200%; }
-
+.morph-overlay.on .morph-card { transform: scale(1) translateY(0); opacity: 1; }
 .morph-close {
     position: absolute; top: 16px; right: 16px;
     width: 36px; height: 36px;
@@ -493,7 +492,6 @@ body {
     z-index: 2;
 }
 .morph-close:hover { background: var(--accent); color: #fff; border-color: var(--accent); transform: rotate(90deg); }
-
 .morph-badge {
     display: inline-block;
     font-family: 'JetBrains Mono', monospace;
@@ -506,55 +504,23 @@ body {
 .morph-badge.new { background: #16a34a; }
 .morph-badge.sale { background: #f59e0b; }
 .morph-badge.vip { background: #8b5cf6; }
-
 .morph-game {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.68rem; font-weight: 700;
     color: var(--accent); letter-spacing: 0.1em;
     margin-bottom: 8px;
 }
-
-.morph-title {
-    font-size: 1.5rem; font-weight: 900;
-    line-height: 1.2;
-    margin-bottom: 10px;
-    letter-spacing: -0.02em;
-}
-
-.morph-desc {
-    color: var(--dim);
-    font-size: 0.88rem;
-    line-height: 1.6;
-    margin-bottom: 20px;
-}
-
-.morph-price {
-    font-size: 2.4rem; font-weight: 900;
-    color: var(--accent);
-    letter-spacing: -0.03em;
-    margin-bottom: 24px;
-}
-
-.morph-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
-    margin: 20px 0;
-}
-
+.morph-title { font-size: 1.5rem; font-weight: 900; line-height: 1.2; margin-bottom: 10px; letter-spacing: -0.02em; }
+.morph-desc { color: var(--dim); font-size: 0.88rem; line-height: 1.6; margin-bottom: 20px; }
+.morph-price { font-size: 2.4rem; font-weight: 900; color: var(--accent); letter-spacing: -0.03em; margin-bottom: 24px; }
+.morph-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent); margin: 20px 0; }
 .morph-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.82rem;
-    color: var(--dim);
-    margin-bottom: 20px;
+    display: flex; justify-content: space-between;
+    font-size: 0.82rem; color: var(--dim); margin-bottom: 20px;
     font-family: 'JetBrains Mono', monospace;
 }
 .morph-meta b { color: var(--text); font-weight: 700; }
-
-.morph-actions {
-    display: flex; gap: 10px;
-    flex-direction: column;
-}
+.morph-actions { display: flex; gap: 10px; flex-direction: column; }
 
 /* GUIDE */
 .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
@@ -586,12 +552,13 @@ body {
 .support-icon {
     width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 15px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; font-weight: 900; color: #fff;
+    color: #fff;
 }
-.support-icon.zl { background: #0068ff; font-size: 0.95rem; }
-.support-icon.fb { background: #1877f2; font-size: 1.6rem; }
-.support-icon.tt { background: #000; font-size: 1.5rem; }
-.support-icon.em { background: var(--accent); font-size: 1.3rem; }
+.support-icon.zl { background: #0068ff; }
+.support-icon.fb { background: #1877f2; }
+.support-icon.tt { background: #000; }
+.support-icon.em { background: var(--accent); }
+.support-icon svg { width: 26px; height: 26px; display: block; }
 .support-name { font-size: 0.95rem; font-weight: 800; margin-bottom: 4px; }
 .support-desc { font-size: 0.78rem; color: var(--dim-2); font-family: 'JetBrains Mono', monospace; word-break: break-all; }
 
@@ -736,351 +703,4 @@ footer { padding: 60px 24px 32px; background: #0a0a0a; color: #fff; margin-top: 
     .guide-grid { grid-template-columns: repeat(2, 1fr); }
     .support-grid { grid-template-columns: repeat(2, 1fr); }
     .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
-}/* ============ ANIMATIONS ============ */
-
-/* Scroll reveal — fade up */
-.reveal {
-    opacity: 0;
-    transform: translateY(40px);
-    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: opacity, transform;
 }
-.reveal.in {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* Stagger delay cho card con */
-.reveal-delay-1 { transition-delay: 0.1s; }
-.reveal-delay-2 { transition-delay: 0.2s; }
-.reveal-delay-3 { transition-delay: 0.3s; }
-.reveal-delay-4 { transition-delay: 0.4s; }
-
-/* Hero title animation */
-.hero-line-1 {
-    animation: heroIn 1s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.hero-line-2 {
-    animation: heroIn 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
-}
-.hero-badge { animation: heroIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
-.hero-subtitle { animation: heroIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both; }
-.hero-buttons { animation: heroIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both; }
-@keyframes heroIn {
-    from { opacity: 0; transform: translateY(30px); filter: blur(6px); }
-    to { opacity: 1; transform: translateY(0); filter: blur(0); }
-}
-
-/* Navbar slide down */
-.navbar {
-    animation: navIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@keyframes navIn {
-    from { opacity: 0; transform: translate(-50%, -40px); }
-    to { opacity: 1; transform: translate(-50%, 0); }
-}
-
-/* ESign box slide in */
-.esign-box {
-    animation: esignIn 1s cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-play-state: paused;
-}
-.esign-box.in { animation-play-state: running; }
-@keyframes esignIn {
-    from { opacity: 0; transform: translateX(-60px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-/* Category card hover 3D tilt */
-.category-card {
-    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
-    transform-style: preserve-3d;
-}
-.category-card:hover {
-    transform: translateY(-8px) scale(1.02);
-}
-
-/* Category card glow pulse */
-.category-badge.hot {
-    animation: badgePulse 2s ease-in-out infinite;
-}
-@keyframes badgePulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(230,57,70,0.6); }
-    50% { box-shadow: 0 0 0 8px rgba(230,57,70,0); }
-}
-
-.category-badge.new {
-    animation: badgePulseGreen 2s ease-in-out infinite;
-}
-@keyframes badgePulseGreen {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.6); }
-    50% { box-shadow: 0 0 0 8px rgba(22,163,74,0); }
-}
-
-/* Product card lift + glow */
-.product-card {
-    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.5s ease,
-                border-color 0.3s ease;
-}
-.product-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 30px 60px rgba(230,57,70,0.2), 0 0 0 1px rgba(230,57,70,0.3);
-}
-.product-card:hover .product-game {
-    animation: gameTagShine 0.6s ease;
-}
-@keyframes gameTagShine {
-    0% { background: rgba(230,57,70,0.08); }
-    50% { background: rgba(230,57,70,0.25); }
-    100% { background: rgba(230,57,70,0.08); }
-}
-
-/* Icon app nổi bồng bềnh */
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-}
-.logo-badge {
-    animation: float 3s ease-in-out infinite;
-}
-.esign-icon {
-    animation: float 4s ease-in-out infinite;
-}
-
-/* Wishlist heart nhịp */
-.wishlist-btn.active svg {
-    animation: heartBeat 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes heartBeat {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.4); }
-    100% { transform: scale(1); }
-}
-
-/* Guide step stagger */
-.guide-step {
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.4s ease,
-                border-color 0.3s;
-}
-.guide-step:hover {
-    transform: translateY(-8px) rotate(-1deg);
-}
-
-/* Step number gradient animation */
-.step-num {
-    background: linear-gradient(135deg, #0a0a0a 0%, #e63946 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    background-size: 200% 200%;
-    animation: stepGradient 4s ease infinite;
-}
-@keyframes stepGradient {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-}
-
-/* Support card bounce hover */
-.support-card {
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-                box-shadow 0.4s ease,
-                border-color 0.3s;
-}
-.support-card:hover {
-    transform: translateY(-8px) scale(1.03);
-}
-.support-card:hover .support-icon {
-    animation: iconBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes iconBounce {
-    0% { transform: scale(1) rotate(0deg); }
-    50% { transform: scale(1.15) rotate(-8deg); }
-    100% { transform: scale(1) rotate(0deg); }
-}
-
-/* Button shine */
-.btn-primary { position: relative; overflow: hidden; }
-.btn-primary::after {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    transition: left 0.7s ease;
-    pointer-events: none;
-}
-.btn-primary:hover::after { left: 100%; }
-
-/* Section header underline animation */
-.section-header {
-    position: relative;
-}
-.section-header::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 4px;
-    background: var(--accent);
-    transform: scaleY(0);
-    transform-origin: top;
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.section-header.in::before {
-    transform: scaleY(1);
-}
-
-/* CTA card glow pulse */
-.cta-card {
-    animation: ctaGlow 4s ease-in-out infinite;
-}
-@keyframes ctaGlow {
-    0%, 100% { box-shadow: 0 24px 64px rgba(0,0,0,0.12); }
-    50% { box-shadow: 0 24px 80px rgba(230,57,70,0.25); }
-}
-
-/* Loading shimmer cho ảnh */
-.category-bg {
-    background-image: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite linear;
-}
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
-
-/* Cursor hiệu ứng mượt */
-html { scroll-behavior: smooth; }
-
-/* Reduce motion cho ai bị chóng mặt */
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}/* ============ CLICK EFFECTS ============ */
-
-/* Button click ripple */
-.product-card .btn {
-    position: relative;
-    overflow: hidden;
-}
-.product-card .btn::before {
-    content: '';
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 0; height: 0;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.4);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s ease, height 0.6s ease, opacity 0.6s ease;
-    pointer-events: none;
-    z-index: 1;
-}
-.product-card .btn.clicked::before {
-    width: 400px; height: 400px;
-    opacity: 0;
-}
-.product-card .btn span {
-    position: relative;
-    z-index: 2;
-}
-
-/* Button press down */
-.product-card .btn:active {
-    transform: scale(0.97);
-}
-
-/* Morph overlay nâng cấp */
-.morph-overlay {
-    backdrop-filter: blur(0px);
-    transition: backdrop-filter 0.5s ease, opacity 0.5s ease, visibility 0.5s ease;
-}
-.morph-overlay.on {
-    backdrop-filter: blur(16px);
-}
-
-/* Particles bay ra khi click */
-.click-particle {
-    position: fixed;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    pointer-events: none;
-    z-index: 9999;
-    animation: particleFly 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes particleFly {
-    0% { opacity: 1; transform: translate(0,0) scale(1); }
-    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
-}
-
-/* Morph card entry — bật lên */
-.morph-overlay.on .morph-card {
-    animation: morphBounce 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-@keyframes morphBounce {
-    0% { opacity: 0; transform: scale(0.5) translateY(80px); }
-    60% { opacity: 1; transform: scale(1.04) translateY(-8px); }
-    100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-/* Element con chạy vào lần lượt */
-.morph-overlay.on .morph-badge { animation: childIn 0.5s 0.15s both; }
-.morph-overlay.on .morph-game { animation: childIn 0.5s 0.2s both; }
-.morph-overlay.on .morph-title { animation: childIn 0.5s 0.25s both; }
-.morph-overlay.on .morph-desc { animation: childIn 0.5s 0.3s both; }
-.morph-overlay.on .morph-price { animation: childIn 0.5s 0.35s both; }
-.morph-overlay.on .morph-meta { animation: childIn 0.5s 0.45s both; }
-.morph-overlay.on .morph-actions { animation: childIn 0.5s 0.55s both; }
-
-@keyframes childIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Morph value pop-in cho giá */
-.morph-overlay.on .morph-price {
-    animation: pricePop 0.7s 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-@keyframes pricePop {
-    0% { opacity: 0; transform: scale(0.5); }
-    70% { opacity: 1; transform: scale(1.15); }
-    100% { opacity: 1; transform: scale(1); }
-}
-
-/* Nút mua trong modal — shine chạy */
-.morph-actions .btn-primary {
-    position: relative;
-    overflow: hidden;
-}
-.morph-actions .btn-primary::after {
-    content: '';
-    position: absolute; top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
-    animation: modalShine 2s ease infinite;
-    pointer-events: none;
-}
-@keyframes modalShine {
-    0% { left: -100%; }
-    60%, 100% { left: 200%; }
-}
-
-/* Card con của modal hover */
-.morph-card:hover {
-    box-shadow: 0 50px 120px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,1);
-}.support-icon {
-    width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 15px;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff;
-}
-.support-icon.zl { background: #0068ff; }
-.support-icon.fb { background: #1877f2; }
-.support-icon.tt { background: #000; }
-.support-icon.em { background: var(--accent); }
-.support-icon svg { width: 26px; height: 26px; }

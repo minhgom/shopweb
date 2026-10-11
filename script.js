@@ -1,4 +1,4 @@
-/* QM MOD iOS — script.js v7 (morph + fix lag) */
+/* QM MOD iOS — script.js v8 (click animation) */
 console.log('[QM] script loaded');
 
 /* ===== LOADER ===== */
@@ -48,6 +48,24 @@ let currentSort = 'default';
 let currentSearch = '';
 let wishlist = JSON.parse(localStorage.getItem('qm_wishlist') || '[]');
 
+/* ===== PARTICLES ===== */
+function spawnParticles(x, y) {
+    const colors = ['#e63946', '#ff4757', '#ffb829', '#8052ff'];
+    for (let i = 0; i < 14; i++) {
+        const p = document.createElement('div');
+        p.className = 'click-particle';
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        const angle = (Math.PI * 2 * i) / 14 + Math.random() * 0.5;
+        const dist = 60 + Math.random() * 90;
+        p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+        p.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 900);
+    }
+}
+
 /* ===== RENDER ===== */
 function renderProducts() {
     const grid = $('productsGrid');
@@ -83,13 +101,24 @@ function renderProducts() {
             <div class="product-name">${p.name}</div>
             <div class="product-desc">${p.desc}</div>
             <div class="product-price">${fmt(p.price)}</div>
-            <button class="btn btn-primary btn-full" data-morph="${p.id}">MUA NGAY</button>
+            <button class="btn btn-primary btn-full" data-morph="${p.id}"><span>MUA NGAY</span></button>
         </div>
     `).join('');
 
+    // Click MUA NGAY — ripple + particles + morph
     grid.querySelectorAll('[data-morph]').forEach(b => {
-        b.addEventListener('click', () => openMorph(parseInt(b.dataset.morph)));
+        b.addEventListener('click', (e) => {
+            b.classList.add('clicked');
+            setTimeout(() => b.classList.remove('clicked'), 600);
+
+            const rect = b.getBoundingClientRect();
+            spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+            setTimeout(() => openMorph(parseInt(b.dataset.morph)), 150);
+        });
     });
+
+    // Wishlist
     grid.querySelectorAll('[data-wish]').forEach(b => {
         b.addEventListener('click', e => {
             e.stopPropagation();
@@ -171,6 +200,37 @@ window.addEventListener('scroll', () => {
     if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
     if (btt) btt.classList.toggle('show', window.scrollY > 400);
 }, { passive: true });
+
+/* ===== SCROLL REVEAL ===== */
+(function initReveal() {
+    const els = document.querySelectorAll(
+        '.section-header, .esign-box, .category-card, .guide-step, .support-card, .cta-card'
+    );
+    els.forEach((el, i) => {
+        el.classList.add('reveal');
+        if (i % 4 === 1) el.classList.add('reveal-delay-1');
+        if (i % 4 === 2) el.classList.add('reveal-delay-2');
+        if (i % 4 === 3) el.classList.add('reveal-delay-3');
+    });
+
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('in');
+                io.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.08, rootMargin: '0px 0px -60px 0px' });
+
+    els.forEach(el => io.observe(el));
+
+    setTimeout(() => {
+        document.querySelectorAll('.reveal:not(.in)').forEach(el => {
+            const r = el.getBoundingClientRect();
+            if (r.top < window.innerHeight) el.classList.add('in');
+        });
+    }, 2500);
+})();
 
 /* ===== GLOBAL ===== */
 function scrollToId(id) {
