@@ -1,37 +1,39 @@
-/* QM MOD iOS — script.js v6 (no GSAP) */
+/* QM MOD iOS — script.js v7 (morph + fix lag) */
 console.log('[QM] script loaded');
 
-/* ===== LOADER — tự tắt sau 2.2s ===== */
+/* ===== LOADER ===== */
 window.addEventListener('load', () => {
     const loader = document.getElementById('loader');
     if (!loader) return;
     setTimeout(() => {
         loader.classList.add('done');
         setTimeout(() => { loader.style.display = 'none'; }, 600);
-    }, 2200);
+    }, 1800);
 });
 
-/* ===== TYPING ===== */
+/* ===== TYPING — TÊN GAME ===== */
 const TYPING_TEXT = [
-    'MOD GAME iOS — GIÁ RẺ NHẤT',
-    'NHẬN LINK TẢI TRONG 30 GIÂY',
-    'BẢO HÀNH TRỌN ĐỜI'
+    'BUS SIMULATOR INDONESIA',
+    'GTA SAN ANDREAS',
+    'TRUCKERS OF EUROPE 3',
+    'TRUCK SIMULATOR USA EVO',
+    'COMBO 3 APP PREMIUM'
 ];
 let ti = 0, ci = 0, deleting = false;
+
 function typing() {
     const el = document.getElementById('typing');
     if (!el) return;
     const cur = TYPING_TEXT[ti];
     el.textContent = deleting ? cur.slice(0, ci--) : cur.slice(0, ci++);
-    if (!deleting && ci > cur.length) { deleting = true; setTimeout(typing, 1600); return; }
+    if (!deleting && ci > cur.length) { deleting = true; setTimeout(typing, 1500); return; }
     if (deleting && ci < 0) { deleting = false; ti = (ti + 1) % TYPING_TEXT.length; ci = 0; }
-    setTimeout(typing, deleting ? 35 : 75);
+    setTimeout(typing, deleting ? 30 : 70);
 }
-typing();
 
-/* ===== PRODUCTS DATA ===== */
+/* ===== PRODUCTS ===== */
 const PRODUCTS_DATA = [
-    { id: 1, name: 'BUSSID — Mod Xe Khách', game: 'BUSSID', price: 25000, desc: 'Mod xe khách cho các thiết bị iOS', badge: 'new', badgeText: 'NEW' },
+    { id: 1, name: 'Bus Simulator Indonesia — Mod Xe Khách', game: 'BUSSID', price: 25000, desc: 'Mod xe khách cho các thiết bị iOS', badge: 'new', badgeText: 'NEW' },
     { id: 2, name: 'GTA San Andreas — Mod Xe Độ', game: 'GTA SAN', price: 35000, desc: 'Mod xe độ cho iOS', badge: 'sale', badgeText: 'SALE' },
     { id: 3, name: 'Truckers of Europe 3 — Hack Full', game: 'TOE3', price: 20000, desc: 'Hack full tiền', badge: 'hot', badgeText: 'HOT' },
     { id: 4, name: 'Truck Simulator USA EVO — Hack Full', game: 'TRUCK SIM', price: 25000, desc: 'Hack full tiền', badge: '', badgeText: '' },
@@ -81,12 +83,12 @@ function renderProducts() {
             <div class="product-name">${p.name}</div>
             <div class="product-desc">${p.desc}</div>
             <div class="product-price">${fmt(p.price)}</div>
-            <button class="btn btn-primary btn-full" data-buy="${p.id}">MUA NGAY</button>
+            <button class="btn btn-primary btn-full" data-morph="${p.id}">MUA NGAY</button>
         </div>
     `).join('');
 
-    grid.querySelectorAll('[data-buy]').forEach(b => {
-        b.addEventListener('click', () => location.href = `checkout.html?id=${b.dataset.buy}`);
+    grid.querySelectorAll('[data-morph]').forEach(b => {
+        b.addEventListener('click', () => openMorph(parseInt(b.dataset.morph)));
     });
     grid.querySelectorAll('[data-wish]').forEach(b => {
         b.addEventListener('click', e => {
@@ -105,6 +107,46 @@ function updateWishlist() {
     const el = $('wishlistCount');
     if (el) el.textContent = wishlist.length;
 }
+
+/* ===== MORPH MODAL ===== */
+function openMorph(id) {
+    const p = PRODUCTS_DATA.find(x => x.id === id);
+    if (!p) return;
+
+    const overlay = $('morphOverlay');
+    const badge = $('morphBadge');
+    const buyBtn = $('morphBuyBtn');
+
+    if (p.badge) {
+        badge.textContent = p.badgeText;
+        badge.className = 'morph-badge ' + p.badge;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+
+    $('morphGame').textContent = p.game;
+    $('morphTitle').textContent = p.name;
+    $('morphDesc').textContent = p.desc;
+    $('morphPrice').textContent = fmt(p.price);
+
+    buyBtn.onclick = () => {
+        location.href = 'checkout.html?id=' + p.id;
+    };
+
+    overlay.classList.add('on');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeMorph(e) {
+    if (e && e.target !== $('morphOverlay') && !e.target.classList.contains('morph-close')) return;
+    $('morphOverlay').classList.remove('on');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeMorph();
+});
 
 /* ===== EVENTS ===== */
 document.querySelectorAll('.tab').forEach(t => {
@@ -128,9 +170,9 @@ window.addEventListener('scroll', () => {
     const btt = $('backToTop');
     if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
     if (btt) btt.classList.toggle('show', window.scrollY > 400);
-});
+}, { passive: true });
 
-/* ===== GLOBAL FUNCTIONS ===== */
+/* ===== GLOBAL ===== */
 function scrollToId(id) {
     const target = document.getElementById(id);
     if (!target) return;
@@ -172,6 +214,14 @@ function sendChat() {
     }, 800);
 }
 
+window.scrollToId = scrollToId;
+window.filterCategory = filterCategory;
+window.toggleChat = toggleChat;
+window.sendChat = sendChat;
+window.openMorph = openMorph;
+window.closeMorph = closeMorph;
+
 /* ===== INIT ===== */
 renderProducts();
 updateWishlist();
+typing();

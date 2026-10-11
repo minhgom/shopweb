@@ -116,7 +116,7 @@
                 <div class="category-content">
                     <img src="images/bussid-logo.png" alt="BUSSID" class="category-logo" onerror="this.style.display='none'">
                     <div class="category-info">
-                        <div class="category-name">BUSSID</div>
+                        <div class="category-name">Bus Simulator Indonesia</div>
                         <div class="category-note">Mod xe khách cho các thiết bị iOS</div>
                         <div class="category-price">25K</div>
                     </div>
@@ -209,7 +209,7 @@
 
         <div class="tabs">
             <button class="tab active" data-game="all">TẤT CẢ</button>
-            <button class="tab" data-game="BUSSID">BUSSID</button>
+            <button class="tab" data-game="BUSSID">BUS SIMULATOR</button>
             <button class="tab" data-game="GTA SAN">GTA SAN</button>
             <button class="tab" data-game="TOE3">TOE3</button>
             <button class="tab" data-game="TRUCK SIM">TRUCK SIM</button>
@@ -243,7 +243,7 @@
                 <div class="step-num">03</div>
                 <div class="step-line"></div>
                 <div class="step-title">TẢI FILE</div>
-                <p>Tải file IPA trong mail. Với BUSSID có 3 file: ESign + BUSSID + file xe. Tải lần lượt.</p>
+                <p>Tải file IPA trong mail. Với Bus Simulator Indonesia có 3 file: ESign + Game + file xe. Tải lần lượt.</p>
             </div>
             <div class="guide-step">
                 <div class="step-num">04</div>
@@ -341,6 +341,27 @@
         <div class="chat-footer">
             <input type="text" id="chatInput" placeholder="Nhập tin nhắn...">
             <button onclick="sendChat()">Gửi</button>
+        </div>
+    </div>
+
+    <!-- MORPH MODAL -->
+    <div class="morph-overlay" id="morphOverlay" onclick="closeMorph(event)">
+        <div class="morph-card" onclick="event.stopPropagation()">
+            <button class="morph-close" onclick="closeMorph()">✕</button>
+            <div class="morph-badge" id="morphBadge" style="display:none;"></div>
+            <div class="morph-game" id="morphGame"></div>
+            <div class="morph-title" id="morphTitle"></div>
+            <div class="morph-desc" id="morphDesc"></div>
+            <div class="morph-price" id="morphPrice"></div>
+            <div class="morph-divider"></div>
+            <div class="morph-meta">
+                <span>Bảo hành: <b>Trọn đời</b></span>
+                <span>Nhận file: <b>30 giây</b></span>
+            </div>
+            <div class="morph-actions">
+                <button class="btn btn-primary btn-full" id="morphBuyBtn">MUA NGAY →</button>
+                <button class="btn btn-outline btn-full" onclick="closeMorph()">ĐỂ SAU</button>
+            </div>
         </div>
     </div>
 
