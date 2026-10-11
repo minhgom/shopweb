@@ -1,4 +1,4 @@
-/* QM MOD iOS — Clean Light v2 */
+/* QM MOD iOS — v3 Final */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
@@ -52,22 +52,20 @@ body {
 .announce-item a { color: var(--accent-2); text-decoration: none; font-weight: 700; }
 @keyframes announceMove { to { transform: translateX(-100%); } }
 
-/* ============ LOADER — FANCY ============ */
+/* ===== LOADER ===== */
 .loader-screen {
     position: fixed; inset: 0; z-index: 9999;
     background: radial-gradient(ellipse at center, #fff 0%, var(--bg) 100%);
     display: flex; flex-direction: column;
     justify-content: center; align-items: center;
     transition: opacity .8s ease, visibility .8s ease;
-    overflow: hidden;
 }
 .loader-screen.done { opacity: 0; visibility: hidden; }
 
-/* Spinning rings behind logo */
 .loader-rings {
     position: relative;
-    width: 180px; height: 180px;
-    margin-bottom: 40px;
+    width: 140px; height: 140px;
+    margin-bottom: 32px;
     display: flex; align-items: center; justify-content: center;
 }
 .loader-ring {
@@ -75,51 +73,34 @@ body {
     border-radius: 50%;
     border: 2px solid transparent;
 }
-.loader-ring-1 {
-    inset: 0;
-    border-top-color: var(--accent);
-    border-right-color: var(--accent);
-    animation: spin 1.4s linear infinite;
-}
-.loader-ring-2 {
-    inset: 16px;
-    border-bottom-color: var(--text);
-    border-left-color: var(--text);
-    animation: spin 2s linear infinite reverse;
-}
-.loader-ring-3 {
-    inset: 32px;
-    border-top-color: var(--dim-2);
-    animation: spin 2.6s linear infinite;
-}
+.loader-ring-1 { inset: 0; border-top-color: var(--accent); border-right-color: var(--accent); animation: spin 1.4s linear infinite; }
+.loader-ring-2 { inset: 14px; border-bottom-color: var(--text); border-left-color: var(--text); animation: spin 2s linear infinite reverse; }
+.loader-ring-3 { inset: 28px; border-top-color: var(--dim-2); animation: spin 2.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .loader-logo {
-    width: 80px; height: 80px;
+    width: 64px; height: 64px;
     background: #0a0a0a;
-    border-radius: 20px;
+    border-radius: 16px;
     display: flex; align-items: center; justify-content: center;
-    font-weight: 900; font-size: 28px; color: #fff;
+    font-weight: 900; font-size: 22px; color: #fff;
     letter-spacing: -0.04em;
     box-shadow: 0 20px 48px rgba(10,10,10,0.25);
     position: relative; z-index: 2;
     animation: logoPulse 2s ease-in-out infinite;
 }
 @keyframes logoPulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 20px 48px rgba(10,10,10,0.25); }
-    50% { transform: scale(1.06); box-shadow: 0 24px 60px rgba(230,57,70,0.35); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
 }
 
 .loader-title {
-    font-size: 1.1rem; font-weight: 800;
-    letter-spacing: 0.4em;
+    font-size: 1rem; font-weight: 800;
     color: var(--text);
     font-family: 'JetBrains Mono', monospace;
-    margin-bottom: 20px;
-    text-align: center;
-    /* Fix chữ S bị khuyết: padding để chữ cuối không bị tràn */
-    padding-left: 0.4em;
-    display: flex; gap: 2px; justify-content: center;
+    margin-bottom: 18px;
+    display: flex; gap: 3px; justify-content: center;
+    padding-left: 0.35em;
 }
 .loader-title span {
     display: inline-block;
@@ -136,22 +117,21 @@ body {
 .loader-title span:nth-child(8) { animation-delay: .56s; }
 .loader-title span:nth-child(9) { animation-delay: .64s; }
 @keyframes letterDrop {
-    0%, 15% { opacity: 0; transform: translateY(-16px) rotateX(-90deg); }
-    35%, 65% { opacity: 1; transform: translateY(0) rotateX(0); }
-    85%, 100% { opacity: 0; transform: translateY(16px) rotateX(90deg); }
+    0%, 15% { opacity: 0; transform: translateY(-12px); }
+    35%, 65% { opacity: 1; transform: translateY(0); }
+    85%, 100% { opacity: 0; transform: translateY(12px); }
 }
 
 .loader-bar {
-    width: 240px; height: 3px;
+    width: 220px; height: 3px;
     background: rgba(10,10,10,0.08);
     overflow: hidden; border-radius: 4px;
-    position: relative;
 }
 .loader-bar-fill {
     height: 100%; width: 0;
     background: linear-gradient(90deg, var(--accent), var(--accent-2));
     border-radius: 4px;
-    animation: barFill 2s ease infinite;
+    animation: barFill 2.2s ease infinite;
     box-shadow: 0 0 16px rgba(230,57,70,0.6);
 }
 @keyframes barFill {
@@ -161,8 +141,7 @@ body {
 }
 .loader-percent {
     font-size: 12px; color: var(--dim);
-    letter-spacing: 0.3em;
-    margin-top: 16px;
+    letter-spacing: 0.3em; margin-top: 14px;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
 }
@@ -196,7 +175,7 @@ body {
 .nav-links { display: flex; gap: 28px; flex: 1; justify-content: center; }
 .nav-links a {
     color: var(--dim); text-decoration: none; font-size: 0.85rem; font-weight: 600;
-    transition: color 0.25s; position: relative; padding: 4px 0;
+    transition: color 0.25s; padding: 4px 0;
 }
 .nav-links a:hover { color: var(--accent); }
 .nav-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
@@ -228,7 +207,6 @@ body {
 .btn-full { width: 100%; padding: 15px; font-size: 0.9rem; }
 .btn-primary { background: #0a0a0a; color: #fff; box-shadow: 0 4px 14px rgba(10,10,10,0.2); }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(10,10,10,0.28); }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 .btn-outline { background: rgba(255,255,255,0.7); color: var(--text); border: 1px solid var(--line-2); }
 .btn-outline:hover { background: #0a0a0a; color: #fff; border-color: #0a0a0a; transform: translateY(-2px); }
 
@@ -284,15 +262,16 @@ body {
 }
 .section-title {
     font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 900;
-    color: var(--text); margin-bottom: 10px; line-height: 1.15; letter-spacing: -0.02em;
+    color: var(--text); margin-bottom: 10px; line-height: 1.15;
 }
 .section-subtitle { color: var(--dim); font-size: 0.9rem; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
 
-/* ESIGN — no border, just icon */
+/* ESIGN */
 .esign-box {
-    display: grid; grid-template-columns: auto 1fr; gap: 32px; padding: 40px 36px;
+    display: grid; grid-template-columns: auto 1fr; gap: 24px;
+    padding: 24px 28px;
     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-    border-radius: 24px; align-items: center; color: #fff;
+    border-radius: 20px; align-items: center; color: #fff;
     position: relative; overflow: hidden; box-shadow: var(--shadow-lg);
 }
 .esign-box::before {
@@ -301,42 +280,39 @@ body {
     pointer-events: none;
 }
 .esign-icon {
-    width: 100px; height: 100px;
+    width: 72px; height: 72px;
     object-fit: contain;
-    border-radius: 22px;
-    /* Không viền ngoài, chỉ giữ hình app */
-    box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     position: relative; z-index: 1;
     display: block;
+    background: transparent;
 }
 .esign-right { position: relative; z-index: 1; }
 .esign-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
-    color: var(--accent-2); letter-spacing: 0.22em; margin-bottom: 10px; font-weight: 700; }
-.esign-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 12px; color: #fff; letter-spacing: -0.02em; }
-.esign-desc { color: rgba(255,255,255,0.7); font-size: 0.9rem; line-height: 1.6; margin-bottom: 22px; font-weight: 500; }
+    color: var(--accent-2); letter-spacing: 0.22em; margin-bottom: 8px; font-weight: 700; }
+.esign-title { font-size: 1.25rem; font-weight: 900; margin-bottom: 10px; color: #fff; }
+.esign-desc { color: rgba(255,255,255,0.7); font-size: 0.85rem; line-height: 1.6; margin-bottom: 18px; font-weight: 500; }
 .esign-desc b { color: #fff; font-weight: 800; }
 .esign-link { color: var(--accent-2); font-weight: 700; text-decoration: none; }
-.esign-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.esign-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.esign-actions .btn { padding: 10px 18px; font-size: 0.78rem; }
 .esign-box .btn-primary { background: var(--accent); color: #fff; }
 .esign-box .btn-outline { background: transparent; border-color: rgba(255,255,255,0.25); color: #fff; }
 .esign-box .btn-outline:hover { background: #fff; color: #0a0a0a; border-color: #fff; }
 
-/* CATEGORIES — always visible, fallback gradient */
+/* CATEGORIES */
 .categories-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
 .category-card {
     position: relative; height: 300px; border-radius: 20px; overflow: hidden;
     cursor: pointer; transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
     background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
     box-shadow: var(--shadow);
-    /* Đảm bảo card LUÔN hiển thị */
-    opacity: 1;
 }
 .category-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
 .category-bg {
     position: absolute; inset: 0;
-    background-size: cover;
-    background-position: center;
-    /* Fallback gradient nếu ảnh không load */
+    background-size: cover; background-position: center;
     background-color: #1a1a1a;
     transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -362,10 +338,7 @@ body {
     flex-shrink: 0; box-shadow: 0 8px 20px rgba(0,0,0,0.4); background: #fff;
 }
 .category-info { flex: 1; min-width: 0; }
-.category-name {
-    font-size: 1.05rem; font-weight: 800; color: #fff;
-    line-height: 1.2; margin-bottom: 6px;
-}
+.category-name { font-size: 1.05rem; font-weight: 800; color: #fff; line-height: 1.2; margin-bottom: 6px; }
 .category-note {
     font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
     color: rgba(255,255,255,0.75); text-transform: uppercase;
@@ -420,7 +393,6 @@ body {
     padding: 24px; border-radius: 20px; background: var(--white);
     border: 1px solid var(--line); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative; overflow: hidden; box-shadow: var(--shadow-sm);
-    opacity: 1;
 }
 .product-card:hover {
     transform: translateY(-6px); border-color: var(--accent);
@@ -474,7 +446,7 @@ body {
 .guide-step p { color: var(--dim); font-size: 0.85rem; line-height: 1.6; }
 .guide-step a { color: var(--accent); font-weight: 700; text-decoration: none; }
 
-/* SUPPORT — text icons, no SVG */
+/* SUPPORT */
 .support-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .support-card {
     padding: 28px 22px; border-radius: 18px; text-decoration: none; color: var(--text);
@@ -487,8 +459,6 @@ body {
     width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 15px;
     display: flex; align-items: center; justify-content: center;
     font-size: 1.3rem; font-weight: 900; color: #fff;
-    font-family: 'Be Vietnam Pro', sans-serif;
-    letter-spacing: -0.02em;
 }
 .support-icon.zl { background: #0068ff; font-size: 0.95rem; }
 .support-icon.fb { background: #1877f2; font-size: 1.6rem; }
@@ -610,16 +580,15 @@ footer { padding: 60px 24px 32px; background: #0a0a0a; color: #fff; margin-top: 
     .navbar.scrolled { top: 30px; }
     .nav-links { display: none; }
     .logo-badge { width: 32px; height: 32px; }
-    .logo-qm { font-size: 0.85rem; }
     .logo-main { font-size: 0.8rem; }
     .logo-sub { font-size: 0.55rem; }
     .nav-icon-btn { width: 32px; height: 32px; }
     .btn-sm { padding: 7px 12px; font-size: 0.68rem; }
 
-    .loader-rings { width: 140px; height: 140px; }
-    .loader-logo { width: 64px; height: 64px; font-size: 22px; }
-    .loader-title { font-size: 0.9rem; }
-    .loader-bar { width: 200px; }
+    .loader-rings { width: 110px; height: 110px; margin-bottom: 24px; }
+    .loader-logo { width: 52px; height: 52px; font-size: 18px; }
+    .loader-title { font-size: 0.85rem; }
+    .loader-bar { width: 180px; }
 
     .hero { min-height: auto; padding: 90px 16px 40px; }
     .hero-line-1 { font-size: 1.8rem; }
@@ -632,10 +601,11 @@ footer { padding: 60px 24px 32px; background: #0a0a0a; color: #fff; margin-top: 
     .section-header { padding-left: 12px; border-left-width: 3px; margin-bottom: 28px; }
     .section-title { font-size: 1.3rem; }
 
-    .esign-box { grid-template-columns: 1fr; padding: 24px 20px; gap: 18px; text-align: center; }
-    .esign-icon { width: 80px; height: 80px; margin: 0 auto; }
+    .esign-box { grid-template-columns: 1fr; padding: 22px 20px; gap: 16px; text-align: center; }
+    .esign-icon { width: 60px; height: 60px; margin: 0 auto; }
+    .esign-title { font-size: 1.05rem; }
     .esign-actions { flex-direction: column; }
-    .esign-actions .btn { width: 100%; padding: 11px; font-size: 0.75rem; }
+    .esign-actions .btn { width: 100%; }
 
     .categories-grid { grid-template-columns: 1fr; gap: 14px; }
     .category-card { height: 240px; }
