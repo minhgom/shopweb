@@ -1,218 +1,377 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Đăng nhập — QM MOD iOS</title>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="effects.css">
-<style>
-.auth-wrap {
-    min-height: 100vh; display: flex;
-    align-items: center; justify-content: center;
-    padding: 100px 20px 60px;
-}
-.auth-card {
-    width: 100%; max-width: 420px;
-    padding: 40px 32px;
-    background: var(--glass); backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid var(--glass-border);
-    border-radius: 22px; box-shadow: var(--shadow-lg);
-    position: relative; overflow: hidden;
-    animation: cardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes cardIn {
-    from { opacity: 0; transform: translateY(24px) scale(0.96); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.auth-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,1), transparent);
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập — By:QuangMinh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background: #f4f6fb;
+            color: #0a0a0a;
+            min-height: 100vh;
+            padding: 100px 24px 60px;
+            position: relative;
+        }
+        .bg-pattern {
+            position: fixed; inset: 0; z-index: -3;
+            background-image:
+                linear-gradient(rgba(10,10,10,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10,10,10,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        .bg-orb { position: fixed; border-radius: 50%; filter: blur(80px); z-index: -2; }
+        .bg-orb-1 { width: 500px; height: 500px; top: -100px; right: -100px;
+            background: radial-gradient(circle, rgba(230,57,70,0.15), transparent 70%); }
+        .bg-orb-2 { width: 500px; height: 500px; bottom: -100px; left: -100px;
+            background: radial-gradient(circle, rgba(10,10,10,0.08), transparent 70%); }
 
-.auth-logo {
-    width: 64px; height: 64px;
-    background: #0a0a0a; border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 22px;
-    font-weight: 800; font-size: 22px; color: #fff;
-    letter-spacing: -0.02em;
-    box-shadow: 0 12px 32px rgba(10,10,10,0.2);
-}
-.auth-tag {
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem; letter-spacing: 0.22em;
-    color: var(--accent); text-transform: uppercase;
-    margin-bottom: 12px; font-weight: 700;
-}
-.auth-title {
-    text-align: center; font-size: 1.8rem; font-weight: 900;
-    letter-spacing: -0.03em; line-height: 1.15;
-    color: var(--text); margin-bottom: 8px;
-}
-.auth-title em {
-    color: var(--accent); font-style: italic; font-weight: 900;
-}
-.auth-sub {
-    text-align: center; font-size: 0.85rem; color: var(--text-2);
-    margin-bottom: 30px; font-weight: 500;
-}
+        .auth-back {
+            position: fixed; top: 56px; left: 24px;
+            padding: 10px 18px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.85);
+            color: #0a0a0a;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+        .auth-back:hover { transform: translateX(-4px); color: #e63946; }
 
-.form-group { margin-bottom: 16px; }
-.form-group label {
-    display: block; font-size: 0.68rem; font-weight: 700;
-    letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--text); margin-bottom: 8px;
-}
-.form-group input {
-    width: 100%; padding: 13px 16px; border-radius: 11px;
-    border: 1.5px solid var(--line-2); background: rgba(255,255,255,0.7);
-    font-family: inherit; font-size: 0.9rem; color: var(--text);
-    outline: none; transition: all 0.25s;
-}
-.form-group input:focus {
-    border-color: var(--accent); background: #fff;
-    box-shadow: 0 0 0 3px rgba(230,57,70,0.1);
-}
+        .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .auth-box {
+            width: 100%; max-width: 440px;
+            padding: 40px 36px 32px;
+            border-radius: 24px;
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.85);
+            box-shadow: 0 8px 32px rgba(10,10,10,0.08);
+        }
+        .auth-head { text-align: center; margin-bottom: 28px; }
+        .logo-badge {
+            width: 52px; height: 52px;
+            margin: 0 auto 16px;
+            background: #0a0a0a;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo-qm { font-weight: 800; font-size: 1.3rem; color: #fff; }
+        .auth-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.25em;
+            color: #e63946;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        .auth-h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 8px;
+        }
+        .auth-h1 em { font-style: italic; color: #e63946; }
+        .auth-sub { color: #6b7280; font-size: 0.88rem; }
 
-.field-row {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 24px; flex-wrap: wrap; gap: 10px;
-}
-.checkbox-wrap {
-    display: flex; align-items: center; gap: 8px;
-    cursor: pointer; font-size: 0.82rem; color: var(--text-2); font-weight: 500;
-}
-.checkbox-wrap input[type="checkbox"] {
-    width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;
-}
-.forgot-link {
-    font-size: 0.82rem; color: var(--accent);
-    text-decoration: none; font-weight: 700;
-}
-.forgot-link:hover { text-decoration: underline; }
+        .auth-form { display: flex; flex-direction: column; gap: 16px; }
+        .auth-field { display: flex; flex-direction: column; gap: 6px; }
+        .auth-field label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .auth-field input {
+            width: 100%;
+            padding: 13px 16px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(10,10,10,0.15);
+            background: rgba(255,255,255,0.7);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.25s;
+        }
+        .auth-field input:focus {
+            border-color: #0a0a0a;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(10,10,10,0.08);
+        }
 
-.divider {
-    display: flex; align-items: center; gap: 16px;
-    margin: 24px 0; color: var(--text-3);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem; letter-spacing: 0.2em;
-    text-transform: uppercase; font-weight: 600;
-}
-.divider::before, .divider::after {
-    content: ''; flex: 1; height: 1px; background: var(--line-2);
-}
+        .auth-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: -4px;
+        }
+        .auth-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            color: #6b7280;
+            user-select: none;
+        }
+        .auth-check input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px; height: 18px;
+            min-width: 18px;
+            border: 1.5px solid #0a0a0a;
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+            position: relative;
+            margin: 0;
+        }
+        .auth-check input[type="checkbox"]:checked { background: #0a0a0a; }
+        .auth-check input[type="checkbox"]:checked::after {
+            content: '';
+            position: absolute;
+            left: 5px; top: 1px;
+            width: 5px; height: 10px;
+            border: solid #fff;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        .auth-forgot {
+            color: #e63946;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .auth-forgot:hover { text-decoration: underline; }
 
-.auth-msg {
-    margin-top: 14px; font-size: 0.85rem;
-    text-align: center; min-height: 20px; font-weight: 600;
-}
-.auth-msg.ok { color: #16a34a; }
-.auth-msg.err { color: var(--accent); }
+        .auth-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #0a0a0a;
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 4px;
+        }
+        .auth-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,10,10,0.25); }
+        .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-.auth-footer {
-    text-align: center; margin-top: 24px;
-    font-size: 0.82rem; color: var(--text-2); font-weight: 500;
-}
-.auth-footer a {
-    color: var(--accent); text-decoration: none; font-weight: 700;
-}
-.auth-footer a:hover { text-decoration: underline; }
+        .auth-msg {
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            min-height: 20px;
+            margin-top: 4px;
+        }
+        .auth-msg.err { color: #e63946; }
+        .auth-msg.ok { color: #16a34a; }
 
-@media (max-width: 480px) {
-    .auth-card { padding: 32px 22px; }
-    .auth-title { font-size: 1.5rem; }
-    .auth-logo { width: 56px; height: 56px; font-size: 19px; }
-}
-</style>
+        .auth-divider { position: relative; text-align: center; margin: 22px 0; }
+        .auth-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 0; right: 0;
+            height: 1px;
+            background: rgba(10,10,10,0.08);
+        }
+        .auth-divider span {
+            position: relative;
+            display: inline-block;
+            padding: 0 14px;
+            background: rgba(255,255,255,0.9);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: #6b7280;
+            letter-spacing: 0.25em;
+            font-weight: 700;
+        }
+        .auth-btn-outline {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            border: 1.5px solid #0a0a0a;
+            border-radius: 10px;
+            background: transparent;
+            color: #0a0a0a;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .auth-btn-outline:hover { background: #0a0a0a; color: #fff; }
+    </style>
 </head>
 <body>
 
-<div class="bg-pattern"></div>
-<div class="bg-orb bg-orb-1"></div>
-<div class="bg-orb bg-orb-2"></div>
+    <div class="bg-pattern"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
 
-<div class="auth-wrap">
-    <div class="auth-card">
+    <a href="index.html" class="auth-back">← Về trang chủ</a>
 
-        <div class="auth-logo">QM</div>
-        <div class="auth-tag">// ĐĂNG NHẬP</div>
-        <h1 class="auth-title">Chào mừng <em>trở lại</em></h1>
-        <p class="auth-sub">Nhập email và mật khẩu để tiếp tục</p>
-
-        <form id="loginForm" novalidate>
-            <div class="form-group">
-                <label>Email hoặc tên đăng nhập</label>
-                <input type="text" id="email" placeholder="admin hoặc your@email.com" autocomplete="username" required>
-            </div>
-            <div class="form-group">
-                <label>Mật khẩu</label>
-                <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+    <div class="auth-page">
+        <div class="auth-box">
+            <div class="auth-head">
+                <div class="logo-badge"><span class="logo-qm">QM</span></div>
+                <div class="auth-tag">// ĐĂNG NHẬP</div>
+                <h1 class="auth-h1">Chào mừng <em>trở lại</em></h1>
+                <p class="auth-sub">Nhập email và mật khẩu để tiếp tục</p>
             </div>
 
-            <div class="field-row">
-                <label class="checkbox-wrap">
-                    <input type="checkbox" id="remember">
-                    <span>Ghi nhớ</span>
-                </label>
-                <a href="forgot.html" class="forgot-link">Quên mật khẩu?</a>
-            </div>
+            <form class="auth-form" id="loginForm" autocomplete="on">
+                <div class="auth-field">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="your-email@example.com" required autocomplete="email">
+                </div>
 
-            <button type="submit" class="btn btn-primary btn-full" id="loginBtn">ĐĂNG NHẬP</button>
-            <div class="auth-msg" id="msg"></div>
-        </form>
+                <div class="auth-field">
+                    <label for="loginPassword">Mật khẩu</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+                </div>
 
-        <div class="divider">HOẶC</div>
+                <div class="auth-row">
+                    <label class="auth-check">
+                        <input type="checkbox" id="remember">
+                        <span>Ghi nhớ</span>
+                    </label>
+                    <a href="forgot.html" class="auth-forgot">Quên mật khẩu?</a>
+                </div>
 
-        <a href="register.html" class="btn btn-outline btn-full">TẠO TÀI KHOẢN MỚI</a>
+                <button type="submit" class="auth-btn" id="loginBtn">ĐĂNG NHẬP</button>
+                <div class="auth-msg" id="loginMsg"></div>
+            </form>
 
-        <div class="auth-footer">
-            <a href="index.html">← Về trang chủ</a>
+            <div class="auth-divider"><span>HOẶC</span></div>
+
+            <a href="register.html" class="auth-btn-outline">TẠO TÀI KHOẢN MỚI</a>
         </div>
-
     </div>
-</div>
 
-<script>
-const $ = id => document.getElementById(id);
-const msg = (text, kind = '') => {
-    const el = $('msg');
-    el.textContent = text;
-    el.className = 'auth-msg ' + kind;
-};
+    <script>
+        (function() {
+            'use strict';
+            console.log('[login] script loaded');
 
-$('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = $('email').value.trim();
-    const password = $('password').value;
+            function showMsg(text, type) {
+                const el = document.getElementById('loginMsg');
+                el.textContent = text;
+                el.className = 'auth-msg ' + (type || '');
+            }
 
-    if (!email || !password) return msg('Vui lòng nhập đầy đủ thông tin', 'err');
+            function handleSubmit(e) {
+                e.preventDefault();
+                e.stopPropagation();
 
-    const btn = $('loginBtn');
-    btn.textContent = 'ĐANG ĐĂNG NHẬP...';
-    btn.disabled = true;
+                const emailEl = document.getElementById('loginEmail');
+                const passEl = document.getElementById('loginPassword');
+                const btn = document.getElementById('loginBtn');
 
-    try {
-        const r = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || 'Đăng nhập thất bại');
+                const email = (emailEl.value || '').trim();
+                const pass = (passEl.value || '');
 
-        msg('Đăng nhập thành công! Đang chuyển...', 'ok');
-        setTimeout(() => {
-            location.href = d.role === 'admin' ? '/admin.html' : '/';
-        }, 700);
-    } catch (err) {
-        msg('Lỗi: ' + err.message, 'err');
-        btn.textContent = 'ĐĂNG NHẬP';
-        btn.disabled = false;
-    }
-});
-</script>
+                console.log('[login] submit:', email);
+
+                if (!email || !pass) {
+                    showMsg('Vui lòng nhập đầy đủ thông tin', 'err');
+                    return false;
+                }
+
+                const oldText = btn.textContent;
+                btn.textContent = 'ĐANG ĐĂNG NHẬP...';
+                btn.disabled = true;
+                showMsg('');
+
+                fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: pass })
+                })
+                .then(function(res) {
+                    return res.json().then(function(data) {
+                        return { ok: res.ok, status: res.status, data: data };
+                    }).catch(function() {
+                        return { ok: res.ok, status: res.status, data: {} };
+                    });
+                })
+                .then(function(result) {
+                    console.log('[login] response:', result);
+
+                    if (!result.ok || !result.data.success) {
+                        throw new Error(result.data.error || 'Đăng nhập thất bại');
+                    }
+
+                    // Lưu user
+                    try {
+                        localStorage.setItem('user', JSON.stringify(result.data.user));
+                    } catch (err) {}
+
+                    showMsg('Đăng nhập thành công! Đang chuyển...', 'ok');
+
+                    setTimeout(function() {
+                        // Admin → admin.html, User → index.html
+                        if (result.data.role === 'admin') {
+                            window.location.href = '/admin.html';
+                        } else {
+                            window.location.href = '/';
+                        }
+                    }, 600);
+                })
+                .catch(function(err) {
+                    console.error('[login] error:', err);
+                    showMsg('Lỗi: ' + err.message, 'err');
+                    btn.textContent = oldText;
+                    btn.disabled = false;
+                });
+
+                return false;
+            }
+
+            // Đợi DOM load xong mới gắn event
+            document.addEventListener('DOMContentLoaded', function() {
+                const form = document.getElementById('loginForm');
+                if (form) {
+                    form.addEventListener('submit', handleSubmit);
+                    console.log('[login] form event attached');
+                } else {
+                    console.error('[login] KHÔNG TÌM THẤY FORM #loginForm');
+                }
+
+                // Ngăn form submit khi Enter ở input (đã có event trên form rồi)
+                const inputs = document.querySelectorAll('#loginForm input');
+                inputs.forEach(function(input) {
+                    input.addEventListener('keydown', function(ev) {
+                        if (ev.key === 'Enter') {
+                            ev.preventDefault();
+                            handleSubmit(ev);
+                        }
+                    });
+                });
+            });
+
+        })();
+    </script>
 </body>
 </html>
