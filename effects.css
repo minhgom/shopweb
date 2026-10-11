@@ -1,4 +1,4 @@
-/* QM MOD iOS — CLEAN v10 */
+/* QM MOD iOS — LIQUID GLASS v11 */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
@@ -14,6 +14,15 @@
     --shadow: 0 4px 16px rgba(0,0,0,0.06);
     --shadow-lg: 0 24px 64px rgba(0,0,0,0.12);
     --glass: rgba(255,255,255,0.8);
+
+    /* --- liquid glass tokens --- */
+    --glass-bg: rgba(255,255,255,0.46);
+    --glass-bg-strong: rgba(255,255,255,0.62);
+    --glass-blur: blur(26px) saturate(190%) brightness(1.06);
+    --glass-border: rgba(255,255,255,0.65);
+    --glass-highlight: inset 0 1px 0 rgba(255,255,255,0.85), inset 0 0 0 1px rgba(255,255,255,0.22);
+    --glass-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.04);
+    --morph-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html { scroll-behavior: smooth; }
@@ -30,6 +39,52 @@ body {
     background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(230,57,70,0.10), transparent 60%);
     pointer-events: none;
 }
+
+/* ============================================
+   LIQUID GLASS — shared mixin-style base
+   Any element with .glass gets: frosted blur,
+   saturated tint, top specular highlight, soft
+   refraction ring. JS can set --mx/--my on an
+   element to move the specular hotspot with the
+   cursor (see animations.js initGlassSpecular).
+   ============================================ */
+.glass,
+.navbar, .hero-badge, .product-toolbar, .tabs, .chat-box, .btn-outline {
+    position: relative;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), var(--glass-highlight);
+    isolation: isolate;
+}
+/* top edge catch-light, like light grazing the top rim of real glass */
+.glass::before,
+.navbar::before, .hero-badge::before, .product-toolbar::before, .tabs::before, .chat-box::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 32%);
+    pointer-events: none;
+    z-index: 0;
+}
+/* cursor-follow specular hotspot, driven by --mx/--my custom props from JS */
+.glass::after,
+.navbar::after, .hero-badge::after, .product-toolbar::after, .tabs::after, .chat-box::after {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(180px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,0.35), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+.glass:hover::after,
+.navbar:hover::after, .hero-badge:hover::after, .product-toolbar:hover::after,
+.tabs:hover::after, .chat-box:hover::after { opacity: 1; }
+/* make sure real content rides above the glass sheen layers */
+.navbar > *, .hero-badge > *, .product-toolbar > *, .tabs > *, .chat-box > * { position: relative; z-index: 1; }
 
 /* ANNOUNCE */
 .announce-bar {
@@ -91,19 +146,15 @@ body {
 }
 @keyframes barFill { 0% { width: 0; } 100% { width: 100%; } }
 
-/* NAVBAR */
+/* NAVBAR — liquid glass */
 .navbar {
     position: fixed; top: 48px; left: 50%; transform: translateX(-50%);
     width: calc(100% - 40px); max-width: 1400px; z-index: 100;
     padding: 12px 24px; border-radius: 16px;
     display: flex; justify-content: space-between; align-items: center; gap: 16px;
-    background: var(--glass); backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.95);
-    box-shadow: var(--shadow);
-    transition: top 0.3s, padding 0.3s, box-shadow 0.3s;
+    transition: top 0.3s, padding 0.3s, box-shadow 0.3s, background 0.3s;
 }
-.navbar.scrolled { top: 42px; padding: 10px 24px; box-shadow: var(--shadow-lg); }
+.navbar.scrolled { top: 42px; padding: 10px 24px; background: var(--glass-bg-strong); box-shadow: var(--shadow-lg), var(--glass-highlight); }
 .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); flex-shrink: 0; }
 .logo-badge {
     width: 40px; height: 40px; background: #0a0a0a; border-radius: 11px;
@@ -128,7 +179,8 @@ body {
     border: 1px solid var(--line); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     color: var(--text); position: relative;
-    background: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.5);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
 .wishlist-count {
     position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff;
@@ -151,8 +203,10 @@ body {
 .btn-full { width: 100%; padding: 15px; font-size: 0.9rem; }
 .btn-primary { background: #0a0a0a; color: #fff; }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(10,10,10,0.28); }
-.btn-outline { background: rgba(255,255,255,0.7); color: var(--text); border: 1px solid var(--line-2); }
+/* .btn-outline now inherits the .glass mixin above for a real frosted pill button */
+.btn-outline { color: var(--text); border-radius: 12px; }
 .btn-outline:hover { background: #0a0a0a; color: #fff; border-color: #0a0a0a; }
+.btn-outline:hover::before, .btn-outline:hover::after { opacity: 0; }
 
 /* RIPPLE + PARTICLES — HIỆU ỨNG DUY NHẤT */
 .product-card .btn::before {
@@ -194,9 +248,7 @@ body {
 }
 .hero-badge {
     display: inline-flex; align-items: center; gap: 12px; padding: 8px 16px;
-    border-radius: 9999px; background: var(--glass);
-    border: 1px solid rgba(255,255,255,0.95);
-    box-shadow: var(--shadow); margin-bottom: 32px;
+    border-radius: 9999px; margin-bottom: 32px;
 }
 .badge-line { width: 32px; height: 1px; background: var(--text); opacity: 0.3; }
 .badge-text {
@@ -274,16 +326,17 @@ body {
 .esign-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .esign-actions .btn { padding: 10px 18px; font-size: 0.78rem; }
 .esign-box .btn-primary { background: var(--accent); color: #fff; }
-.esign-box .btn-outline { background: transparent; border-color: rgba(255,255,255,0.25); color: #fff; }
+.esign-box .btn-outline { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); color: #fff; backdrop-filter: blur(10px); }
+.esign-box .btn-outline::before, .esign-box .btn-outline::after { display: none; }
 
-/* CATEGORIES — KHÔNG ANIMATION */
+/* CATEGORIES */
 .categories-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
 .category-card {
     position: relative; height: 300px; border-radius: 20px; overflow: hidden;
     cursor: pointer;
     background: #1a1a1a;
     box-shadow: var(--shadow);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s var(--morph-ease), box-shadow 0.3s ease;
 }
 .category-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
 .category-bg {
@@ -325,16 +378,16 @@ body {
     font-size: 1.5rem; color: rgba(255,255,255,0.4); z-index: 2;
 }
 
-/* TOOLBAR */
+/* TOOLBAR — liquid glass */
 .product-toolbar {
     display: flex; gap: 12px; padding: 12px; border-radius: 16px; margin-bottom: 24px;
-    flex-wrap: wrap; background: var(--glass);
-    border: 1px solid rgba(255,255,255,0.95); box-shadow: var(--shadow);
+    flex-wrap: wrap;
 }
 .search-box {
     flex: 1; min-width: 200px; display: flex; align-items: center; gap: 10px;
-    padding: 10px 16px; background: rgba(255,255,255,0.6);
+    padding: 10px 16px; background: rgba(255,255,255,0.5);
     border-radius: 10px; color: var(--dim-2); border: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
 .search-box input {
     flex: 1; border: none; background: transparent; font-family: inherit;
@@ -342,15 +395,15 @@ body {
 }
 .sort-select {
     padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line-2);
-    background: rgba(255,255,255,0.7); font-family: inherit; font-size: 0.85rem;
+    background: rgba(255,255,255,0.6); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    font-family: inherit; font-size: 0.85rem;
     color: var(--text); cursor: pointer; outline: none;
 }
 
-/* TABS */
+/* TABS — liquid glass */
 .tabs {
     display: flex; gap: 8px; padding: 6px; border-radius: 14px; margin-bottom: 32px;
-    flex-wrap: wrap; justify-content: center; background: var(--glass);
-    border: 1px solid rgba(255,255,255,0.95);
+    flex-wrap: wrap; justify-content: center;
 }
 .tab {
     padding: 9px 18px; background: transparent; border: 1px solid transparent;
@@ -379,7 +432,7 @@ body {
     flex-direction: column;
     min-height: 280px;
     position: relative;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
+    transition: transform 0.3s var(--morph-ease), box-shadow 0.3s ease, border-color 0.3s;
 }
 .product-card:hover {
     transform: translateY(-6px);
@@ -418,41 +471,95 @@ body {
 .empty-state { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--dim-2);
     font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
 
-/* MORPH MODAL */
+/* ============================================
+   MORPH MODAL — PowerPoint-style Morph
+   The card doesn't just fade/scale from its own
+   center anymore: animations.js captures the
+   clicked card's on-screen rect (FLIP technique)
+   and the modal visually grows out of that exact
+   spot into its final size/position. The CSS
+   below just needs a smooth, non-bouncy easing
+   curve (--morph-ease) so the resize itself reads
+   as one continuous shape-change, like Morph.
+   ============================================ */
 .morph-overlay {
     position: fixed; inset: 0; z-index: 9000;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(10,10,10,0.35);
+    backdrop-filter: blur(0px) saturate(100%);
+    -webkit-backdrop-filter: blur(0px) saturate(100%);
     display: flex; align-items: center; justify-content: center;
     padding: 24px;
     opacity: 0; visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition: opacity 0.4s ease, visibility 0.4s ease, backdrop-filter 0.5s ease;
 }
-.morph-overlay.on { opacity: 1; visibility: visible; }
+.morph-overlay.on {
+    opacity: 1; visibility: visible;
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
 .morph-card {
     width: 100%; max-width: 480px;
-    background: #fff;
-    border: 1px solid rgba(255,255,255,0.95);
+    background: var(--glass-bg-strong);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
     border-radius: 28px;
     padding: 32px 28px;
-    box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+    box-shadow: 0 40px 100px rgba(0,0,0,0.3), var(--glass-highlight);
     position: relative;
+    isolation: isolate;
+    /* default (no-JS) fallback state; animations.js overrides via inline
+       transform for the true FLIP morph-from-card effect */
     transform: scale(0.85) translateY(20px);
     opacity: 0;
-    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+    transition: transform 0.5s var(--morph-ease), opacity 0.35s ease;
+    transform-origin: center center;
 }
 .morph-overlay.on .morph-card { transform: scale(1) translateY(0); opacity: 1; }
+.morph-card::before {
+    content: '';
+    position: absolute; inset: 0; border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 28%);
+    pointer-events: none; z-index: 0;
+}
+.morph-card > * { position: relative; z-index: 1; }
+/* content cross-fade so text doesn't just "appear" mid-resize, it settles in */
+.morph-card .morph-badge, .morph-card .morph-game, .morph-card .morph-title,
+.morph-card .morph-desc, .morph-card .morph-price, .morph-card .morph-meta,
+.morph-card .morph-actions {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s ease, transform 0.4s var(--morph-ease);
+    transition-delay: 0.14s;
+}
+.morph-overlay.on .morph-card .morph-badge { transition-delay: 0.16s; }
+.morph-overlay.on .morph-card .morph-game { transition-delay: 0.19s; }
+.morph-overlay.on .morph-card .morph-title { transition-delay: 0.22s; }
+.morph-overlay.on .morph-card .morph-desc { transition-delay: 0.25s; }
+.morph-overlay.on .morph-card .morph-price { transition-delay: 0.28s; }
+.morph-overlay.on .morph-card .morph-meta { transition-delay: 0.31s; }
+.morph-overlay.on .morph-card .morph-actions { transition-delay: 0.34s; }
+.morph-overlay.on .morph-card .morph-badge,
+.morph-overlay.on .morph-card .morph-game,
+.morph-overlay.on .morph-card .morph-title,
+.morph-overlay.on .morph-card .morph-desc,
+.morph-overlay.on .morph-card .morph-price,
+.morph-overlay.on .morph-card .morph-meta,
+.morph-overlay.on .morph-card .morph-actions {
+    opacity: 1; transform: translateY(0);
+}
 .morph-close {
     position: absolute; top: 16px; right: 16px;
     width: 36px; height: 36px;
-    background: rgba(0,0,0,0.05);
+    background: rgba(255,255,255,0.4);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     border: 1px solid rgba(0,0,0,0.08);
     border-radius: 50%;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     font-size: 1rem; color: var(--text);
     transition: background 0.2s;
+    z-index: 2;
 }
 .morph-close:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .morph-badge {
@@ -563,12 +670,13 @@ footer { padding: 60px 24px 32px; background: #0a0a0a; color: #fff; margin-top: 
     cursor: pointer; display: flex; align-items: center; justify-content: center;
     color: var(--text); font-size: 1.2rem; font-weight: 700;
     opacity: 0; visibility: hidden;
-    background: var(--glass); box-shadow: var(--shadow);
+    background: rgba(255,255,255,0.5); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    box-shadow: var(--shadow);
     transition: opacity 0.3s, visibility 0.3s;
 }
 .back-to-top.show { opacity: 1; visibility: visible; }
 
-/* CHAT */
+/* CHAT — liquid glass */
 .chat-toggle {
     position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px;
     border-radius: 50%; border: none; cursor: pointer;
@@ -582,26 +690,26 @@ footer { padding: 60px 24px 32px; background: #0a0a0a; color: #fff; margin-top: 
     position: fixed; bottom: 96px; right: 24px;
     width: 340px; max-width: calc(100vw - 48px); height: 440px;
     border-radius: 20px; display: flex; flex-direction: column; z-index: 94;
-    opacity: 0; visibility: hidden; transform: translateY(20px);
-    background: #fff;
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow-lg);
-    transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+    opacity: 0; visibility: hidden; transform: translateY(20px) scale(0.96);
+    background: var(--glass-bg-strong);
+    transition: opacity 0.3s, visibility 0.3s, transform 0.4s var(--morph-ease);
+    overflow: hidden;
 }
-.chat-box.open { opacity: 1; visibility: visible; transform: translateY(0); }
+.chat-box.open { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
 .chat-header {
-    padding: 16px 20px; border-bottom: 1px solid var(--line);
+    padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.3);
     display: flex; justify-content: space-between; align-items: center;
-    background: #0a0a0a; color: #fff; border-radius: 20px 20px 0 0;
+    background: rgba(10,10,10,0.88); color: #fff;
+    position: relative; z-index: 1;
 }
 .chat-header b { font-size: 0.95rem; display: block; }
 .chat-status { font-size: 0.7rem; opacity: 0.7; font-family: 'JetBrains Mono', monospace; }
 .chat-close { background: transparent; border: none; color: #fff; cursor: pointer; font-size: 1.2rem; }
-.chat-body { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.chat-body { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; position: relative; z-index: 1; }
 .chat-msg { padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; max-width: 85%; line-height: 1.4; }
-.chat-msg.bot { background: rgba(0,0,0,0.05); align-self: flex-start; }
+.chat-msg.bot { background: rgba(255,255,255,0.6); align-self: flex-start; }
 .chat-msg.user { background: #0a0a0a; color: #fff; align-self: flex-end; }
-.chat-footer { padding: 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; }
+.chat-footer { padding: 12px; border-top: 1px solid rgba(255,255,255,0.3); display: flex; gap: 8px; position: relative; z-index: 1; }
 .chat-footer input {
     flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line-2);
     background: rgba(255,255,255,0.6); font-family: inherit; font-size: 0.85rem; outline: none;
@@ -659,4 +767,11 @@ footer { padding: 60px 24px 32px; background: #0a0a0a; color: #fff; margin-top: 
     .guide-grid { grid-template-columns: repeat(2, 1fr); }
     .support-grid { grid-template-columns: repeat(2, 1fr); }
     .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+
+/* reduced motion: drop the glass sheen chase + morph stagger, keep static glass */
+@media (prefers-reduced-motion: reduce) {
+    .glass::after, .navbar::after, .hero-badge::after, .product-toolbar::after,
+    .tabs::after, .chat-box::after { display: none; }
+    .morph-card, .morph-card * { transition-delay: 0s !important; }
 }

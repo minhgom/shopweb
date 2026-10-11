@@ -1,4 +1,4 @@
-/* QM MOD iOS — script.js v8 (click animation) */
+/* QM MOD iOS — script.js v9 (login state + sản phẩm từ server) */
 console.log('[QM] script loaded');
 
 /* ===== LOADER ===== */
@@ -32,21 +32,53 @@ function typing() {
 }
 
 /* ===== PRODUCTS ===== */
-const PRODUCTS_DATA = [
+// Dữ liệu mô tả/nhãn (dự phòng + bổ sung cho sản phẩm lấy từ server theo TÊN).
+// Giá và id THẬT lấy từ server (/api/products) khi có.
+const PRODUCT_META = [
     { id: 1, name: 'Bus Simulator Indonesia — Mod Xe Khách', game: 'BUSSID', price: 25000, desc: 'Mod xe khách cho các thiết bị iOS', badge: 'new', badgeText: 'NEW' },
     { id: 2, name: 'GTA San Andreas — Mod Xe Độ', game: 'GTA SAN', price: 35000, desc: 'Mod xe độ cho iOS', badge: 'sale', badgeText: 'SALE' },
     { id: 3, name: 'Truckers of Europe 3 — Hack Full', game: 'TOE3', price: 20000, desc: 'Hack full tiền', badge: 'hot', badgeText: 'HOT' },
     { id: 4, name: 'Truck Simulator USA EVO — Hack Full', game: 'TRUCK SIM', price: 25000, desc: 'Hack full tiền', badge: '', badgeText: '' },
     { id: 5, name: 'Combo 3 App Premium', game: 'LOCKET', price: 25000, desc: 'Locket Gold + Spotify Premium + YouTube Premium', badge: 'vip', badgeText: 'VIP' }
 ];
+let PRODUCTS_DATA = PRODUCT_META.slice();
 
 const $ = id => document.getElementById(id);
-const fmt = n => n.toLocaleString('vi-VN') + 'đ';
+const fmt = n => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+const esc = s => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 let currentGame = 'all';
 let currentSort = 'default';
 let currentSearch = '';
-let wishlist = JSON.parse(localStorage.getItem('qm_wishlist') || '[]');
+let wishlist = [];
+try { wishlist = JSON.parse(localStorage.getItem('qm_wishlist') || '[]'); } catch (e) { wishlist = []; }
+
+/* Lấy sản phẩm thật từ server để id khớp với lúc thanh toán */
+async function loadProducts() {
+    try {
+        const r = await fetch('/api/products', { cache: 'no-store' });
+        if (!r.ok) return;
+        const list = await r.json();
+        if (!Array.isArray(list) || !list.length) return; // chưa có sản phẩm -> giữ dữ liệu dự phòng
+        PRODUCTS_DATA = list.map(p => {
+            const meta = PRODUCT_META.find(m => m.name === p.name) || {};
+            return {
+                id: p.id,
+                name: p.name,
+                game: p.game,
+                price: p.price,
+                desc: meta.desc || '',
+                badge: meta.badge || '',
+                badgeText: meta.badgeText || ''
+            };
+        });
+        renderProducts();
+    } catch (e) {
+        console.warn('[QM] không tải được sản phẩm từ server', e);
+    }
+}
 
 /* ===== PARTICLES ===== */
 function spawnParticles(x, y) {
@@ -91,15 +123,15 @@ function renderProducts() {
 
     grid.innerHTML = list.map(p => `
         <div class="product-card">
-            ${p.badge ? `<div class="product-badge ${p.badge}">${p.badgeText}</div>` : ''}
+            ${p.badge ? `<div class="product-badge ${esc(p.badge)}">${esc(p.badgeText)}</div>` : ''}
             <button class="wishlist-btn ${wishlist.includes(p.id) ? 'active' : ''}" data-wish="${p.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
             </button>
-            <div class="product-game">${p.game}</div>
-            <div class="product-name">${p.name}</div>
-            <div class="product-desc">${p.desc}</div>
+            <div class="product-game">${esc(p.game)}</div>
+            <div class="product-name">${esc(p.name)}</div>
+            <div class="product-desc">${esc(p.desc)}</div>
             <div class="product-price">${fmt(p.price)}</div>
             <button class="btn btn-primary btn-full" data-morph="${p.id}"><span>MUA NGAY</span></button>
         </div>
@@ -107,7 +139,7 @@ function renderProducts() {
 
     // Click MUA NGAY — ripple + particles + morph
     grid.querySelectorAll('[data-morph]').forEach(b => {
-        b.addEventListener('click', (e) => {
+        b.addEventListener('click', () => {
             b.classList.add('clicked');
             setTimeout(() => b.classList.remove('clicked'), 600);
 
@@ -125,7 +157,7 @@ function renderProducts() {
             const id = parseInt(b.dataset.wish);
             const i = wishlist.indexOf(id);
             if (i >= 0) wishlist.splice(i, 1); else wishlist.push(id);
-            localStorage.setItem('qm_wishlist', JSON.stringify(wishlist));
+            try { localStorage.setItem('qm_wishlist', JSON.stringify(wishlist)); } catch (err) {}
             updateWishlist();
             renderProducts();
         });
@@ -176,6 +208,67 @@ function closeMorph(e) {
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeMorph();
 });
+
+/* ===== ĐĂNG NHẬP: hiển thị trạng thái trên thanh menu ===== */
+window.QM_USER = null;
+
+async function doLogout(e) {
+    if (e) e.preventDefault();
+    try { await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
+    if (window.QMAuth) QMAuth.clear();
+    window.QM_USER = null;
+    location.href = '/index.html';
+}
+
+function renderAuthUI() {
+    const u = window.QM_USER;
+    if (!u) return;
+
+    // Tìm các link đăng nhập / đăng ký ở bất kỳ đâu trên trang (menu desktop + mobile)
+    const loginLinks = document.querySelectorAll('a[href="login.html"], a[href="/login.html"]');
+    const registerLinks = document.querySelectorAll('a[href="register.html"], a[href="/register.html"]');
+
+    loginLinks.forEach(a => {
+        if (a.closest('.auth-box')) return; // không đụng vào trang login/register
+        a.textContent = '👤 ' + u.username;
+        a.setAttribute('href', u.is_admin ? 'admin.html' : '#');
+        a.classList.add('is-user');
+        if (!u.is_admin) a.addEventListener('click', e => e.preventDefault());
+    });
+
+    registerLinks.forEach(a => {
+        if (a.closest('.auth-box')) return;
+        a.textContent = 'Đăng xuất';
+        a.setAttribute('href', '#');
+        a.addEventListener('click', doLogout);
+    });
+
+    // Nếu menu không có link đăng ký để đổi thành "Đăng xuất" thì thêm 1 nút nhỏ
+    if (!registerLinks.length && loginLinks.length && !document.getElementById('qmLogoutBtn')) {
+        const first = loginLinks[0];
+        const out = document.createElement('a');
+        out.id = 'qmLogoutBtn';
+        out.href = '#';
+        out.textContent = 'Đăng xuất';
+        out.className = first.className;
+        out.addEventListener('click', doLogout);
+        first.insertAdjacentElement('afterend', out);
+    }
+
+    document.body.classList.add('logged-in');
+}
+
+async function loadAuth() {
+    try {
+        const r = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' });
+        const d = await r.json();
+        window.QM_USER = d && d.logged ? d.user : null;
+        if (!window.QM_USER && window.QMAuth) QMAuth.clear(); // token cũ/hết hạn thì xoá
+        renderAuthUI();
+    } catch (e) {
+        console.warn('[QM] không kiểm tra được đăng nhập', e);
+    }
+}
 
 /* ===== EVENTS ===== */
 document.querySelectorAll('.tab').forEach(t => {
@@ -260,7 +353,7 @@ function sendChat() {
     if (!input || !body) return;
     const v = input.value.trim();
     if (!v) return;
-    body.innerHTML += `<div class="chat-msg user">${v}</div>`;
+    body.innerHTML += `<div class="chat-msg user">${esc(v)}</div>`;
     input.value = '';
     body.scrollTop = body.scrollHeight;
     setTimeout(() => {
@@ -280,8 +373,11 @@ window.toggleChat = toggleChat;
 window.sendChat = sendChat;
 window.openMorph = openMorph;
 window.closeMorph = closeMorph;
+window.doLogout = doLogout;
 
 /* ===== INIT ===== */
 renderProducts();
 updateWishlist();
 typing();
+loadProducts();
+loadAuth();

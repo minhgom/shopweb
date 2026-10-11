@@ -1,10 +1,10 @@
-// QM MOD iOS — Backend v15 (fix đăng nhập + vá bảo mật)
+// QM MOD iOS — Backend v17 (Resend email)
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { google } = require('googleapis');
@@ -15,14 +15,18 @@ const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || 'https://shopweb-jgeo.onrender.com';
 const IS_PROD = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
 
-// ===== COOKIE SECRET (bắt buộc đặt trong Render > Environment) =====
+// ===== COOKIE SECRET =====
 let COOKIE_SECRET = process.env.COOKIE_SECRET;
 if (!COOKIE_SECRET) {
     COOKIE_SECRET = crypto.randomBytes(32).toString('hex');
-    console.warn('[WARN] Chưa đặt COOKIE_SECRET -> mỗi lần restart sẽ bị đăng xuất. Hãy đặt biến này trong Render > Environment.');
+    console.warn('[WARN] Chưa đặt COOKIE_SECRET');
 }
 
-// ===== CORS (chỉ cần nếu frontend ở domain KHÁC backend) =====
+// ===== RESEND =====
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM_EMAIL = process.env.FROM_EMAIL || 'QM MOD iOS <onboarding@resend.dev>';
+
+// ===== CORS =====
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 const CROSS_SITE = ALLOWED_ORIGINS.length > 0;
 
@@ -31,19 +35,14 @@ app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(cookieParser(COOKIE_SECRET));
-if (CROSS_SITE) {
-    app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
-}
+if (CROSS_SITE) app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 
-// Không cho trình duyệt (Safari iOS) cache API -> tránh /api/me trả kết quả cũ
 app.use('/api', (req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     next();
 });
 
 // ===== STATIC =====
-// Khuyến nghị: tạo thư mục "public" và để html/css/js/ảnh vào đó.
-// Nếu chưa có "public" thì vẫn phục vụ thư mục gốc nhưng CHẶN các file nhạy cảm.
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const HAS_PUBLIC = fs.existsSync(PUBLIC_DIR);
 const BLOCKED_FILES = new Set([
@@ -51,7 +50,6 @@ const BLOCKED_FILES = new Set([
     'package.json', 'package-lock.json', 'render.yaml'
 ]);
 if (!HAS_PUBLIC) {
-    console.warn('[WARN] Chưa có thư mục public/ — đang phục vụ thư mục gốc (đã chặn file nhạy cảm). Nên chuyển html/css/js vào public/.');
     app.use((req, res, next) => {
         let p;
         try { p = decodeURIComponent(req.path); } catch { return res.status(400).end(); }
@@ -69,7 +67,6 @@ if (!HAS_PUBLIC) {
 app.use(express.static(HAS_PUBLIC ? PUBLIC_DIR : __dirname, { dotfiles: 'ignore' }));
 
 // ===== JSON DB =====
-// Trên Render nên gắn Disk và đặt DB_FILE=/var/data/database.json để không mất dữ liệu khi deploy.
 const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'database.json');
 
 function emptyDB() {
@@ -94,7 +91,6 @@ function loadDB() {
         };
     } catch (e) {
         console.warn('[DB] reset:', e.message);
-        // Giữ lại bản hỏng để còn cứu dữ liệu thay vì xoá
         try {
             if (fs.existsSync(DB_FILE) && fs.readFileSync(DB_FILE, 'utf8').trim()) {
                 fs.renameSync(DB_FILE, DB_FILE + '.corrupt-' + Date.now());
@@ -146,7 +142,7 @@ function safeEqual(a, b) {
     return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
-// Giới hạn số lần thử (chống dò mật khẩu)
+// Rate limit in-memory
 const attempts = new Map();
 function rateLimit(key, max, windowMs) {
     const now = Date.now();
@@ -158,7 +154,7 @@ function rateLimit(key, max, windowMs) {
 }
 setInterval(() => attempts.clear(), 60 * 60 * 1000).unref();
 
-// Cookie CÓ CHỮ KÝ. Cùng domain -> sameSite lax (Safari iOS không chặn).
+// ===== COOKIE + TOKEN =====
 const COOKIE_OPTS = {
     httpOnly: true,
     secure: CROSS_SITE ? true : IS_PROD,
@@ -174,10 +170,30 @@ const CLEAR_OPTS = {
     path: '/'
 };
 
+function signToken(kind, id) {
+    const exp = Date.now() + 7 * 24 * 3600 * 1000;
+    const body = `${kind}.${id}.${exp}`;
+    const sig = crypto.createHmac('sha256', COOKIE_SECRET).update(body).digest('base64url');
+    return `${body}.${sig}`;
+}
+function verifyToken(token, kind) {
+    const p = String(token || '').split('.');
+    if (p.length !== 4) return null;
+    const [k, id, exp, sig] = p;
+    if (k !== kind) return null;
+    const expect = crypto.createHmac('sha256', COOKIE_SECRET).update(`${k}.${id}.${exp}`).digest('base64url');
+    if (!safeEqual(sig, expect)) return null;
+    if (!(Number(exp) > Date.now())) return null;
+    const n = parseInt(id);
+    return Number.isInteger(n) ? n : null;
+}
+
 function readId(req, name) {
     const v = req.signedCookies && req.signedCookies[name];
     const n = parseInt(v);
-    return Number.isInteger(n) ? n : null;
+    if (Number.isInteger(n)) return n;
+    const m = (req.get('authorization') || '').match(/^Bearer\s+(.+)$/i);
+    return m ? verifyToken(m[1], name === 'isAdmin' ? 'a' : 'u') : null;
 }
 
 // ===== LOAD DB + ADMIN =====
@@ -199,9 +215,8 @@ let db = loadDB();
         });
         saveDB(db);
         console.log('[DB] Đã tạo admin. Tài khoản: admin');
-        if (!envPass) console.log('[DB] Mật khẩu admin (chỉ hiện 1 lần, hãy ghi lại):', pass);
+        if (!envPass) console.log('[DB] Mật khẩu admin (chỉ hiện 1 lần):', pass);
     } else if (envPass && !verifyPassword(envPass, a.password_hash)) {
-        // Đặt ADMIN_PASSWORD rồi restart = đổi/khôi phục mật khẩu admin
         a.password_hash = hashPassword(envPass);
         a.is_banned = 0;
         saveDB(db);
@@ -217,12 +232,6 @@ const driveAuth = new google.auth.GoogleAuth({
 });
 const drive = google.drive({ version: 'v3', auth: driveAuth });
 
-// ===== MAIL =====
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
-});
-
 // ===== MIDDLEWARE =====
 function requireLogin(req, res, next) {
     const id = readId(req, 'uid');
@@ -233,7 +242,7 @@ function requireLogin(req, res, next) {
     next();
 }
 function requireAdmin(req, res, next) {
-    const id = readId(req, 'isAdmin'); // chỉ nhận cookie admin đã ký, KHÔNG nhận uid
+    const id = readId(req, 'isAdmin');
     const u = id && db.users.find(x => x.id === id && x.is_admin && !x.is_banned);
     if (!u) return res.status(403).json({ error: 'Không có quyền' });
     req.admin = u;
@@ -270,7 +279,7 @@ app.post('/api/register', (req, res) => {
         saveDB(db);
 
         res.cookie('uid', user.id, COOKIE_OPTS);
-        res.json({ success: true, user: { id: user.id, username, email } });
+        res.json({ success: true, token: signToken('u', user.id), user: { id: user.id, username, email } });
     } catch (e) {
         console.error('[register]', e);
         res.status(500).json({ error: 'Lỗi: ' + e.message });
@@ -293,9 +302,13 @@ app.post('/api/login', (req, res) => {
         if (!verifyPassword(password, u.password_hash)) return res.status(401).json({ error: 'Sai thông tin' });
 
         res.cookie('uid', u.id, COOKIE_OPTS);
-        // Nếu là admin đăng nhập bằng form thường thì cấp luôn cookie admin
         if (u.is_admin) res.cookie('isAdmin', u.id, COOKIE_OPTS);
-        res.json({ success: true, user: { id: u.id, username: u.username, email: u.email, is_admin: !!u.is_admin } });
+        res.json({
+            success: true,
+            token: signToken('u', u.id),
+            admin_token: u.is_admin ? signToken('a', u.id) : undefined,
+            user: { id: u.id, username: u.username, email: u.email, is_admin: !!u.is_admin }
+        });
     } catch (e) {
         console.error('[login]', e);
         res.status(500).json({ error: 'Lỗi: ' + e.message });
@@ -319,6 +332,7 @@ app.get('/api/me', (req, res) => {
     });
 });
 
+// ===== FORGOT — DÙNG RESEND =====
 app.post('/api/forgot', async (req, res) => {
     try {
         if (!rateLimit('forgot:' + req.ip, 5, 15 * 60 * 1000)) {
@@ -328,7 +342,6 @@ app.post('/api/forgot', async (req, res) => {
         if (!validateEmail(email)) return res.status(400).json({ error: 'Email sai' });
         const u = db.users.find(x => x.email === email);
 
-        // Luôn trả success để không lộ email nào đã đăng ký
         if (!u) return res.json({ success: true });
 
         const token = crypto.randomBytes(32).toString('hex');
@@ -337,16 +350,22 @@ app.post('/api/forgot', async (req, res) => {
         saveDB(db);
 
         const link = `${BASE_URL}/reset.html?token=${token}`;
-        await transporter.sendMail({
-            from: `"QM MOD iOS" <${process.env.GMAIL_USER}>`,
-            to: email,
-            subject: 'Đặt lại mật khẩu',
-            html: `<p>Xin chào <b>${u.username}</b>,</p><p><a href="${link}">ĐẶT LẠI MẬT KHẨU</a> (30 phút)</p>`
-        });
+        try {
+            const result = await resend.emails.send({
+                from: FROM_EMAIL,
+                to: email,
+                subject: 'Đặt lại mật khẩu',
+                html: `<p>Xin chào <b>${u.username}</b>,</p><p><a href="${link}">ĐẶT LẠI MẬT KHẨU</a> (30 phút)</p>`
+            });
+            console.log('[forgot] Resend:', JSON.stringify(result));
+        } catch (mailErr) {
+            console.error('[forgot] Resend error:', mailErr.message);
+        }
+
         res.json({ success: true });
     } catch (e) {
         console.error('[forgot]', e.message);
-        res.status(500).json({ error: 'Không gửi được mail' });
+        res.status(500).json({ error: 'Lỗi: ' + e.message });
     }
 });
 
@@ -365,6 +384,18 @@ app.post('/api/reset', (req, res) => {
     } catch (e) {
         res.status(500).json({ error: 'Lỗi: ' + e.message });
     }
+});
+
+app.get('/api/health', (req, res) => {
+    res.json({
+        ok: true,
+        users: db.users.length,
+        products: db.products.length,
+        uptime_seconds: Math.round(process.uptime()),
+        cookie_secret_from_env: !!process.env.COOKIE_SECRET,
+        db_file_custom: !!process.env.DB_FILE,
+        resend_key_set: !!process.env.RESEND_API_KEY
+    });
 });
 
 // ============================================================
@@ -474,8 +505,8 @@ app.post('/api/sepay/webhook', async (req, res) => {
         const link = `${BASE_URL}/download.html?token=${order.download_token}`;
 
         try {
-            await transporter.sendMail({
-                from: `"QM MOD iOS" <${process.env.GMAIL_USER}>`,
+            await resend.emails.send({
+                from: FROM_EMAIL,
                 to: order.customer_email,
                 subject: `Đơn ${code} — Link tải ${product ? product.name : ''}`,
                 html: `<h2 style="color:#16a34a">✓ Thanh toán thành công</h2>
@@ -601,8 +632,13 @@ app.post('/api/admin/login', (req, res) => {
         }
 
         res.cookie('isAdmin', a.id, COOKIE_OPTS);
-        res.cookie('uid', a.id, COOKIE_OPTS); // để /api/me cũng nhận ra đã đăng nhập
-        res.json({ success: true });
+        res.cookie('uid', a.id, COOKIE_OPTS);
+        res.json({
+            success: true,
+            token: signToken('u', a.id),
+            admin_token: signToken('a', a.id),
+            user: { id: a.id, username: a.username, email: a.email, is_admin: true }
+        });
     } catch (e) {
         console.error('[admin-login]', e);
         res.status(500).json({ error: 'Lỗi: ' + e.message });
@@ -697,8 +733,8 @@ app.post('/api/admin/confirm-order/:code', requireAdmin, async (req, res) => {
         const link = `${BASE_URL}/download.html?token=${o.download_token}`;
 
         try {
-            await transporter.sendMail({
-                from: `"QM MOD iOS" <${process.env.GMAIL_USER}>`,
+            await resend.emails.send({
+                from: FROM_EMAIL,
                 to: o.customer_email,
                 subject: `Đơn ${o.order_code} — Link tải ${p ? p.name : ''}`,
                 html: `<p>Đơn <b>${o.order_code}</b> đã thanh toán.</p><p><a href="${link}">MỞ TRANG TẢI</a></p>`
@@ -734,8 +770,6 @@ app.post('/api/admin/unban-user/:id', requireAdmin, (req, res) => {
     if (u) { u.is_banned = 0; saveDB(db); }
     res.json({ success: true });
 });
-
-// (Đã xoá route /reset-admin-temp. Muốn đổi mật khẩu admin: đặt ADMIN_PASSWORD rồi restart.)
 
 // ============================================================
 //  404 + ERROR

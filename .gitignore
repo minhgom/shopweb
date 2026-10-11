@@ -13,3 +13,9 @@ shopweb.db*
 node_modules/
 _snapshots/
 drive-service.json
+database.json
+database.json.tmp
+database.json.corrupt-*
+.env
+drive-service.json
+node_modules/

@@ -95,6 +95,8 @@
             background: #fff;
             box-shadow: 0 0 0 3px rgba(10,10,10,0.08);
         }
+        .auth-forgot { text-align: right; margin-top: -6px; }
+        .auth-forgot a { font-size: 0.8rem; color: #6b7280; text-decoration: none; font-weight: 600; }
 
         .auth-btn {
             width: 100%;
@@ -119,11 +121,12 @@
             padding: 12px;
             border-radius: 10px;
             min-height: 20px;
-            word-break: break-all;
+            word-break: break-word;
         }
+        .auth-msg:empty { display: none; }
         .auth-msg.err { color: #fff; background: #e63946; }
         .auth-msg.ok { color: #fff; background: #16a34a; }
-        .auth-msg.info { color: #0a0a0a; background: #f5f5f7; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; text-align: left; }
+        .auth-msg.info { color: #0a0a0a; background: #f5f5f7; font-size: 0.82rem; }
 
         .auth-divider { position: relative; text-align: center; margin: 22px 0; }
         .auth-divider::before {
@@ -159,6 +162,7 @@
             text-decoration: none;
         }
     </style>
+    <script src="auth.js"></script>
 </head>
 <body>
 
@@ -176,14 +180,16 @@
 
             <div class="auth-form">
                 <div class="auth-field">
-                    <label>Email</label>
-                    <input type="text" id="loginEmail" placeholder="admin hoặc your@email.com">
+                    <label for="loginEmail">Email</label>
+                    <input type="text" id="loginEmail" placeholder="admin hoặc your@email.com" autocomplete="username" autocapitalize="none" autocorrect="off">
                 </div>
 
                 <div class="auth-field">
-                    <label>Mật khẩu</label>
-                    <input type="password" id="loginPassword" placeholder="••••••••">
+                    <label for="loginPassword">Mật khẩu</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
                 </div>
+
+                <div class="auth-forgot"><a href="forgot.html">Quên mật khẩu?</a></div>
 
                 <button type="button" class="auth-btn" id="loginBtn">ĐĂNG NHẬP</button>
                 <div class="auth-msg" id="loginMsg"></div>
@@ -196,7 +202,8 @@
     </div>
 
     <script>
-        // ===== BƯỚC 1: DEBUG NGAY KHI LOAD =====
+        var loginBusy = false;
+
         function showMsg(text, type) {
             var el = document.getElementById('loginMsg');
             if (!el) return;
@@ -204,95 +211,102 @@
             el.className = 'auth-msg ' + (type || '');
         }
 
-        // ===== BƯỚC 2: HÀM LOGIN =====
-        function doLogin() {
-            var emailEl = document.getElementById('loginEmail');
-            var passEl = document.getElementById('loginPassword');
+        function resetBtn() {
             var btn = document.getElementById('loginBtn');
+            btn.textContent = 'ĐĂNG NHẬP';
+            btn.disabled = false;
+            loginBusy = false;
+        }
 
-            var email = (emailEl.value || '').trim();
-            var pass = passEl.value || '';
+        function goAfterLogin(user) {
+            // Dùng replace để không quay lại trang login bằng nút Back
+            if (user && user.is_admin) window.location.replace('/admin.html');
+            else window.location.replace('/index.html');
+        }
+
+        function doLogin() {
+            if (loginBusy) return;
+
+            var email = (document.getElementById('loginEmail').value || '').trim();
+            var pass = document.getElementById('loginPassword').value || '';
 
             if (!email || !pass) {
                 showMsg('⚠ Vui lòng nhập đầy đủ email và mật khẩu', 'err');
                 return;
             }
 
+            loginBusy = true;
+            var btn = document.getElementById('loginBtn');
             btn.textContent = 'ĐANG ĐĂNG NHẬP...';
             btn.disabled = true;
-            showMsg('⏳ Đang gửi yêu cầu tới server...', 'info');
+            showMsg('⏳ Đang đăng nhập...', 'info');
+
+            // Server miễn phí trên Render có thể "ngủ", lần đầu mất ~30-60 giây
+            var slowTimer = setTimeout(function () {
+                showMsg('⏳ Server đang khởi động, vui lòng đợi thêm chút (có thể mất tới 1 phút)...', 'info');
+            }, 4000);
 
             fetch('/api/login', {
                 method: 'POST',
+                credentials: 'same-origin',
+                cache: 'no-store',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: email, password: pass })
             })
-            .then(function(r) {
-                // Đọc response dạng text trước để debug
-                return r.text().then(function(txt) {
-                    var data;
-                    try { data = JSON.parse(txt); } catch(e) {
-                        data = { parseError: true, raw: txt.slice(0, 300) };
-                    }
+            .then(function (r) {
+                return r.text().then(function (txt) {
+                    var data = null;
+                    try { data = JSON.parse(txt); } catch (e) {}
                     return { ok: r.ok, status: r.status, data: data };
                 });
             })
-            .then(function(res) {
-                // Hiển thị toàn bộ response lên màn hình
-                var debugText = 'STATUS: ' + res.status + '\n' +
-                                'BODY: ' + JSON.stringify(res.data, null, 2);
-                showMsg(debugText, 'info');
+            .then(function (res) {
+                clearTimeout(slowTimer);
 
-                if (!res.ok) {
-                    setTimeout(function() {
-                        showMsg('❌ Lỗi ' + res.status + ': ' + (res.data.error || 'Server error'), 'err');
-                    }, 2000);
-                    btn.textContent = 'ĐĂNG NHẬP';
-                    btn.disabled = false;
+                if (!res.data) {
+                    showMsg('❌ Server trả về dữ liệu không hợp lệ (mã ' + res.status + ')', 'err');
+                    resetBtn();
+                    return;
+                }
+                if (!res.ok || !res.data.success) {
+                    showMsg('❌ ' + (res.data.error || 'Đăng nhập thất bại'), 'err');
+                    resetBtn();
                     return;
                 }
 
-                if (!res.data || !res.data.success) {
-                    setTimeout(function() {
-                        showMsg('❌ ' + ((res.data && res.data.error) || 'Đăng nhập thất bại'), 'err');
-                    }, 2000);
-                    btn.textContent = 'ĐĂNG NHẬP';
-                    btn.disabled = false;
-                    return;
-                }
-
-                // THÀNH CÔNG
-                setTimeout(function() {
-                    showMsg('✅ Đăng nhập thành công! Đang chuyển hướng...', 'ok');
-                }, 1500);
-
-                setTimeout(function() {
-                    if (res.data.role === 'admin') {
-                        window.location.href = '/admin.html';
-                    } else {
-                        window.location.href = '/';
-                    }
-                }, 2500);
+                // Lưu token dự phòng (dùng khi cookie bị chặn), rồi xác nhận phiên trước khi chuyển trang
+                if (window.QMAuth) QMAuth.save(res.data);
+                return fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (me) {
+                        if (!me || !me.logged) {
+                            showMsg('❌ Đăng nhập được nhưng server không nhận ra phiên. Mở /api/health: nếu "cookie_secret_from_env" là false hoặc "users" chỉ có 1 thì cần đặt COOKIE_SECRET và giữ database (xem hướng dẫn).', 'err');
+                            resetBtn();
+                            return;
+                        }
+                        showMsg('✅ Đăng nhập thành công! Đang chuyển trang...', 'ok');
+                        setTimeout(function () { goAfterLogin(me.user); }, 400);
+                    });
             })
-            .catch(function(err) {
-                showMsg('❌ LỖI FETCH: ' + err.message + '\n\nKiểm tra:\n- Server có chạy không?\n- URL /api/login có đúng không?', 'err');
-                btn.textContent = 'ĐĂNG NHẬP';
-                btn.disabled = false;
+            .catch(function (err) {
+                clearTimeout(slowTimer);
+                showMsg('❌ Không kết nối được server: ' + err.message, 'err');
+                resetBtn();
             });
         }
 
-        // ===== BƯỚC 3: GẮN EVENT =====
         document.getElementById('loginBtn').addEventListener('click', doLogin);
-
-        document.getElementById('loginEmail').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); doLogin(); }
-        });
-        document.getElementById('loginPassword').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); doLogin(); }
+        ['loginEmail', 'loginPassword'].forEach(function (id) {
+            document.getElementById(id).addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); doLogin(); }
+            });
         });
 
-        // Thông báo đã sẵn sàng
-        showMsg('✓ Trang đã sẵn sàng. Nhập thông tin rồi bấm ĐĂNG NHẬP.', 'info');
+        // Nếu đã đăng nhập sẵn thì khỏi hiện form
+        fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (me) { if (me && me.logged) goAfterLogin(me.user); })
+            .catch(function () {});
     </script>
 </body>
 </html>
