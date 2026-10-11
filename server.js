@@ -1,4 +1,4 @@
-// QM MOD iOS — Backend v4 (SePay + Drive proxy + reset admin)
+// QM MOD iOS — Backend v5 (multi-file IPA)
 const express = require('express');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcrypt');
@@ -23,8 +23,8 @@ app.use((req, res, next) => {
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     next();
 });
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.static(path.join(__dirname)));
@@ -56,10 +56,7 @@ db.exec(`
         name TEXT NOT NULL,
         game TEXT NOT NULL,
         price INTEGER NOT NULL,
-        drive_link TEXT,
-        file_id TEXT,
-        mime TEXT,
-        size INTEGER,
+        files TEXT,
         video_url TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -72,7 +69,7 @@ db.exec(`
         download_token TEXT UNIQUE,
         token_exp INTEGER,
         downloads INTEGER DEFAULT 0,
-        max_dl INTEGER DEFAULT 5,
+        max_dl INTEGER DEFAULT 10,
         amount INTEGER,
         status TEXT DEFAULT 'pending',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -90,15 +87,13 @@ db.exec(`
     );
 `);
 
-// Migration
+// Migration cũ → mới
 const pCols = db.prepare(`PRAGMA table_info(products)`).all().map(c => c.name);
-['drive_link','file_id','mime','size'].forEach(c => {
-    if (!pCols.includes(c)) db.exec(`ALTER TABLE products ADD COLUMN ${c} ${c==='size'?'INTEGER':'TEXT'}`);
-});
+if (!pCols.includes('files')) db.exec(`ALTER TABLE products ADD COLUMN files TEXT`);
 const oCols = db.prepare(`PRAGMA table_info(orders)`).all().map(c => c.name);
 if (!oCols.includes('token_exp')) db.exec(`ALTER TABLE orders ADD COLUMN token_exp INTEGER`);
 if (!oCols.includes('downloads')) db.exec(`ALTER TABLE orders ADD COLUMN downloads INTEGER DEFAULT 0`);
-if (!oCols.includes('max_dl'))    db.exec(`ALTER TABLE orders ADD COLUMN max_dl INTEGER DEFAULT 5`);
+if (!oCols.includes('max_dl'))    db.exec(`ALTER TABLE orders ADD COLUMN max_dl INTEGER DEFAULT 10`);
 if (!oCols.includes('amount'))    db.exec(`ALTER TABLE orders ADD COLUMN amount INTEGER`);
 
 const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
@@ -227,13 +222,13 @@ app.post('/api/reset', loginLimiter, async (req, res) => {
 
 // ===== PRODUCTS =====
 app.get('/api/products', (req, res) => {
-    try { res.json(db.prepare('SELECT id,name,game,price,video_url,size FROM products ORDER BY id DESC').all()); }
+    try { res.json(db.prepare('SELECT id,name,game,price,video_url FROM products ORDER BY id DESC').all()); }
     catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
 app.get('/api/products/:id', (req, res) => {
     try {
-        const p = db.prepare('SELECT id,name,game,price,video_url,size FROM products WHERE id=?').get(req.params.id);
+        const p = db.prepare('SELECT id,name,game,price,video_url FROM products WHERE id=?').get(req.params.id);
         if (!p) return res.status(404).json({ error: 'Không tồn tại' });
         res.json(p);
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
@@ -256,8 +251,6 @@ app.post('/api/checkout', orderLimiter, (req, res) => {
 
         db.prepare(`INSERT INTO orders (customer_email, product_id, order_code, download_token, token_exp, amount, status) VALUES (?,?,?,?,?,?, 'pending')`)
           .run(customer_email, product_id, orderCode, downloadToken, Date.now()+7*24*3600*1000, amount);
-
-        logSecurity(req, 'checkout', `order=${orderCode} ${amount}`);
 
         const bankName = process.env.BANK_NAME || 'MB';
         const bank = process.env.BANK_ACCOUNT || '0383415468';
@@ -314,7 +307,7 @@ app.post('/api/sepay/webhook', express.json(), async (req, res) => {
                 <h2 style="color:#16a34a">✓ Thanh toán thành công</h2>
                 <p>Đơn <b>${code}</b> — ${amount.toLocaleString('vi-VN')}đ</p>
                 <p><b>${order.product_name}</b> (${order.game})</p>
-                <a href="${link}" style="display:inline-block;padding:14px 28px;background:#0a0a0a;color:#fff;text-decoration:none;border-radius:10px;font-weight:bold">📥 TẢI FILE IPA</a>
+                <a href="${link}" style="display:inline-block;padding:14px 28px;background:#0a0a0a;color:#fff;text-decoration:none;border-radius:10px;font-weight:bold">📥 MỞ TRANG TẢI</a>
                 <p style="color:#666;font-size:13px">Link riêng, đừng share. Hết hạn 7 ngày. Cần ESign: muacert.com</p>
             </div>`
         });
@@ -324,25 +317,71 @@ app.post('/api/sepay/webhook', express.json(), async (req, res) => {
     res.json({ ok: true, matched: true, delivered: true });
 });
 
-// ===== DOWNLOAD PROXY =====
-app.get('/api/file/:token', async (req, res) => {
+// ============================================================
+//  DOWNLOAD — LIST FILE + TẢI TỪNG FILE
+// ============================================================
+app.get('/api/order-files/:token', (req, res) => {
     const { token } = req.params;
     if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
     try {
-        const o = db.prepare(`SELECT o.*, p.name AS product_name, p.file_id, p.mime, p.size FROM orders o JOIN products p ON o.product_id=p.id WHERE o.download_token=?`).get(token);
+        const o = db.prepare(`
+            SELECT o.status, o.token_exp, o.max_dl, o.downloads,
+                   o.order_code, p.name AS product_name, p.game, p.files
+            FROM orders o JOIN products p ON o.product_id=p.id
+            WHERE o.download_token=?
+        `).get(token);
         if (!o) return res.status(404).json({ error: 'Link không tồn tại' });
         if (o.status !== 'delivered') return res.status(403).json({ error: 'Chưa thanh toán' });
-        if (o.token_exp && o.token_exp <= Date.now()) return res.status(410).json({ error: 'Hết hạn' });
-        if (o.max_dl && o.downloads >= o.max_dl) return res.status(429).json({ error: 'Hết lượt' });
-        if (!o.file_id) return res.status(500).json({ error: 'File chưa cấu hình' });
+        if (o.token_exp && o.token_exp <= Date.now()) return res.status(410).json({ error: 'Link hết hạn' });
+
+        let files = [];
+        try { files = JSON.parse(o.files || '[]'); } catch {}
+
+        res.json({
+            success: true,
+            order_code: o.order_code,
+            product_name: o.product_name,
+            game: o.game,
+            files: files.map((f, i) => ({
+                index: i,
+                label: f.label || `File ${i + 1}`,
+                name: f.name || `file_${i+1}.ipa`,
+                size: f.size || null,
+                url: `/api/file/${token}/${i}`
+            }))
+        });
+    } catch { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.get('/api/file/:token/:index', async (req, res) => {
+    const { token, index } = req.params;
+    if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
+    const idx = parseInt(index);
+    if (isNaN(idx) || idx < 0) return res.status(400).json({ error: 'Index sai' });
+
+    try {
+        const o = db.prepare(`
+            SELECT o.*, p.name AS product_name, p.files
+            FROM orders o JOIN products p ON o.product_id=p.id
+            WHERE o.download_token=?
+        `).get(token);
+        if (!o) return res.status(404).json({ error: 'Link không tồn tại' });
+        if (o.status !== 'delivered') return res.status(403).json({ error: 'Chưa thanh toán' });
+        if (o.token_exp && o.token_exp <= Date.now()) return res.status(410).json({ error: 'Link hết hạn' });
+        if (o.max_dl && o.downloads >= o.max_dl) return res.status(429).json({ error: 'Hết lượt tải' });
+
+        let files = [];
+        try { files = JSON.parse(o.files || '[]'); } catch {}
+        const f = files[idx];
+        if (!f || !f.file_id) return res.status(404).json({ error: 'File không tồn tại' });
 
         db.prepare(`UPDATE orders SET downloads=downloads+1 WHERE id=?`).run(o.id);
 
-        const dr = await drive.files.get({ fileId: o.file_id, alt: 'media' }, { responseType: 'stream' });
-        const safe = String(o.product_name || 'download').replace(/[^\x20-\x7E]/g, '_').replace(/[\r\n"]/g, '') + '.ipa';
+        const dr = await drive.files.get({ fileId: f.file_id, alt: 'media' }, { responseType: 'stream' });
+        const safe = String(f.name || `${o.product_name}_${idx+1}.ipa`).replace(/[^\x20-\x7E]/g, '_').replace(/[\r\n"]/g, '');
 
-        res.setHeader('Content-Type', o.mime || 'application/octet-stream');
-        if (o.size) res.setHeader('Content-Length', String(o.size));
+        res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+        if (f.size) res.setHeader('Content-Length', String(f.size));
         res.setHeader('Content-Disposition', `attachment; filename="${safe}"`);
         res.setHeader('Cache-Control', 'private, no-store');
         await pipeline(dr.data, res);
@@ -353,6 +392,11 @@ app.get('/api/file/:token', async (req, res) => {
     }
 });
 
+// Backward compatible (file đầu tiên)
+app.get('/api/file/:token', async (req, res) => {
+    res.redirect(`/api/file/${req.params.token}/0`);
+});
+
 app.get('/api/download-by-token/:token', (req, res) => {
     const { token } = req.params;
     if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
@@ -360,7 +404,7 @@ app.get('/api/download-by-token/:token', (req, res) => {
         const o = db.prepare(`SELECT o.order_code, o.token_exp, p.name AS product_name, p.game, p.video_url FROM orders o JOIN products p ON o.product_id=p.id WHERE o.download_token=?`).get(token);
         if (!o) return res.status(404).json({ error: 'Link không tồn tại' });
         if (o.token_exp && o.token_exp <= Date.now()) return res.status(410).json({ error: 'Hết hạn' });
-        res.json({ success: true, product_name: o.product_name, game: o.game, video_url: o.video_url, order_code: o.order_code, download_url: `/api/file/${token}` });
+        res.json({ success: true, product_name: o.product_name, game: o.game, video_url: o.video_url, order_code: o.order_code });
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
@@ -383,29 +427,46 @@ app.post('/api/admin/login', loginLimiter, async (req, res) => {
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
+// Nhập nhiều link Drive — body: { name, game, price, video_url, files: [{label, url, name, mime, size}] }
 app.post('/api/admin/upload-product', requireAdmin, (req, res) => {
     const name = sanitize(req.body.name);
     const game = sanitize(req.body.game);
     const price = parseInt(req.body.price);
-    const drive_link = sanitize(req.body.drive_link || '');
     const video_url = sanitize(req.body.video_url || '');
-    const mime = sanitize(req.body.mime || 'application/octet-stream');
-    const size = parseInt(req.body.size) || null;
+    const rawFiles = Array.isArray(req.body.files) ? req.body.files : [];
 
-    if (!name || !game || !price || !drive_link) return res.status(400).json({ error: 'Thiếu thông tin' });
-    const fileId = extractDriveId(drive_link);
-    if (!fileId) return res.status(400).json({ error: 'Link Drive sai (cần /file/d/ID/view)' });
+    if (!name || !game || !price) return res.status(400).json({ error: 'Thiếu thông tin' });
+    if (!rawFiles.length) return res.status(400).json({ error: 'Cần ít nhất 1 file' });
+
+    const files = [];
+    for (const f of rawFiles) {
+        const fileId = extractDriveId(f.url || '');
+        if (!fileId) return res.status(400).json({ error: `Link Drive sai: ${f.url || '(trống)'}` });
+        files.push({
+            label: sanitize(f.label || 'File'),
+            file_id: fileId,
+            name: sanitize(f.name || `${name}_${files.length+1}.ipa`),
+            mime: sanitize(f.mime || 'application/octet-stream'),
+            size: parseInt(f.size) || null
+        });
+    }
 
     try {
-        const r = db.prepare(`INSERT INTO products (name,game,price,drive_link,file_id,mime,size,video_url) VALUES (?,?,?,?,?,?,?,?)`)
-                    .run(name, game, price, drive_link, fileId, mime, size, video_url || null);
-        res.json({ success: true, id: r.lastInsertRowid, file_id: fileId });
+        const r = db.prepare(`INSERT INTO products (name,game,price,files,video_url) VALUES (?,?,?,?,?)`)
+                    .run(name, game, price, JSON.stringify(files), video_url || null);
+        res.json({ success: true, id: r.lastInsertRowid, file_count: files.length });
     } catch (e) { console.error(e); res.status(500).json({ error: 'Lỗi server' }); }
 });
 
 app.get('/api/admin/products', requireAdmin, (req, res) => {
-    try { res.json(db.prepare('SELECT id,name,game,price,file_id,mime,size,video_url,created_at FROM products ORDER BY id DESC').all()); }
-    catch { res.status(500).json({ error: 'Lỗi server' }); }
+    try {
+        const rows = db.prepare('SELECT * FROM products ORDER BY id DESC').all();
+        res.json(rows.map(p => {
+            let files = [];
+            try { files = JSON.parse(p.files || '[]'); } catch {}
+            return { id: p.id, name: p.name, game: p.game, price: p.price, video_url: p.video_url, created_at: p.created_at, file_count: files.length, files };
+        }));
+    } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
 app.get('/api/admin/orders', requireAdmin, (req, res) => {
@@ -432,7 +493,7 @@ app.post('/api/admin/confirm-order/:code', requireAdmin, async (req, res) => {
             await transporter.sendMail({
                 from: `"QM MOD iOS" <${process.env.GMAIL_USER}>`, to: o.customer_email,
                 subject: `Đơn ${o.order_code} — Link tải ${o.product_name}`,
-                html: `<p>Đơn <b>${o.order_code}</b> đã thanh toán.</p><p><a href="${link}">📥 TẢI FILE IPA</a></p>`
+                html: `<p>Đơn <b>${o.order_code}</b> đã thanh toán.</p><p><a href="${link}">📥 MỞ TRANG TẢI</a></p>`
             });
         } catch (e) { console.error('mail fail:', e.message); }
         res.json({ success: true });
@@ -456,7 +517,6 @@ app.post('/api/admin/ban-user/:id', requireAdmin, (req, res) => {
     catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// Đổi pass admin
 app.post('/api/admin/change-password', requireAdmin, async (req, res) => {
     const { old_password, new_password } = req.body || {};
     if (!old_password || !new_password || new_password.length < 6)
@@ -475,7 +535,7 @@ app.get('/api/admin/security-logs', requireAdmin, (req, res) => {
     catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// ===== TEMP RESET ADMIN — XÓA SAU KHI DÙNG =====
+// TEMP reset
 app.get('/reset-admin-temp', async (req, res) => {
     if (req.query.key !== 'reset-shopweb-2026') return res.status(403).send('Nope');
     const hash = await bcrypt.hash('admin123', 10);
@@ -483,7 +543,6 @@ app.get('/reset-admin-temp', async (req, res) => {
     res.send('OK — admin / admin123');
 });
 
-// 404 + error
 app.use((req, res) => res.status(404).send('Không tìm thấy'));
 app.use((err, req, res, next) => { console.error(err); res.status(500).json({ error: 'Lỗi server' }); });
 

@@ -24,13 +24,18 @@ h2 { font-size: 1.1rem; margin-bottom: 16px; }
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
 }
-input, select {
+input, textarea, select {
     width: 100%; padding: 12px 14px; margin-bottom: 10px;
     border-radius: 10px; border: 1.5px solid rgba(10,10,10,0.15);
     background: #f5f6f7; font-family: inherit; font-size: 0.9rem;
     outline: none; transition: all 0.2s;
 }
-input:focus, select:focus { border-color: #0a0a0a; background: #fff; }
+textarea {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem; resize: vertical; min-height: 120px;
+    line-height: 1.6;
+}
+input:focus, textarea:focus, select:focus { border-color: #0a0a0a; background: #fff; }
 label.field-label {
     display: block; font-size: 0.72rem; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.06em;
@@ -47,7 +52,11 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .full { width: 100%; margin-top: 8px; }
 .hint {
     font-size: 0.75rem; color: #6b7280; margin-top: -4px; margin-bottom: 10px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrains Mono', monospace; line-height: 1.6;
+}
+.hint code {
+    background: #f0f2f5; padding: 2px 6px; border-radius: 4px;
+    color: #e63946; font-weight: 700;
 }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .item {
@@ -77,6 +86,16 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .status-failed { background: #e63946; color: #fff; }
 .tag-ok { color: #16a34a; font-weight: 700; }
 .tag-no { color: #e63946; font-weight: 700; }
+.file-preview {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+}
+.file-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(22,163,74,0.1); color: #16a34a;
+    padding: 3px 8px; border-radius: 6px;
+    font-size: 0.68rem; font-weight: 700;
+    border: 1px solid rgba(22,163,74,0.25);
+}
 </style>
 </head>
 <body>
@@ -86,7 +105,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     <div id="loginBox" class="box login-box">
         <h1>⚙ Admin Login</h1>
         <input type="text" id="adminUser" placeholder="Username" value="admin">
-        <input type="password" id="adminPass" placeholder="Password" value="minhgom@123">
+        <input type="password" id="adminPass" placeholder="Password" value="admin123">
         <button class="full" id="loginBtn">ĐĂNG NHẬP</button>
     </div>
 
@@ -100,22 +119,23 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
         </div>
 
         <div class="box">
-            <h2>📤 Thêm sản phẩm (nhập link Drive)</h2>
+            <h2>📤 Thêm sản phẩm (nhiều file IPA)</h2>
             <form id="productForm">
                 <div class="form-row">
                     <div>
                         <label class="field-label">Tên sản phẩm</label>
-                        <input type="text" name="name" placeholder="VD: TOE3 Mod Full" required>
+                        <input type="text" name="name" placeholder="VD: BUSSID Mod Full" required>
                     </div>
                     <div>
                         <label class="field-label">Game</label>
-                        <input type="text" name="game" placeholder="TOE3 / BUSSID / GTA SAN..." required>
+                        <input type="text" name="game" placeholder="BUSSID / TOE3 / GTA SAN..." required>
                     </div>
                 </div>
+
                 <div class="form-row">
                     <div>
-                        <label class="field-label">Giá (nghìn VNĐ)</label>
-                        <input type="number" name="price" placeholder="VD: 20000 (đ = 20k)" required>
+                        <label class="field-label">Giá (đồng)</label>
+                        <input type="number" name="price" placeholder="VD: 25000" required>
                     </div>
                     <div>
                         <label class="field-label">Link video demo (tuỳ chọn)</label>
@@ -123,19 +143,13 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
                     </div>
                 </div>
 
-                <label class="field-label">Link Google Drive chứa file IPA *</label>
-                <input type="url" name="drive_link" placeholder="https://drive.google.com/file/d/FILE_ID/view?usp=sharing" required>
-                <div class="hint">Dạng đúng: /file/d/&lt;ID&gt;/view. Share file cho service account với quyền Viewer.</div>
-
-                <div class="form-row">
-                    <div>
-                        <label class="field-label">MIME (mặc định OK)</label>
-                        <input type="text" name="mime" value="application/octet-stream">
-                    </div>
-                    <div>
-                        <label class="field-label">Size (bytes, tuỳ chọn)</label>
-                        <input type="number" name="size" placeholder="VD: 156000000">
-                    </div>
+                <label class="field-label">Danh sách file (mỗi dòng 1 file)</label>
+                <textarea id="filesInput" placeholder="ESign Mod | https://drive.google.com/file/d/AAA/view | ESign.ipa
+BUSSID Mod | https://drive.google.com/file/d/BBB/view | BUSSID.ipa
+File xe | https://drive.google.com/file/d/CCC/view | Xe.zip"></textarea>
+                <div class="hint">
+                    Định dạng mỗi dòng: <code>Tên hiển thị</code> | <code>Link Drive</code> | <code>Tên file khi tải</code><br>
+                    Dấu <b>|</b> bắt buộc phân cách. Khách sẽ tải lần lượt từ trên xuống.
                 </div>
 
                 <button type="submit" class="full" id="addBtn">THÊM SẢN PHẨM</button>
@@ -194,18 +208,26 @@ async function loadProducts() {
             el.innerHTML = '<p style="color:#999;">Chưa có sản phẩm</p>';
             return;
         }
-        el.innerHTML = data.map(p => `
-            <div class="item">
-                <div class="item-content">
-                    <b>ID ${p.id}</b> · ${p.name} · ${p.game} · ${p.price.toLocaleString('vi-VN')}đ
-                    ${p.file_id ? ' · <span class="tag-ok">✓ Drive</span>' : ' · <span class="tag-no">✗ Chưa link</span>'}
-                    ${p.video_url ? ' · <span class="tag-ok">✓ Video</span>' : ''}
+        el.innerHTML = data.map(p => {
+            const files = p.files || [];
+            const fileChips = files.map(f =>
+                `<span class="file-chip">📄 ${f.label} (${f.name})</span>`
+            ).join('');
+
+            return `
+                <div class="item">
+                    <div class="item-content">
+                        <b>ID ${p.id}</b> · ${p.name} · ${p.game} · ${p.price.toLocaleString('vi-VN')}đ
+                        · <span class="tag-ok">${p.file_count} file</span>
+                        ${p.video_url ? ' · <span class="tag-ok">✓ Video</span>' : ''}
+                        <div class="file-preview">${fileChips}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-reject" data-del-product="${p.id}" data-name="${p.name}">🗑 XOÁ</button>
+                    </div>
                 </div>
-                <div class="item-actions">
-                    <button class="btn-reject" data-del-product="${p.id}" data-name="${p.name}">🗑 XOÁ</button>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         el.querySelectorAll('[data-del-product]').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -304,18 +326,41 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('productForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const form = e.target;
+
+        // Parse danh sách file từ textarea
+        const lines = document.getElementById('filesInput').value
+            .split('\n').map(l => l.trim()).filter(Boolean);
+
+        if (!lines.length) return alert('Nhập ít nhất 1 file!');
+
+        const files = [];
+        for (const line of lines) {
+            const parts = line.split('|').map(s => s.trim());
+            const label = parts[0] || 'File';
+            const url = parts[1] || '';
+            const fname = parts[2] || `${label}.ipa`;
+
+            if (!url) return alert('Thiếu link Drive ở dòng:\n' + line);
+            if (!/drive\.google\.com/.test(url)) return alert('Link không phải Google Drive:\n' + line);
+
+            files.push({
+                label,
+                url,
+                name: fname,
+                mime: 'application/octet-stream'
+            });
+        }
+
         const body = {
             name: form.name.value.trim(),
             game: form.game.value.trim(),
             price: parseInt(form.price.value),
-            drive_link: form.drive_link.value.trim(),
             video_url: form.video_url.value.trim(),
-            mime: form.mime.value.trim() || 'application/octet-stream',
-            size: parseInt(form.size.value) || null
+            files
         };
 
-        if (!body.name || !body.game || !body.price || !body.drive_link) {
-            return alert('Điền đủ: tên, game, giá, link Drive');
+        if (!body.name || !body.game || !body.price) {
+            return alert('Điền đủ: tên, game, giá');
         }
 
         const btn = document.getElementById('addBtn');
@@ -330,9 +375,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             if (data.success) {
-                alert('✓ Thêm thành công! fileId: ' + data.file_id);
+                alert('✓ Thêm thành công! Số file: ' + data.file_count);
                 form.reset();
-                form.mime.value = 'application/octet-stream';
+                document.getElementById('filesInput').value = '';
                 loadProducts();
             } else {
                 alert('Lỗi: ' + data.error);
