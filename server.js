@@ -13,6 +13,8 @@ const { pipeline } = require('stream/promises');
 require('dotenv').config();
 
 const app = express();
+app.set('trust proxy', 1);
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 app.disable('x-powered-by');
@@ -171,7 +173,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
         if (!u) return res.status(401).json({ error: 'Sai thông tin' });
         if (u.is_banned) return res.status(403).json({ error: 'Bị khoá' });
         if (!await bcrypt.compare(password, u.password_hash)) return res.status(401).json({ error: 'Sai thông tin' });
-        res.cookie('uid', u.id, { httpOnly: true, secure: process.env.NODE_ENV==='production', sameSite: 'lax', maxAge: 7*24*3600*1000 });
+        res.cookie('uid', u.id, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 7*24*3600*1000 });
         res.json({ success: true, user: { id: u.id, username: u.username, email: u.email } });
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
@@ -422,7 +424,7 @@ app.post('/api/admin/login', loginLimiter, async (req, res) => {
     try {
         const a = db.prepare('SELECT * FROM admins WHERE username=?').get(username);
         if (!a || !await bcrypt.compare(password, a.password_hash)) return res.status(401).json({ error: 'Sai tài khoản' });
-        res.cookie('isAdmin', a.id, { httpOnly: true, secure: process.env.NODE_ENV==='production', sameSite: 'lax', maxAge: 7*24*3600*1000 });
+        res.cookie('isAdmin', a.id, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 7*24*3600*1000 });
         res.json({ success: true });
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
