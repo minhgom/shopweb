@@ -1,4 +1,5 @@
-// QM MOD iOS — Backend v14 FINAL — ZERO NATIVE
+// QM MOD iOS — Backend v15 (fix đăng nhập + vá bảo mật)
+require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -8,24 +9,71 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { google } = require('googleapis');
 const { pipeline } = require('stream/promises');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BASE_URL = process.env.BASE_URL || 'https://shopweb-jgeo.onrender.com';
+const IS_PROD = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+
+// ===== COOKIE SECRET (bắt buộc đặt trong Render > Environment) =====
+let COOKIE_SECRET = process.env.COOKIE_SECRET;
+if (!COOKIE_SECRET) {
+    COOKIE_SECRET = crypto.randomBytes(32).toString('hex');
+    console.warn('[WARN] Chưa đặt COOKIE_SECRET -> mỗi lần restart sẽ bị đăng xuất. Hãy đặt biến này trong Render > Environment.');
+}
+
+// ===== CORS (chỉ cần nếu frontend ở domain KHÁC backend) =====
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+const CROSS_SITE = ALLOWED_ORIGINS.length > 0;
 
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
-app.use(cookieParser());
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.static(__dirname));
+app.use(cookieParser(COOKIE_SECRET));
+if (CROSS_SITE) {
+    app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
+}
+
+// Không cho trình duyệt (Safari iOS) cache API -> tránh /api/me trả kết quả cũ
+app.use('/api', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+});
+
+// ===== STATIC =====
+// Khuyến nghị: tạo thư mục "public" và để html/css/js/ảnh vào đó.
+// Nếu chưa có "public" thì vẫn phục vụ thư mục gốc nhưng CHẶN các file nhạy cảm.
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const HAS_PUBLIC = fs.existsSync(PUBLIC_DIR);
+const BLOCKED_FILES = new Set([
+    'server.js', 'database.json', 'database.json.tmp', 'drive-service.json',
+    'package.json', 'package-lock.json', 'render.yaml'
+]);
+if (!HAS_PUBLIC) {
+    console.warn('[WARN] Chưa có thư mục public/ — đang phục vụ thư mục gốc (đã chặn file nhạy cảm). Nên chuyển html/css/js vào public/.');
+    app.use((req, res, next) => {
+        let p;
+        try { p = decodeURIComponent(req.path); } catch { return res.status(400).end(); }
+        const parts = p.split('/').filter(Boolean);
+        const bad = parts.some(s =>
+            s.startsWith('.') ||
+            s === 'node_modules' ||
+            BLOCKED_FILES.has(s.toLowerCase()) ||
+            /\.(env|json|key|pem|log)$/i.test(s)
+        );
+        if (bad && !p.startsWith('/api/')) return res.status(404).send('Không tìm thấy');
+        next();
+    });
+}
+app.use(express.static(HAS_PUBLIC ? PUBLIC_DIR : __dirname, { dotfiles: 'ignore' }));
 
 // ===== JSON DB =====
-const DB_FILE = path.join(__dirname, 'database.json');
+// Trên Render nên gắn Disk và đặt DB_FILE=/var/data/database.json để không mất dữ liệu khi deploy.
+const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'database.json');
 
 function emptyDB() {
-    return { users: [], products: [], orders: [], nextUserId: 1, nextProductId: 1 };
+    return { users: [], products: [], orders: [], nextUserId: 1, nextProductId: 1, nextOrderId: 1 };
 }
 
 function loadDB() {
@@ -34,16 +82,24 @@ function loadDB() {
         const raw = fs.readFileSync(DB_FILE, 'utf8').trim();
         if (!raw) throw new Error('empty');
         const d = JSON.parse(raw);
+        const orders = Array.isArray(d.orders) ? d.orders : [];
+        const maxOrderId = orders.reduce((m, o) => Math.max(m, Number(o.id) || 0), 0);
         return {
             users: Array.isArray(d.users) ? d.users : [],
             products: Array.isArray(d.products) ? d.products : [],
-            orders: Array.isArray(d.orders) ? d.orders : [],
+            orders,
             nextUserId: Number(d.nextUserId) || 1,
-            nextProductId: Number(d.nextProductId) || 1
+            nextProductId: Number(d.nextProductId) || 1,
+            nextOrderId: Number(d.nextOrderId) || (maxOrderId + 1)
         };
     } catch (e) {
         console.warn('[DB] reset:', e.message);
-        try { fs.unlinkSync(DB_FILE); } catch {}
+        // Giữ lại bản hỏng để còn cứu dữ liệu thay vì xoá
+        try {
+            if (fs.existsSync(DB_FILE) && fs.readFileSync(DB_FILE, 'utf8').trim()) {
+                fs.renameSync(DB_FILE, DB_FILE + '.corrupt-' + Date.now());
+            }
+        } catch {}
         return emptyDB();
     }
 }
@@ -76,6 +132,7 @@ function verifyPassword(password, stored) {
 // ===== HELPERS =====
 function validateEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 function sanitize(s) { return typeof s === 'string' ? s.replace(/[<>]/g, '').trim().slice(0, 500) : ''; }
+function validPassword(p) { return typeof p === 'string' && p.length >= 6 && p.length <= 200; }
 function extractDriveId(url) {
     if (!url) return null;
     let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]{20,})/);
@@ -83,31 +140,74 @@ function extractDriveId(url) {
     m = url.match(/[?&]id=([a-zA-Z0-9_-]{20,})/);
     return m ? m[1] : null;
 }
+function safeEqual(a, b) {
+    const x = Buffer.from(String(a));
+    const y = Buffer.from(String(b));
+    return x.length === y.length && crypto.timingSafeEqual(x, y);
+}
 
+// Giới hạn số lần thử (chống dò mật khẩu)
+const attempts = new Map();
+function rateLimit(key, max, windowMs) {
+    const now = Date.now();
+    const list = (attempts.get(key) || []).filter(t => now - t < windowMs);
+    if (list.length >= max) { attempts.set(key, list); return false; }
+    list.push(now);
+    attempts.set(key, list);
+    return true;
+}
+setInterval(() => attempts.clear(), 60 * 60 * 1000).unref();
+
+// Cookie CÓ CHỮ KÝ. Cùng domain -> sameSite lax (Safari iOS không chặn).
 const COOKIE_OPTS = {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: CROSS_SITE ? true : IS_PROD,
+    sameSite: CROSS_SITE ? 'none' : 'lax',
+    signed: true,
     maxAge: 7 * 24 * 3600 * 1000,
     path: '/'
 };
+const CLEAR_OPTS = {
+    httpOnly: true,
+    secure: COOKIE_OPTS.secure,
+    sameSite: COOKIE_OPTS.sameSite,
+    path: '/'
+};
 
-// ===== LOAD DB + AUTO ADMIN =====
+function readId(req, name) {
+    const v = req.signedCookies && req.signedCookies[name];
+    const n = parseInt(v);
+    return Number.isInteger(n) ? n : null;
+}
+
+// ===== LOAD DB + ADMIN =====
 let db = loadDB();
 
-if (!db.users.find(u => u.username === 'admin' && u.is_admin)) {
-    db.users.push({
-        id: db.nextUserId++,
-        username: 'admin',
-        email: 'admin@shopweb.local',
-        password_hash: hashPassword('admin123'),
-        is_admin: true,
-        is_banned: 0,
-        created_at: new Date().toISOString()
-    });
-    saveDB(db);
-    console.log('[DB] admin created (admin/admin123)');
-}
+(function ensureAdmin() {
+    const envPass = process.env.ADMIN_PASSWORD;
+    let a = db.users.find(u => u.username === 'admin' && u.is_admin);
+    if (!a) {
+        const pass = envPass || crypto.randomBytes(9).toString('hex');
+        db.users.push({
+            id: db.nextUserId++,
+            username: 'admin',
+            email: 'admin@shopweb.local',
+            password_hash: hashPassword(pass),
+            is_admin: true,
+            is_banned: 0,
+            created_at: new Date().toISOString()
+        });
+        saveDB(db);
+        console.log('[DB] Đã tạo admin. Tài khoản: admin');
+        if (!envPass) console.log('[DB] Mật khẩu admin (chỉ hiện 1 lần, hãy ghi lại):', pass);
+    } else if (envPass && !verifyPassword(envPass, a.password_hash)) {
+        // Đặt ADMIN_PASSWORD rồi restart = đổi/khôi phục mật khẩu admin
+        a.password_hash = hashPassword(envPass);
+        a.is_banned = 0;
+        saveDB(db);
+        console.log('[DB] Đã cập nhật mật khẩu admin theo ADMIN_PASSWORD');
+    }
+})();
 console.log('[DB] ready —', db.users.length, 'users,', db.products.length, 'products');
 
 // ===== DRIVE =====
@@ -125,16 +225,16 @@ const transporter = nodemailer.createTransport({
 
 // ===== MIDDLEWARE =====
 function requireLogin(req, res, next) {
-    if (!req.cookies.uid) return res.status(401).json({ error: 'Chưa đăng nhập' });
-    const u = db.users.find(x => x.id === parseInt(req.cookies.uid));
+    const id = readId(req, 'uid');
+    if (!id) return res.status(401).json({ error: 'Chưa đăng nhập' });
+    const u = db.users.find(x => x.id === id);
     if (!u || u.is_banned) return res.status(403).json({ error: 'Không hợp lệ' });
     req.user = u;
     next();
 }
 function requireAdmin(req, res, next) {
-    const id = req.cookies.isAdmin || req.cookies.uid;
-    if (!id) return res.status(403).json({ error: 'Không có quyền' });
-    const u = db.users.find(x => x.id === parseInt(id) && x.is_admin);
+    const id = readId(req, 'isAdmin'); // chỉ nhận cookie admin đã ký, KHÔNG nhận uid
+    const u = id && db.users.find(x => x.id === id && x.is_admin && !x.is_banned);
     if (!u) return res.status(403).json({ error: 'Không có quyền' });
     req.admin = u;
     next();
@@ -151,8 +251,9 @@ app.post('/api/register', (req, res) => {
 
         if (!email || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
         if (!validateEmail(email)) return res.status(400).json({ error: 'Email sai' });
-        if (password.length < 6) return res.status(400).json({ error: 'Pass 6+ ký tự' });
+        if (!validPassword(password)) return res.status(400).json({ error: 'Pass 6+ ký tự' });
         if (db.users.find(u => u.email === email)) return res.status(400).json({ error: 'Email đã tồn tại' });
+        if (username.toLowerCase() === 'admin') return res.status(400).json({ error: 'Tên này không được dùng' });
 
         const user = {
             id: db.nextUserId++,
@@ -178,18 +279,23 @@ app.post('/api/register', (req, res) => {
 
 app.post('/api/login', (req, res) => {
     try {
+        if (!rateLimit('login:' + req.ip, 15, 15 * 60 * 1000)) {
+            return res.status(429).json({ error: 'Thử quá nhiều lần, đợi 15 phút' });
+        }
         const email = sanitize(req.body.email).toLowerCase();
         const password = req.body.password;
 
-        if (!email || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
+        if (!email || typeof password !== 'string' || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
 
-        const u = db.users.find(x => x.email === email || x.username === email);
+        const u = db.users.find(x => x.email === email || x.username.toLowerCase() === email);
         if (!u) return res.status(401).json({ error: 'Sai thông tin' });
         if (u.is_banned) return res.status(403).json({ error: 'Bị khoá' });
         if (!verifyPassword(password, u.password_hash)) return res.status(401).json({ error: 'Sai thông tin' });
 
         res.cookie('uid', u.id, COOKIE_OPTS);
-        res.json({ success: true, user: { id: u.id, username: u.username, email: u.email } });
+        // Nếu là admin đăng nhập bằng form thường thì cấp luôn cookie admin
+        if (u.is_admin) res.cookie('isAdmin', u.id, COOKIE_OPTS);
+        res.json({ success: true, user: { id: u.id, username: u.username, email: u.email, is_admin: !!u.is_admin } });
     } catch (e) {
         console.error('[login]', e);
         res.status(500).json({ error: 'Lỗi: ' + e.message });
@@ -197,31 +303,40 @@ app.post('/api/login', (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
-    res.clearCookie('uid', { path: '/' });
-    res.clearCookie('isAdmin', { path: '/' });
+    res.clearCookie('uid', CLEAR_OPTS);
+    res.clearCookie('isAdmin', CLEAR_OPTS);
     res.json({ success: true });
 });
 
 app.get('/api/me', (req, res) => {
-    if (!req.cookies.uid) return res.json({ logged: false });
-    const u = db.users.find(x => x.id === parseInt(req.cookies.uid));
-    if (!u) return res.json({ logged: false });
-    res.json({ logged: true, user: { id: u.id, username: u.username, email: u.email } });
+    const id = readId(req, 'uid') || readId(req, 'isAdmin');
+    if (!id) return res.json({ logged: false });
+    const u = db.users.find(x => x.id === id);
+    if (!u || u.is_banned) return res.json({ logged: false });
+    res.json({
+        logged: true,
+        user: { id: u.id, username: u.username, email: u.email, is_admin: !!u.is_admin }
+    });
 });
 
 app.post('/api/forgot', async (req, res) => {
     try {
+        if (!rateLimit('forgot:' + req.ip, 5, 15 * 60 * 1000)) {
+            return res.status(429).json({ error: 'Thử quá nhiều lần, đợi 15 phút' });
+        }
         const email = sanitize(req.body.email).toLowerCase();
         if (!validateEmail(email)) return res.status(400).json({ error: 'Email sai' });
         const u = db.users.find(x => x.email === email);
-        if (!u) return res.status(404).json({ error: 'Email không tồn tại' });
+
+        // Luôn trả success để không lộ email nào đã đăng ký
+        if (!u) return res.json({ success: true });
 
         const token = crypto.randomBytes(32).toString('hex');
         u.reset_token = token;
-        u.reset_expires = Date.now() + 30*60*1000;
+        u.reset_expires = Date.now() + 30 * 60 * 1000;
         saveDB(db);
 
-        const link = `${process.env.BASE_URL || 'https://shopweb-jgeo.onrender.com'}/reset.html?token=${token}`;
+        const link = `${BASE_URL}/reset.html?token=${token}`;
         await transporter.sendMail({
             from: `"QM MOD iOS" <${process.env.GMAIL_USER}>`,
             to: email,
@@ -239,8 +354,8 @@ app.post('/api/reset', (req, res) => {
     try {
         const token = sanitize(req.body.token);
         const password = req.body.password;
-        if (!token || !password || password.length < 6) return res.status(400).json({ error: 'Thiếu thông tin' });
-        const u = db.users.find(x => x.reset_token === token && x.reset_expires > Date.now());
+        if (!token || !validPassword(password)) return res.status(400).json({ error: 'Thiếu thông tin' });
+        const u = db.users.find(x => x.reset_token && x.reset_token === token && x.reset_expires > Date.now());
         if (!u) return res.status(400).json({ error: 'Token sai/hết hạn' });
         u.password_hash = hashPassword(password);
         u.reset_token = null;
@@ -274,7 +389,7 @@ app.post('/api/checkout', (req, res) => {
     try {
         const product_id = parseInt(req.body.product_id);
         const customer_email = sanitize(req.body.customer_email || '').toLowerCase();
-        const uid = req.cookies.uid ? parseInt(req.cookies.uid) : null;
+        const uid = readId(req, 'uid');
 
         if (!product_id) return res.status(400).json({ error: 'Thiếu product_id' });
         if (!validateEmail(customer_email)) return res.status(400).json({ error: 'Email sai' });
@@ -287,13 +402,13 @@ app.post('/api/checkout', (req, res) => {
         const amount = product.price;
 
         db.orders.push({
-            id: db.orders.length + 1,
+            id: db.nextOrderId++,
             user_id: uid,
             customer_email,
             product_id,
             order_code: orderCode,
             download_token: downloadToken,
-            token_exp: Date.now() + 7*24*3600*1000,
+            token_exp: Date.now() + 7 * 24 * 3600 * 1000,
             downloads: 0,
             max_dl: 10,
             amount,
@@ -333,8 +448,9 @@ app.get('/api/order/:code/status', (req, res) => {
 // ============================================================
 app.post('/api/sepay/webhook', async (req, res) => {
     try {
+        const key = process.env.SEPAY_API_KEY;
         const auth = req.get('authorization') || '';
-        if (auth !== `Apikey ${process.env.SEPAY_API_KEY}`) return res.status(401).end();
+        if (!key || !safeEqual(auth, `Apikey ${key}`)) return res.status(401).end();
 
         const b = req.body || {};
         const content = String(b.content || b.description || '');
@@ -355,7 +471,7 @@ app.post('/api/sepay/webhook', async (req, res) => {
         saveDB(db);
 
         const product = db.products.find(x => x.id === order.product_id);
-        const link = `${process.env.BASE_URL || 'https://shopweb-jgeo.onrender.com'}/download.html?token=${order.download_token}`;
+        const link = `${BASE_URL}/download.html?token=${order.download_token}`;
 
         try {
             await transporter.sendMail({
@@ -399,7 +515,7 @@ app.get('/api/order-files/:token', (req, res) => {
         files: files.map((f, i) => ({
             index: i,
             label: f.label || `File ${i + 1}`,
-            name: f.name || `file_${i+1}.ipa`,
+            name: f.name || `file_${i + 1}.ipa`,
             size: f.size || null,
             url: `/api/file/${token}/${i}`
         }))
@@ -427,7 +543,7 @@ app.get('/api/file/:token/:index', async (req, res) => {
         saveDB(db);
 
         const dr = await drive.files.get({ fileId: f.file_id, alt: 'media' }, { responseType: 'stream' });
-        const safe = String(f.name || `${p.name}_${idx+1}.ipa`).replace(/[^\x20-\x7E]/g, '_').replace(/[\r\n"]/g, '');
+        const safe = String(f.name || `${p.name}_${idx + 1}.ipa`).replace(/[^\x20-\x7E]/g, '_').replace(/[\r\n"]/g, '');
 
         res.setHeader('Content-Type', f.mime || 'application/octet-stream');
         if (f.size) res.setHeader('Content-Length', String(f.size));
@@ -442,7 +558,7 @@ app.get('/api/file/:token/:index', async (req, res) => {
 });
 
 app.get('/api/file/:token', (req, res) => {
-    res.redirect(`/api/file/${req.params.token}/0`);
+    res.redirect(`/api/file/${encodeURIComponent(req.params.token)}/0`);
 });
 
 // ============================================================
@@ -471,25 +587,21 @@ app.get('/api/my-downloads', requireLogin, (req, res) => {
 // ============================================================
 app.post('/api/admin/login', (req, res) => {
     try {
+        if (!rateLimit('admin:' + req.ip, 10, 15 * 60 * 1000)) {
+            return res.status(429).json({ error: 'Thử quá nhiều lần, đợi 15 phút' });
+        }
         const username = sanitize(req.body.username);
         const password = req.body.password;
 
-        console.log('[admin-login]', username);
-
-        if (!username || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
+        if (!username || typeof password !== 'string' || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
 
         const a = db.users.find(x => x.username === username && x.is_admin);
-        if (!a) {
-            console.warn('[admin-login] not found');
-            return res.status(401).json({ error: 'Sai tài khoản' });
-        }
-        if (!verifyPassword(password, a.password_hash)) {
-            console.warn('[admin-login] wrong pass');
-            return res.status(401).json({ error: 'Sai mật khẩu' });
+        if (!a || !verifyPassword(password, a.password_hash)) {
+            return res.status(401).json({ error: 'Sai tài khoản hoặc mật khẩu' });
         }
 
         res.cookie('isAdmin', a.id, COOKIE_OPTS);
-        console.log('[admin-login] success');
+        res.cookie('uid', a.id, COOKIE_OPTS); // để /api/me cũng nhận ra đã đăng nhập
         res.json({ success: true });
     } catch (e) {
         console.error('[admin-login]', e);
@@ -515,7 +627,7 @@ app.post('/api/admin/upload-product', requireAdmin, (req, res) => {
             files.push({
                 label: sanitize(f.label || 'File'),
                 file_id: fileId,
-                name: sanitize(f.name || `${name}_${files.length+1}.ipa`),
+                name: sanitize(f.name || `${name}_${files.length + 1}.ipa`),
                 mime: sanitize(f.mime || 'application/octet-stream'),
                 size: parseInt(f.size) || null
             });
@@ -582,7 +694,7 @@ app.post('/api/admin/confirm-order/:code', requireAdmin, async (req, res) => {
         saveDB(db);
 
         const p = db.products.find(x => x.id === o.product_id);
-        const link = `${process.env.BASE_URL || 'https://shopweb-jgeo.onrender.com'}/download.html?token=${o.download_token}`;
+        const link = `${BASE_URL}/download.html?token=${o.download_token}`;
 
         try {
             await transporter.sendMail({
@@ -613,7 +725,7 @@ app.post('/api/admin/delete-order/:code', requireAdmin, (req, res) => {
 
 app.post('/api/admin/ban-user/:id', requireAdmin, (req, res) => {
     const u = db.users.find(x => x.id === parseInt(req.params.id));
-    if (u) { u.is_banned = 1; saveDB(db); }
+    if (u && !u.is_admin) { u.is_banned = 1; saveDB(db); }
     res.json({ success: true });
 });
 
@@ -623,27 +735,7 @@ app.post('/api/admin/unban-user/:id', requireAdmin, (req, res) => {
     res.json({ success: true });
 });
 
-// TEMP reset admin
-app.get('/reset-admin-temp', (req, res) => {
-    if (req.query.key !== 'reset-shopweb-2026') return res.status(403).send('Nope');
-    let a = db.users.find(x => x.username === 'admin' && x.is_admin);
-    if (!a) {
-        a = {
-            id: db.nextUserId++,
-            username: 'admin',
-            email: 'admin@shopweb.local',
-            password_hash: hashPassword('admin123'),
-            is_admin: true,
-            is_banned: 0,
-            created_at: new Date().toISOString()
-        };
-        db.users.push(a);
-    } else {
-        a.password_hash = hashPassword('admin123');
-    }
-    saveDB(db);
-    res.send('OK — admin / admin123');
-});
+// (Đã xoá route /reset-admin-temp. Muốn đổi mật khẩu admin: đặt ADMIN_PASSWORD rồi restart.)
 
 // ============================================================
 //  404 + ERROR
@@ -651,7 +743,7 @@ app.get('/reset-admin-temp', (req, res) => {
 app.use((req, res) => res.status(404).send('Không tìm thấy'));
 app.use((err, req, res, next) => {
     console.error('[FATAL]', err);
-    res.status(500).json({ error: 'Lỗi server: ' + err.message });
+    res.status(500).json({ error: 'Lỗi server' });
 });
 
 app.listen(PORT, () => console.log(`[+] http://localhost:${PORT}`));
