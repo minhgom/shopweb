@@ -1,4 +1,4 @@
-// QM MOD iOS — Backend v5 (multi-file IPA)
+// QM MOD iOS — Backend v10
 const express = require('express');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcrypt');
@@ -13,29 +13,30 @@ const { pipeline } = require('stream/promises');
 require('dotenv').config();
 
 const app = express();
-app.set('trust proxy', 1);
-app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
-app.disable('x-powered-by');
+// ===== FIX PROXY + SECURITY =====
 app.set('trust proxy', 1);
+app.disable('x-powered-by');
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     next();
 });
+
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.static(path.join(__dirname)));
 
-const globalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 500, standardHeaders: true, legacyHeaders: false });
+// ===== RATE LIMITERS =====
+const globalLimiter = rateLimit({ windowMs: 15*60*1000, max: 500, standardHeaders: true, legacyHeaders: false });
 app.use('/api', globalLimiter);
-const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
-const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5 });
-const orderLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 20 });
+const loginLimiter = rateLimit({ windowMs: 15*60*1000, max: 20 });
+const registerLimiter = rateLimit({ windowMs: 60*60*1000, max: 10 });
+const orderLimiter = rateLimit({ windowMs: 60*60*1000, max: 30 });
 
 // ===== DB =====
 const db = new Database(path.join(__dirname, 'users.db'));
@@ -45,7 +46,7 @@ db.pragma('foreign_keys = ON');
 db.exec(`
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
+        username TEXT UNIQUE,
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         reset_token TEXT,
@@ -89,7 +90,7 @@ db.exec(`
     );
 `);
 
-// Migration cũ → mới
+// Migration cột cho DB cũ
 const pCols = db.prepare(`PRAGMA table_info(products)`).all().map(c => c.name);
 if (!pCols.includes('files')) db.exec(`ALTER TABLE products ADD COLUMN files TEXT`);
 const oCols = db.prepare(`PRAGMA table_info(orders)`).all().map(c => c.name);
@@ -119,6 +120,15 @@ function extractDriveId(url) {
     return m ? m[1] : null;
 }
 
+// ===== COOKIE OPTIONS (FIX CHO RENDER) =====
+const COOKIE_OPTS = {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 7 * 24 * 3600 * 1000,
+    path: '/'
+};
+
 // ===== DRIVE =====
 const driveAuth = new google.auth.GoogleAuth({
     keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './drive-service.json',
@@ -146,21 +156,25 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-// ===== AUTH =====
+// ============================================================
+//  AUTH
+// ============================================================
 app.post('/api/register', registerLimiter, async (req, res) => {
-    const username = sanitize(req.body.username);
+    const username = sanitize(req.body.username) || sanitize(req.body.email).split('@')[0];
     const email = sanitize(req.body.email).toLowerCase();
     const password = req.body.password;
-    if (!username || !email || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
-    if (username.length < 3 || username.length > 30) return res.status(400).json({ error: 'Tên 3-30 ký tự' });
+
+    if (!email || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
     if (!validateEmail(email)) return res.status(400).json({ error: 'Email sai' });
     if (password.length < 6) return res.status(400).json({ error: 'Pass 6+ ký tự' });
+
     try {
         const hash = await bcrypt.hash(password, 12);
         const r = db.prepare('INSERT INTO users (username,email,password_hash) VALUES (?,?,?)').run(username, email, hash);
+        res.cookie('uid', r.lastInsertRowid, COOKIE_OPTS);
         res.json({ success: true, user: { id: r.lastInsertRowid, username, email } });
     } catch (e) {
-        if (String(e.message).includes('UNIQUE')) return res.status(400).json({ error: 'Tên/Email đã tồn tại' });
+        if (String(e.message).includes('UNIQUE')) return res.status(400).json({ error: 'Email đã tồn tại' });
         res.status(500).json({ error: 'Lỗi server' });
     }
 });
@@ -168,27 +182,38 @@ app.post('/api/register', registerLimiter, async (req, res) => {
 app.post('/api/login', loginLimiter, async (req, res) => {
     const email = sanitize(req.body.email).toLowerCase();
     const password = req.body.password;
+
+    if (!email || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
+
     try {
         const u = db.prepare('SELECT * FROM users WHERE email=? OR username=?').get(email, email);
         if (!u) return res.status(401).json({ error: 'Sai thông tin' });
         if (u.is_banned) return res.status(403).json({ error: 'Bị khoá' });
-        if (!await bcrypt.compare(password, u.password_hash)) return res.status(401).json({ error: 'Sai thông tin' });
-        res.cookie('uid', u.id, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 7*24*3600*1000 });
+
+        const ok = await bcrypt.compare(password, u.password_hash);
+        if (!ok) return res.status(401).json({ error: 'Sai thông tin' });
+
+        res.cookie('uid', u.id, COOKIE_OPTS);
+        logSecurity(req, 'login_success', email);
         res.json({ success: true, user: { id: u.id, username: u.username, email: u.email } });
-    } catch { res.status(500).json({ error: 'Lỗi server' }); }
+    } catch (e) {
+        console.error('[login]', e);
+        res.status(500).json({ error: 'Lỗi server' });
+    }
 });
 
 app.post('/api/logout', (req, res) => {
-    res.clearCookie('uid'); res.clearCookie('isAdmin');
+    res.clearCookie('uid', { path: '/' });
+    res.clearCookie('isAdmin', { path: '/' });
     res.json({ success: true });
 });
 
 app.get('/api/me', (req, res) => {
-    if (!req.cookies.uid) return res.status(401).json({ error: 'Chưa đăng nhập' });
+    if (!req.cookies.uid) return res.json({ logged: false });
     try {
         const u = db.prepare('SELECT id,username,email FROM users WHERE id=?').get(req.cookies.uid);
-        if (!u) return res.status(401).json({ error: 'Không tìm thấy' });
-        res.json({ user: u });
+        if (!u) return res.json({ logged: false });
+        res.json({ logged: true, user: u });
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
@@ -200,7 +225,7 @@ app.post('/api/forgot', loginLimiter, async (req, res) => {
         if (!u) return res.status(404).json({ error: 'Email không tồn tại' });
         const token = crypto.randomBytes(32).toString('hex');
         db.prepare('UPDATE users SET reset_token=?, reset_expires=? WHERE id=?').run(token, Date.now()+30*60*1000, u.id);
-        const link = `${process.env.BASE_URL || 'http://localhost:'+PORT}/reset.html?token=${token}`;
+        const link = `${process.env.BASE_URL || 'https://shopweb-jgeo.onrender.com'}/reset.html?token=${token}`;
         await transporter.sendMail({
             from: `"QM MOD iOS" <${process.env.GMAIL_USER}>`, to: email,
             subject: 'Đặt lại mật khẩu',
@@ -222,7 +247,9 @@ app.post('/api/reset', loginLimiter, async (req, res) => {
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// ===== PRODUCTS =====
+// ============================================================
+//  PRODUCTS
+// ============================================================
 app.get('/api/products', (req, res) => {
     try { res.json(db.prepare('SELECT id,name,game,price,video_url FROM products ORDER BY id DESC').all()); }
     catch { res.status(500).json({ error: 'Lỗi server' }); }
@@ -236,10 +263,14 @@ app.get('/api/products/:id', (req, res) => {
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// ===== CHECKOUT =====
+// ============================================================
+//  CHECKOUT
+// ============================================================
 app.post('/api/checkout', orderLimiter, (req, res) => {
     const product_id = parseInt(req.body.product_id);
     const customer_email = sanitize(req.body.customer_email || '').toLowerCase();
+    const uid = req.cookies.uid || null;
+
     if (!product_id) return res.status(400).json({ error: 'Thiếu product_id' });
     if (!validateEmail(customer_email)) return res.status(400).json({ error: 'Email sai' });
 
@@ -251,8 +282,8 @@ app.post('/api/checkout', orderLimiter, (req, res) => {
         const downloadToken = crypto.randomBytes(32).toString('hex');
         const amount = product.price;
 
-        db.prepare(`INSERT INTO orders (customer_email, product_id, order_code, download_token, token_exp, amount, status) VALUES (?,?,?,?,?,?, 'pending')`)
-          .run(customer_email, product_id, orderCode, downloadToken, Date.now()+7*24*3600*1000, amount);
+        db.prepare(`INSERT INTO orders (user_id, customer_email, product_id, order_code, download_token, token_exp, amount, status) VALUES (?,?,?,?,?,?,?, 'pending')`)
+          .run(uid, customer_email, product_id, orderCode, downloadToken, Date.now()+7*24*3600*1000, amount);
 
         const bankName = process.env.BANK_NAME || 'MB';
         const bank = process.env.BANK_ACCOUNT || '0383415468';
@@ -266,7 +297,9 @@ app.post('/api/checkout', orderLimiter, (req, res) => {
     } catch (e) { console.error(e); res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// ===== ORDER STATUS =====
+// ============================================================
+//  ORDER STATUS
+// ============================================================
 app.get('/api/order/:code/status', (req, res) => {
     try {
         const o = db.prepare('SELECT order_code,status,paid_at FROM orders WHERE order_code=?').get(req.params.code);
@@ -279,7 +312,9 @@ app.get('/api/order/:code/status', (req, res) => {
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// ===== SEPAY WEBHOOK =====
+// ============================================================
+//  SEPAY WEBHOOK
+// ============================================================
 app.post('/api/sepay/webhook', express.json(), async (req, res) => {
     const auth = req.get('authorization') || '';
     if (auth !== `Apikey ${process.env.SEPAY_API_KEY}`) { console.warn('[sepay] bad auth'); return res.status(401).end(); }
@@ -300,7 +335,7 @@ app.post('/api/sepay/webhook', express.json(), async (req, res) => {
 
     db.prepare(`UPDATE orders SET status='delivered', paid_at=CURRENT_TIMESTAMP WHERE id=?`).run(order.id);
 
-    const link = `${process.env.BASE_URL || 'http://localhost:'+PORT}/download.html?token=${order.download_token}`;
+    const link = `${process.env.BASE_URL || 'https://shopweb-jgeo.onrender.com'}/download.html?token=${order.download_token}`;
     try {
         await transporter.sendMail({
             from: `"QM MOD iOS" <${process.env.GMAIL_USER}>`, to: order.customer_email,
@@ -320,7 +355,7 @@ app.post('/api/sepay/webhook', express.json(), async (req, res) => {
 });
 
 // ============================================================
-//  DOWNLOAD — LIST FILE + TẢI TỪNG FILE
+//  DOWNLOAD — LIST + STREAM
 // ============================================================
 app.get('/api/order-files/:token', (req, res) => {
     const { token } = req.params;
@@ -394,8 +429,7 @@ app.get('/api/file/:token/:index', async (req, res) => {
     }
 });
 
-// Backward compatible (file đầu tiên)
-app.get('/api/file/:token', async (req, res) => {
+app.get('/api/file/:token', (req, res) => {
     res.redirect(`/api/file/${req.params.token}/0`);
 });
 
@@ -410,26 +444,35 @@ app.get('/api/download-by-token/:token', (req, res) => {
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// ===== USER DOWNLOADS =====
+// ============================================================
+//  USER DOWNLOADS — TÀI KHOẢN KHÁCH
+// ============================================================
 app.get('/api/my-downloads', requireLogin, (req, res) => {
     try {
-        const rows = db.prepare(`SELECT o.id, o.order_code, o.status, o.paid_at, o.download_token, p.name AS product_name, p.game, p.video_url FROM orders o JOIN products p ON o.product_id=p.id WHERE o.customer_email=? OR o.user_id=? ORDER BY o.created_at DESC`).all(req.user.email, req.user.id);
+        const rows = db.prepare(`
+            SELECT o.id, o.order_code, o.status, o.paid_at, o.download_token, o.amount, o.created_at,
+                   p.name AS product_name, p.game, p.video_url
+            FROM orders o JOIN products p ON o.product_id=p.id
+            WHERE o.customer_email=? OR o.user_id=?
+            ORDER BY o.created_at DESC
+        `).all(req.user.email, req.user.id);
         res.json({ downloads: rows });
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// ===== ADMIN =====
+// ============================================================
+//  ADMIN
+// ============================================================
 app.post('/api/admin/login', loginLimiter, async (req, res) => {
     const username = sanitize(req.body.username), password = req.body.password;
     try {
         const a = db.prepare('SELECT * FROM admins WHERE username=?').get(username);
         if (!a || !await bcrypt.compare(password, a.password_hash)) return res.status(401).json({ error: 'Sai tài khoản' });
-        res.cookie('isAdmin', a.id, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 7*24*3600*1000 });
+        res.cookie('isAdmin', a.id, COOKIE_OPTS);
         res.json({ success: true });
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// Nhập nhiều link Drive — body: { name, game, price, video_url, files: [{label, url, name, mime, size}] }
 app.post('/api/admin/upload-product', requireAdmin, (req, res) => {
     const name = sanitize(req.body.name);
     const game = sanitize(req.body.game);
@@ -478,6 +521,13 @@ app.get('/api/admin/orders', requireAdmin, (req, res) => {
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+    try {
+        const rows = db.prepare('SELECT id, username, email, is_banned, created_at FROM users ORDER BY id DESC LIMIT 500').all();
+        res.json(rows);
+    } catch { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
 app.post('/api/admin/delete-product/:id', requireAdmin, (req, res) => {
     try { db.prepare('DELETE FROM products WHERE id=?').run(req.params.id); res.json({ success: true }); }
     catch { res.status(500).json({ error: 'Lỗi server' }); }
@@ -490,7 +540,7 @@ app.post('/api/admin/confirm-order/:code', requireAdmin, async (req, res) => {
         if (o.status === 'delivered') return res.json({ success: true, already: true });
         db.prepare(`UPDATE orders SET status='delivered', paid_at=CURRENT_TIMESTAMP WHERE id=?`).run(o.id);
 
-        const link = `${process.env.BASE_URL || 'http://localhost:'+PORT}/download.html?token=${o.download_token}`;
+        const link = `${process.env.BASE_URL || 'https://shopweb-jgeo.onrender.com'}/download.html?token=${o.download_token}`;
         try {
             await transporter.sendMail({
                 from: `"QM MOD iOS" <${process.env.GMAIL_USER}>`, to: o.customer_email,
@@ -519,6 +569,11 @@ app.post('/api/admin/ban-user/:id', requireAdmin, (req, res) => {
     catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
+app.post('/api/admin/unban-user/:id', requireAdmin, (req, res) => {
+    try { db.prepare('UPDATE users SET is_banned=0 WHERE id=?').run(req.params.id); res.json({ success: true }); }
+    catch { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
 app.post('/api/admin/change-password', requireAdmin, async (req, res) => {
     const { old_password, new_password } = req.body || {};
     if (!old_password || !new_password || new_password.length < 6)
@@ -537,7 +592,7 @@ app.get('/api/admin/security-logs', requireAdmin, (req, res) => {
     catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// TEMP reset
+// TEMP reset admin
 app.get('/reset-admin-temp', async (req, res) => {
     if (req.query.key !== 'reset-shopweb-2026') return res.status(403).send('Nope');
     const hash = await bcrypt.hash('admin123', 10);
@@ -545,6 +600,9 @@ app.get('/reset-admin-temp', async (req, res) => {
     res.send('OK — admin / admin123');
 });
 
+// ============================================================
+//  404 + ERROR
+// ============================================================
 app.use((req, res) => res.status(404).send('Không tìm thấy'));
 app.use((err, req, res, next) => { console.error(err); res.status(500).json({ error: 'Lỗi server' }); });
 
