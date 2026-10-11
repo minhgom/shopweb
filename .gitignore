@@ -6,4 +6,9 @@ uploads/
 *.log
 backup_*.db
 *.txt
-github_pat_*
+github_pat_*drive-service.json
+.env
+*.db
+shopweb.db*
+node_modules/
+_snapshots/
