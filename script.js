@@ -1,326 +1,311 @@
-// ============================================================
-// QM MOD iOS — By:QuangMinh
-// ============================================================
-console.log('[QM] Script loaded');
+/* ============================================================
+   QM MOD iOS — script.js (GSAP)
+   ============================================================ */
 
-// ===== LOADER =====
-(function initLoader() {
-    const loader = document.getElementById('loader');
-    const percent = document.querySelector('.loader-percent');
-    if (!loader) return;
-
-    let p = 0;
-    const interval = setInterval(() => {
-        p += Math.floor(Math.random() * 12) + 5;
-        if (p > 100) p = 100;
-        if (percent) percent.textContent = p + '%';
-        if (p >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-                loader.classList.add('done');
-                setTimeout(() => { if (loader.parentNode) loader.remove(); }, 900);
-            }, 400);
-        }
-    }, 100);
-
-    setTimeout(() => {
-        if (loader && !loader.classList.contains('done')) {
-            loader.classList.add('done');
-            setTimeout(() => { if (loader.parentNode) loader.remove(); }, 900);
-        }
-    }, 4000);
-})();
-
-// ===== TYPING =====
-function TypeWriter(el, texts, speed) {
-    this.el = el;
-    this.texts = texts;
-    this.speed = speed || 80;
-    this.textIndex = 0;
-    this.charIndex = 0;
-    this.isDeleting = false;
-    this.tick();
-}
-TypeWriter.prototype.tick = function() {
-    var self = this;
-    var current = self.texts[self.textIndex];
-
-    if (self.isDeleting) {
-        self.el.textContent = current.substring(0, self.charIndex--);
-    } else {
-        self.el.textContent = current.substring(0, self.charIndex++);
-    }
-
-    var delay = self.isDeleting ? 40 : self.speed;
-
-    if (!self.isDeleting && self.charIndex === current.length + 1) {
-        delay = 2200;
-        self.isDeleting = true;
-    } else if (self.isDeleting && self.charIndex === 0) {
-        self.isDeleting = false;
-        self.textIndex = (self.textIndex + 1) % self.texts.length;
-        delay = 400;
-    }
-
-    setTimeout(function() { self.tick(); }, delay);
-};
-
-// ===== SCROLL REVEAL =====
-function initScrollReveal() {
-    if (!('IntersectionObserver' in window)) return;
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-            if (entry.isIntersecting) entry.target.classList.add('active');
-        });
-    }, { threshold: 0.12 });
-    document.querySelectorAll('.reveal, .product-card').forEach(function(el) {
-        observer.observe(el);
-    });
+// ===== GSAP =====
+if (typeof gsap !== 'undefined') {
+    gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 }
 
-// ===== NAVBAR =====
-function initNavbarScroll() {
-    const navbar = document.querySelector('.navbar');
-    if (!navbar) return;
-    window.addEventListener('scroll', function() {
-        navbar.classList.toggle('scrolled', window.scrollY > 50);
-    });
-}
+console.log('[QM] script loaded');
 
-// ===== SCROLL TO =====
-function scrollToId(id) {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-}
+// ===== STATE =====
+let currentGame = 'all';
+let currentSort = 'default';
+let currentSearch = '';
+let wishlist = JSON.parse(localStorage.getItem('qm_wishlist') || '[]');
 
-// ===== AUTH =====
-function initAuth() {
-    const user = localStorage.getItem('user');
-    const authBtn = document.getElementById('authBtn');
-    if (!authBtn) return;
-    if (user) {
-        try {
-            const data = JSON.parse(user);
-            const name = data.username || (data.email ? data.email.split('@')[0] : 'USER');
-            authBtn.innerHTML = name.toUpperCase();
-            authBtn.href = 'download.html';
-        } catch(e) { console.error(e); }
-    }
-}
-
-// ===== PRODUCTS =====
-const PRODUCTS = [
-    { id: 1, name: 'TOE3 — Mod Full', game: 'TOE3', description: 'Mod tiền, xe, logo hãng', price: 20, badge: 'HOT' },
-    { id: 2, name: 'BUSSID — Mod Full', game: 'BUSSID', description: 'Mod xe, tiền, skin, map', price: 25, badge: 'NEW' },
-    { id: 3, name: 'GTA San — Mod Full', game: 'GTA SAN', description: 'Mod tiền, xe, vũ khí, nhiệm vụ', price: 35, badge: 'SALE' },
-    { id: 4, name: 'Truck Sim USA EVO — Mod Full', game: 'TRUCK SIM', description: 'Mod tiền, xe, nhiên liệu', price: 25 },
-    { id: 5, name: 'Combo 3 App Pre', game: 'LOCKET', description: 'Locket Gold + YouTube Premium + Spotify', price: 25, badge: 'VIP' }
+// ===== DATA =====
+const PRODUCTS_DATA = [
+    { id: 1, name: 'Truckers of Europe 3 — Mod Full', game: 'TOE3', price: 20000, badge: 'hot', badgeText: 'HOT' },
+    { id: 2, name: 'BUSSID — Mod Xe Khách', game: 'BUSSID', price: 25000, badge: 'new', badgeText: 'NEW' },
+    { id: 3, name: 'GTA — Mod Xe Độ', game: 'GTA SAN', price: 35000, badge: 'sale', badgeText: 'SALE' },
+    { id: 4, name: 'Truck Simulator USA EVO — Mod Full', game: 'TRUCK SIM', price: 25000, badge: '', badgeText: '' },
+    { id: 5, name: 'Combo 3 App Pre — Locket + YouTube + Spotify', game: 'LOCKET', price: 25000, badge: 'vip', badgeText: 'VIP' }
 ];
 
-let currentFilter = 'all';
-let currentSearch = '';
-let currentSort = 'default';
-let wishlist = [];
-try {
-    wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    if (!Array.isArray(wishlist)) wishlist = [];
-} catch(e) { wishlist = []; }
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('vi-VN') + 'đ';
 
-function updateWishlistCount() {
-    const el = document.getElementById('wishlistCount');
-    if (el) el.textContent = wishlist.length;
-}
+// ===== LOADER =====
+window.addEventListener('load', () => {
+    const loader = document.querySelector('.loader-screen');
+    if (!loader) return;
 
-function toggleWishlistItem(id) {
-    const idx = wishlist.indexOf(id);
-    if (idx === -1) {
-        wishlist.push(id);
-        showToast('Đã thêm vào yêu thích', 'success');
-    } else {
-        wishlist.splice(idx, 1);
-        showToast('Đã xoá khỏi yêu thích', 'info');
-    }
-    localStorage.setItem('wishlist', JSON.stringify(wishlist));
-    updateWishlistCount();
-    renderProducts(currentFilter);
-}
-
-function toggleWishlist() {
-    if (wishlist.length === 0) return showToast('Chưa có sản phẩm yêu thích', 'info');
-    showToast('Bạn có ' + wishlist.length + ' sản phẩm yêu thích', 'info');
-}
-
-function handleSearch() {
-    const input = document.getElementById('searchInput');
-    currentSearch = input ? input.value.toLowerCase() : '';
-    renderProducts(currentFilter);
-}
-
-function handleSort() {
-    const select = document.getElementById('sortSelect');
-    currentSort = select ? select.value : 'default';
-    renderProducts(currentFilter);
-}
-
-function renderProducts(filter) {
-    filter = filter || 'all';
-    currentFilter = filter;
-    const grid = document.getElementById('productsGrid');
-    const title = document.getElementById('productTitle');
-    const count = document.getElementById('productCount');
-    if (!grid) return;
-
-    let filtered = filter === 'all' ? PRODUCTS.slice() : PRODUCTS.filter(function(p) { return p.game === filter; });
-
-    if (currentSearch) {
-        filtered = filtered.filter(function(p) {
-            return p.name.toLowerCase().indexOf(currentSearch) !== -1 ||
-                   p.description.toLowerCase().indexOf(currentSearch) !== -1;
-        });
-    }
-
-    if (currentSort === 'price-asc') filtered.sort(function(a,b) { return a.price - b.price; });
-    else if (currentSort === 'price-desc') filtered.sort(function(a,b) { return b.price - a.price; });
-    else if (currentSort === 'name') filtered.sort(function(a,b) { return a.name.localeCompare(b.name); });
-
-    const titles = {
-        'all': 'TẤT CẢ SẢN PHẨM',
-        'TOE3': 'TRUCKERS OF EUROPE 3',
-        'BUSSID': 'BUS SIMULATOR INDONESIA',
-        'GTA SAN': 'GTA SAN ANDREAS',
-        'TRUCK SIM': 'TRUCK SIMULATOR USA',
-        'LOCKET': 'COMBO 3 APP PRE'
-    };
-    if (title) title.textContent = titles[filter] || 'SẢN PHẨM';
-    if (count) count.textContent = filtered.length + ' sản phẩm';
-
-    if (filtered.length === 0) {
-        grid.innerHTML = '<div class="empty-state">Không tìm thấy sản phẩm nào</div>';
+    if (typeof gsap === 'undefined') {
+        setTimeout(() => loader.classList.add('done'), 1800);
         return;
     }
 
-    grid.innerHTML = filtered.map(function(p) {
-        var badge = p.badge ? '<div class="product-badge ' + p.badge.toLowerCase() + '">' + p.badge + '</div>' : '';
-        var wishClass = wishlist.indexOf(p.id) !== -1 ? 'active' : '';
-        return '<div class="product-card">' +
-            badge +
-            '<button class="wishlist-btn ' + wishClass + '" onclick="toggleWishlistItem(' + p.id + ')">♥</button>' +
-            '<div class="product-game">' + p.game + '</div>' +
-            '<div class="product-name">' + p.name + '</div>' +
-            '<div class="product-desc">' + p.description + '</div>' +
-            '<div class="product-price">' + p.price + '<small>K</small></div>' +
-            '<button class="btn btn-primary morph-btn" onclick="buy(' + p.id + ')">MUA NGAY</button>' +
-        '</div>';
-    }).join('');
+    const counter = { v: 0 };
+    const tl = gsap.timeline();
 
-    setTimeout(function() {
-        grid.querySelectorAll('.product-card').forEach(function(el, i) {
-            setTimeout(function() { el.classList.add('reveal'); }, i * 80);
+    tl.to('.loader-bar-fill', { width: '100%', duration: 1.6, ease: 'power2.inOut' }, 0)
+      .to(counter, {
+          v: 100, duration: 1.6, ease: 'power2.inOut',
+          onUpdate: () => {
+              const el = document.querySelector('.loader-percent');
+              if (el) el.textContent = Math.round(counter.v) + '%';
+          }
+      }, 0)
+      .to('.loader-text span', { opacity: 1, y: 0, stagger: 0.06, duration: 0.4 }, 0.3)
+      .to('.loader-screen', {
+          opacity: 0, duration: 0.6, delay: 0.4,
+          onComplete: () => { loader.style.display = 'none'; heroIntro(); }
+      });
+});
+
+// ===== HERO INTRO =====
+function heroIntro() {
+    if (typeof gsap === 'undefined') return;
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    tl.from('.navbar', { y: -80, opacity: 0, duration: 0.8 })
+      .from('.hero-badge', { y: 20, opacity: 0, duration: 0.6 }, '-=0.4')
+      .from('.hero-line-1', { y: 60, opacity: 0, duration: 0.9 }, '-=0.4')
+      .from('.hero-line-2', { y: 60, opacity: 0, duration: 0.9 }, '-=0.7')
+      .from('.hero-subtitle', { y: 20, opacity: 0, duration: 0.5 }, '-=0.5')
+      .from('.hero-buttons .btn', { y: 20, opacity: 0, stagger: 0.15, duration: 0.5 }, '-=0.3');
+    typing();
+}
+
+// ===== TYPING =====
+const TYPING_TEXT = [
+    'MOD GAME iOS — GIÁ RẺ NHẤT',
+    'NHẬN LINK TẢI TRONG 30 GIÂY',
+    'BẢO HÀNH TRỌN ĐỜI'
+];
+let ti = 0, ci = 0, deleting = false;
+
+function typing() {
+    const el = $('typing');
+    if (!el) return;
+    const cur = TYPING_TEXT[ti];
+    el.textContent = deleting ? cur.slice(0, ci--) : cur.slice(0, ci++);
+    if (!deleting && ci > cur.length) { deleting = true; setTimeout(typing, 1600); return; }
+    if (deleting && ci < 0) { deleting = false; ti = (ti + 1) % TYPING_TEXT.length; ci = 0; }
+    setTimeout(typing, deleting ? 35 : 75);
+}
+
+// ===== SCROLL REVEAL =====
+function initScrollReveal() {
+    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+
+    gsap.from('.esign-box', {
+        scrollTrigger: { trigger: '.esign-box', start: 'top 85%' },
+        x: -60, opacity: 0, duration: 1, ease: 'power3.out'
+    });
+
+    gsap.utils.toArray('.section-header').forEach(h => {
+        gsap.from(h, {
+            scrollTrigger: { trigger: h, start: 'top 88%' },
+            x: -40, opacity: 0, duration: 0.8, ease: 'power3.out'
         });
-    }, 50);
+    });
+
+    gsap.from('.category-card', {
+        scrollTrigger: { trigger: '.categories-grid', start: 'top 80%' },
+        y: 60, opacity: 0, scale: 0.95,
+        duration: 0.8, stagger: 0.12, ease: 'power3.out'
+    });
+
+    gsap.from('.guide-step', {
+        scrollTrigger: { trigger: '.guide-grid', start: 'top 85%' },
+        y: 40, opacity: 0, duration: 0.7, stagger: 0.12, ease: 'power2.out'
+    });
+
+    gsap.from('.support-card', {
+        scrollTrigger: { trigger: '.support-grid', start: 'top 85%' },
+        y: 40, opacity: 0, scale: 0.9, duration: 0.6, stagger: 0.1, ease: 'back.out(1.4)'
+    });
+
+    gsap.from('.cta-card', {
+        scrollTrigger: { trigger: '.cta-card', start: 'top 85%' },
+        y: 60, opacity: 0, duration: 0.9, ease: 'power3.out'
+    });
+}
+
+// ===== PARALLAX =====
+function initParallax() {
+    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+    gsap.to('.bg-orb-1', {
+        scrollTrigger: { trigger: 'body', start: 'top top', end: 'bottom bottom', scrub: 1 },
+        y: 300, x: -100, ease: 'none'
+    });
+    gsap.to('.bg-orb-2', {
+        scrollTrigger: { trigger: 'body', start: 'top top', end: 'bottom bottom', scrub: 1 },
+        y: -300, x: 100, ease: 'none'
+    });
+}
+
+// ===== NAVBAR SCROLL =====
+window.addEventListener('scroll', () => {
+    const nav = document.querySelector('.navbar');
+    const btt = $('backToTop');
+    if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
+    if (btt) btt.classList.toggle('show', window.scrollY > 400);
+});
+
+// ===== RENDER PRODUCTS =====
+function renderProducts() {
+    const grid = $('productsGrid');
+    if (!grid) return;
+
+    let list = PRODUCTS_DATA.filter(p => {
+        if (currentGame !== 'all' && p.game !== currentGame) return false;
+        if (currentSearch && !p.name.toLowerCase().includes(currentSearch.toLowerCase())) return false;
+        return true;
+    });
+
+    if (currentSort === 'price-asc') list.sort((a, b) => a.price - b.price);
+    else if (currentSort === 'price-desc') list.sort((a, b) => b.price - a.price);
+    else if (currentSort === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
+
+    const count = $('productCount');
+    if (count) count.textContent = list.length + ' sản phẩm';
+
+    if (!list.length) {
+        grid.innerHTML = '<div class="empty-state">Không có sản phẩm nào 😢</div>';
+        return;
+    }
+
+    grid.innerHTML = list.map(p => `
+        <div class="product-card reveal" data-id="${p.id}">
+            ${p.badge ? `<div class="product-badge ${p.badge}">${p.badgeText}</div>` : ''}
+            <button class="wishlist-btn ${wishlist.includes(p.id) ? 'active' : ''}" data-wish="${p.id}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+            </button>
+            <div class="product-game">${p.game}</div>
+            <div class="product-name">${p.name}</div>
+            <div class="product-price">${fmt(p.price)}</div>
+            <button class="btn btn-primary btn-full" data-buy="${p.id}">MUA NGAY</button>
+        </div>
+    `).join('');
+
+    // GSAP stagger nếu có
+    if (typeof gsap !== 'undefined') {
+        gsap.fromTo('.product-card',
+            { y: 40, opacity: 0, scale: 0.96 },
+            { y: 0, opacity: 1, scale: 1, duration: 0.5, stagger: 0.08, ease: 'power3.out' }
+        );
+    }
+
+    // Bind events
+    grid.querySelectorAll('[data-buy]').forEach(b => {
+        b.addEventListener('click', () => location.href = `checkout.html?id=${b.dataset.buy}`);
+    });
+    grid.querySelectorAll('[data-wish]').forEach(b => {
+        b.addEventListener('click', e => {
+            e.stopPropagation();
+            const id = parseInt(b.dataset.wish);
+            const i = wishlist.indexOf(id);
+            if (i >= 0) wishlist.splice(i, 1); else wishlist.push(id);
+            localStorage.setItem('qm_wishlist', JSON.stringify(wishlist));
+            updateWishlist();
+            renderProducts();
+        });
+    });
+}
+
+function updateWishlist() {
+    const el = $('wishlistCount');
+    if (!el) return;
+    el.textContent = wishlist.length;
+    if (typeof gsap !== 'undefined') {
+        gsap.fromTo(el, { scale: 1.6 }, { scale: 1, duration: 0.4, ease: 'back.out(2)' });
+    }
+}
+
+// ===== EVENTS =====
+function initEvents() {
+    document.querySelectorAll('.tab').forEach(t => {
+        t.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+            t.classList.add('active');
+            currentGame = t.dataset.game;
+            renderProducts();
+        });
+    });
+
+    const search = $('searchInput');
+    if (search) search.addEventListener('input', e => { currentSearch = e.target.value; renderProducts(); });
+
+    const sort = $('sortSelect');
+    if (sort) sort.addEventListener('change', e => { currentSort = e.target.value; renderProducts(); });
+}
+
+// ===== GLOBAL FUNCTIONS =====
+function scrollToId(id) {
+    const target = document.getElementById(id);
+    if (!target) return;
+    if (typeof gsap !== 'undefined' && typeof ScrollToPlugin !== 'undefined') {
+        gsap.to(window, { duration: 1, scrollTo: { y: target, offsetY: 90 }, ease: 'power3.inOut' });
+    } else {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function filterCategory(game) {
-    document.querySelectorAll('.tab').forEach(function(t) {
+    currentGame = game;
+    document.querySelectorAll('.tab').forEach(t => {
         t.classList.toggle('active', t.dataset.game === game);
     });
-    renderProducts(game);
+    renderProducts();
     scrollToId('products');
 }
 
-function buy(id) {
-    window.location.href = 'checkout.html?id=' + id;
-}
-
-function initTabs() {
-    document.querySelectorAll('.tab').forEach(function(tab) {
-        tab.addEventListener('click', function() {
-            document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-            tab.classList.add('active');
-            renderProducts(tab.dataset.game);
-        });
-    });
-}
-
-function initBackToTop() {
-    const btn = document.getElementById('backToTop');
-    if (!btn) return;
-    window.addEventListener('scroll', function() {
-        btn.classList.toggle('show', window.scrollY > 500);
-    });
-}
-
-function showToast(msg, type) {
-    type = type || 'info';
-    const c = document.getElementById('toastContainer');
-    if (!c) return;
-    const t = document.createElement('div');
-    t.className = 'toast toast-' + type;
-    t.textContent = msg;
-    c.appendChild(t);
-    setTimeout(function() { t.classList.add('show'); }, 50);
-    setTimeout(function() {
-        t.classList.remove('show');
-        setTimeout(function() { if (t.parentNode) t.remove(); }, 300);
-    }, 3000);
-}
-
 function toggleChat() {
-    const box = document.getElementById('chatBox');
+    const box = $('chatBox');
     if (box) box.classList.toggle('open');
 }
 
 function sendChat() {
-    const input = document.getElementById('chatInput');
-    const body = document.getElementById('chatBody');
+    const input = $('chatInput');
+    const body = $('chatBody');
     if (!input || !body) return;
-    const msg = input.value.trim();
-    if (!msg) return;
-    body.innerHTML += '<div class="chat-msg user">' + msg + '</div>';
+    const v = input.value.trim();
+    if (!v) return;
+    body.innerHTML += `<div class="chat-msg user">${v}</div>`;
     input.value = '';
-    setTimeout(function() {
-        body.innerHTML += '<div class="chat-msg bot">Đã nhận tin. Liên hệ Zalo <b>0383415468</b> để hỗ trợ nhanh.</div>';
+    body.scrollTop = body.scrollHeight;
+
+    setTimeout(() => {
+        const replies = [
+            'Dạ bạn cần hỗ trợ gì ạ?',
+            'Nhắn Zalo 0383415468 để được phản hồi nhanh nha!',
+            'Mod bên mình bảo hành trọn đời nha bạn!'
+        ];
+        body.innerHTML += `<div class="chat-msg bot">${replies[Math.floor(Math.random() * replies.length)]}</div>`;
         body.scrollTop = body.scrollHeight;
     }, 800);
-    body.scrollTop = body.scrollHeight;
 }
 
-// ===== RIPPLE EFFECT =====
-document.addEventListener('click', function(e) {
-    const btn = e.target.closest('.btn, .auth-btn, button');
-    if (!btn || btn.classList.contains('chat-close')) return;
+function toggleWishlist() {
+    scrollToId('products');
+}
 
-    const rect = btn.getBoundingClientRect();
-    const ripple = document.createElement('span');
-    ripple.className = 'ripple';
-    ripple.style.left = (e.clientX - rect.left) + 'px';
-    ripple.style.top = (e.clientY - rect.top) + 'px';
-    ripple.style.width = ripple.style.height = Math.max(rect.width, rect.height) + 'px';
-
-    btn.style.position = 'relative';
-    btn.style.overflow = 'hidden';
-    btn.appendChild(ripple);
-
-    setTimeout(function() { ripple.remove(); }, 800);
-});
+function handleSearch() {}
+function handleSort() {}
 
 // ===== INIT =====
-document.addEventListener('DOMContentLoaded', function() {
-    const typingEl = document.getElementById('typing');
-    if (typingEl) {
-        new TypeWriter(typingEl, [
-            'TRUCKERS OF EUROPE 3',
-            'BUS SIMULATOR INDONESIA',
-            'GTA SAN ANDREAS',
-            'TRUCK SIMULATOR USA',
-            'COMBO 3 APP PRE'
-        ], 80);
-    }
-    initScrollReveal();
-    initNavbarScroll();
-    initAuth();
-    initTabs();
-    initBackToTop();
-    updateWishlistCount();
+document.addEventListener('DOMContentLoaded', () => {
     renderProducts();
+    updateWishlist();
+    initEvents();
+    initScrollReveal();
+    initParallax();
+
+    if (typeof ScrollTrigger !== 'undefined') {
+        setTimeout(() => ScrollTrigger.refresh(), 300);
+    }
 });
+
+// Expose globals cho HTML inline onclick
+window.scrollToId = scrollToId;
+window.filterCategory = filterCategory;
+window.toggleChat = toggleChat;
+window.sendChat = sendChat;
+window.toggleWishlist = toggleWishlist;
+window.handleSearch = handleSearch;
+window.handleSort = handleSort;
