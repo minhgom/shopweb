@@ -38,22 +38,19 @@
             text-decoration: none;
             font-size: 0.85rem;
             font-weight: 600;
-            transition: all 0.3s;
             z-index: 10;
         }
-        .auth-back:hover { transform: translateX(-4px); color: #e63946; }
+        .auth-back:hover { color: #e63946; }
 
         .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
         .auth-box {
             width: 100%; max-width: 440px;
             padding: 40px 36px 32px;
             border-radius: 24px;
-            background: rgba(255,255,255,0.55);
-            backdrop-filter: blur(20px) saturate(180%);
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255,255,255,0.85);
             box-shadow: 0 8px 32px rgba(10,10,10,0.08);
-            position: relative;
-            overflow: hidden;
         }
         .auth-head { text-align: center; margin-bottom: 28px; }
         .logo-badge {
@@ -75,15 +72,15 @@
             margin-bottom: 12px;
         }
         .auth-h1 {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 800;
             line-height: 1.15;
             margin-bottom: 8px;
         }
         .auth-h1 em { font-style: italic; color: #e63946; }
-        .auth-sub { color: #6b7280; font-size: 0.88rem; }
+        .auth-sub { color: #6b7280; font-size: 0.88rem; line-height: 1.5; }
 
-        .auth-form { display: flex; flex-direction: column; gap: 16px; }
+        .auth-form { display: flex; flex-direction: column; gap: 16px; margin-top: 20px; }
         .auth-field { display: flex; flex-direction: column; gap: 6px; }
         .auth-field label {
             font-size: 0.72rem;
@@ -96,11 +93,10 @@
             padding: 13px 16px;
             border-radius: 10px;
             border: 1.5px solid rgba(10,10,10,0.15);
-            background: rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.9);
             font-family: inherit;
             font-size: 0.9rem;
             outline: none;
-            transition: all 0.25s;
         }
         .auth-field input:focus {
             border-color: #0a0a0a;
@@ -121,11 +117,24 @@
             letter-spacing: 0.05em;
             text-transform: uppercase;
             cursor: pointer;
-            transition: all 0.3s;
             margin-top: 4px;
         }
-        .auth-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,10,10,0.25); }
         .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .auth-msg {
+            text-align: center;
+            font-size: 0.88rem;
+            font-weight: 600;
+            padding: 12px;
+            border-radius: 10px;
+            min-height: 0;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+        .auth-msg:empty { display: none; }
+        .auth-msg.err { color: #fff; background: #e63946; }
+        .auth-msg.ok { color: #fff; background: #16a34a; }
+        .auth-msg.info { color: #0a0a0a; background: #f5f5f7; font-size: 0.82rem; }
 
         .auth-divider { position: relative; text-align: center; margin: 22px 0; }
         .auth-divider::before {
@@ -149,3 +158,127 @@
         .auth-btn-outline {
             display: block;
             width: 100%;
+            padding: 14px;
+            border: 1.5px solid #0a0a0a;
+            border-radius: 10px;
+            background: transparent;
+            color: #0a0a0a;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-align: center;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-pattern"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+
+    <a href="login.html" class="auth-back">← Về đăng nhập</a>
+
+    <div class="auth-page">
+        <div class="auth-box">
+            <div class="auth-head">
+                <div class="logo-badge"><span class="logo-qm">QM</span></div>
+                <div class="auth-tag">// QUÊN MẬT KHẨU</div>
+                <h1 class="auth-h1">Khôi phục <em>tài khoản</em></h1>
+                <p class="auth-sub">Nhập email đã đăng ký, hệ thống sẽ gửi link đặt lại mật khẩu (hiệu lực 30 phút).</p>
+            </div>
+
+            <div class="auth-form">
+                <div class="auth-field">
+                    <label for="forgotEmail">Email</label>
+                    <input type="email" id="forgotEmail" placeholder="your-email@example.com" autocomplete="email" autocapitalize="none" autocorrect="off">
+                </div>
+
+                <button type="button" class="auth-btn" id="forgotBtn">GỬI LINK ĐẶT LẠI</button>
+                <div class="auth-msg" id="forgotMsg"></div>
+            </div>
+
+            <div class="auth-divider"><span>HOẶC</span></div>
+
+            <a href="register.html" class="auth-btn-outline">TẠO TÀI KHOẢN MỚI</a>
+        </div>
+    </div>
+
+    <script>
+        var busy = false;
+
+        function showMsg(text, type) {
+            var el = document.getElementById('forgotMsg');
+            el.textContent = text;
+            el.className = 'auth-msg ' + (type || '');
+        }
+
+        function resetBtn() {
+            var btn = document.getElementById('forgotBtn');
+            btn.textContent = 'GỬI LINK ĐẶT LẠI';
+            btn.disabled = false;
+            busy = false;
+        }
+
+        function doForgot() {
+            if (busy) return;
+
+            var email = (document.getElementById('forgotEmail').value || '').trim();
+
+            if (!email) {
+                showMsg('⚠ Vui lòng nhập email', 'err');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showMsg('⚠ Email không hợp lệ', 'err');
+                return;
+            }
+
+            busy = true;
+            var btn = document.getElementById('forgotBtn');
+            btn.textContent = 'ĐANG GỬI...';
+            btn.disabled = true;
+            showMsg('⏳ Đang gửi yêu cầu...', 'info');
+
+            fetch('/api/forgot', {
+                method: 'POST',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            })
+            .then(function (r) {
+                return r.text().then(function (txt) {
+                    var data = null;
+                    try { data = JSON.parse(txt); } catch (e) {}
+                    return { ok: r.ok, status: r.status, data: data };
+                });
+            })
+            .then(function (res) {
+                if (!res.data) {
+                    showMsg('❌ Server trả về dữ liệu không hợp lệ (mã ' + res.status + ')', 'err');
+                    resetBtn();
+                    return;
+                }
+                if (!res.ok || !res.data.success) {
+                    showMsg('❌ ' + (res.data.error || 'Không gửi được yêu cầu'), 'err');
+                    resetBtn();
+                    return;
+                }
+                showMsg('✅ Đã gửi! Kiểm tra hộp thư (kể cả Spam) của ' + email + '. Link có hiệu lực 30 phút.', 'ok');
+                document.getElementById('forgotEmail').value = '';
+                resetBtn();
+            })
+            .catch(function (err) {
+                showMsg('❌ Không kết nối được server: ' + err.message, 'err');
+                resetBtn();
+            });
+        }
+
+        document.getElementById('forgotBtn').addEventListener('click', doForgot);
+        document.getElementById('forgotEmail').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); doForgot(); }
+        });
+    </script>
+</body>
+</html>
