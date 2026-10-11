@@ -3,75 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Thanh toán — By:QuangMinh</title>
+<title>Thanh toán — QM MOD iOS</title>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<link rel="stylesheet" href="effects.css">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-:root {
-    --bg: #f4f6fb; --text: #0a0a0a; --text-dim: #6b7280;
-    --accent: #e63946; --ok: #16a34a;
-    --line: rgba(10,10,10,0.08); --line-hi: rgba(10,10,10,0.15);
-    --shadow: 0 4px 20px rgba(10,10,10,0.06);
-    --shadow-hi: 0 12px 40px rgba(10,10,10,0.12);
-    --glass: rgba(255,255,255,0.65); --glass-border: rgba(255,255,255,0.9);
+.checkout-wrap { max-width: 640px; margin: 0 auto; padding: 140px 20px 80px; }
+.back-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--text-2); text-decoration: none;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 32px; font-weight: 600;
+    transition: color 0.3s;
 }
-html { scroll-behavior: smooth; }
-body {
-    font-family: 'Be Vietnam Pro', 'Segoe UI', system-ui, sans-serif;
-    background: var(--bg); color: var(--text);
-    min-height: 100vh; padding: 100px 16px 60px;
-    overflow-x: hidden; -webkit-font-smoothing: antialiased; line-height: 1.5;
-}
-.bg-pattern {
-    position: fixed; inset: 0; z-index: -3;
-    background-image:
-        linear-gradient(rgba(10,10,10,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(10,10,10,0.03) 1px, transparent 1px);
-    background-size: 50px 50px; pointer-events: none;
-}
-.bg-orb { position: fixed; border-radius: 50%; filter: blur(80px); z-index: -2; pointer-events: none; }
-.bg-orb-1 { width: 500px; height: 500px; top: -100px; right: -100px; background: radial-gradient(circle, rgba(230,57,70,0.15), transparent 70%); }
-.bg-orb-2 { width: 500px; height: 500px; bottom: -100px; left: -100px; background: radial-gradient(circle, rgba(10,10,10,0.08), transparent 70%); }
+.back-link:hover { color: var(--accent); }
 
-.navbar {
-    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-    width: calc(100% - 32px); max-width: 900px; z-index: 100;
-    padding: 12px 20px; background: var(--glass);
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid var(--glass-border); border-radius: 14px;
-    display: flex; justify-content: space-between; align-items: center;
-    box-shadow: var(--shadow);
-}
-.logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
-.logo-badge { width: 36px; height: 36px; background: #0a0a0a; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
-.logo-qm { font-weight: 800; font-size: 1rem; color: #fff; }
-.logo-text { display: flex; flex-direction: column; line-height: 1; }
-.logo-main { font-weight: 800; font-size: 0.9rem; }
-.logo-main i { color: var(--accent); font-style: normal; }
-.logo-sub { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; color: var(--text-dim); letter-spacing: 0.1em; margin-top: 3px; }
-.nav-back { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; font-weight: 600; transition: color 0.3s; }
-.nav-back:hover { color: var(--accent); }
-
-.container { max-width: 720px; margin: 0 auto; }
-.step-block { margin-bottom: 20px; animation: fadeUp 0.5s ease both; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-.step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-left: 4px; }
+.step-block { margin-bottom: 22px; opacity: 0; }
+.step-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; padding-left: 4px; }
 .step-number {
-    width: 32px; height: 32px; border-radius: 10px;
-    background: linear-gradient(135deg, #0a0a0a, #333); color: #fff;
+    width: 34px; height: 34px; border-radius: 10px;
+    background: linear-gradient(135deg, #0a0a0a, #333);
+    color: #fff;
     display: flex; align-items: center; justify-content: center;
     font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
-    font-family: 'JetBrains Mono', monospace; box-shadow: 0 4px 12px rgba(10,10,10,0.2);
+    font-family: 'JetBrains Mono', monospace;
+    box-shadow: 0 4px 12px rgba(10,10,10,0.2);
 }
-.step-head-text { flex: 1; min-width: 0; }
-.step-head-text h3 { font-size: 1rem; font-weight: 800; margin-bottom: 2px; }
-.step-head-text p { font-size: 0.75rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+.step-head-text h3 { font-size: 1rem; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+.step-head-text p { font-size: 0.72rem; color: var(--text-3); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
 
 .card {
     background: var(--glass); backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid var(--glass-border); border-radius: 18px;
-    padding: 20px 22px; box-shadow: var(--shadow); position: relative; overflow: hidden;
+    padding: 22px; box-shadow: var(--shadow); position: relative; overflow: hidden;
 }
 .card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
@@ -79,22 +45,24 @@ body {
 }
 
 .product-info { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
-.product-name { font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; }
-.product-desc { font-size: 0.78rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
-.product-price { font-size: 1.6rem; font-weight: 900; color: var(--accent); letter-spacing: -0.03em; }
+.product-info .name { font-size: 1.1rem; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.product-info .desc { font-size: 0.75rem; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+.product-info .price { font-size: 1.7rem; font-weight: 900; color: var(--accent); letter-spacing: -0.03em; }
 
 .note {
     display: flex; align-items: flex-start; gap: 12px;
-    padding: 14px 18px; border-radius: 14px;
+    padding: 16px 18px; border-radius: 14px;
     background: rgba(230,57,70,0.06); border: 1px solid rgba(230,57,70,0.2);
-    font-size: 0.85rem; line-height: 1.6;
+    font-size: 0.85rem; line-height: 1.6; color: var(--text);
 }
 .note-icon {
-    width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); color: #fff;
     display: flex; align-items: center; justify-content: center;
     font-weight: 800; font-size: 0.8rem; flex-shrink: 0;
 }
 .note a { color: var(--accent); font-weight: 700; text-decoration: none; }
+.note b { font-weight: 800; }
 
 .form-group { margin-bottom: 12px; }
 .form-group label {
@@ -103,12 +71,15 @@ body {
     margin-bottom: 6px; color: var(--text);
 }
 .form-group input {
-    width: 100%; padding: 12px 14px; border-radius: 10px;
-    border: 1.5px solid var(--line-hi); background: rgba(255,255,255,0.7);
-    font-family: inherit; font-size: 0.88rem; color: var(--text); outline: none;
+    width: 100%; padding: 13px 15px; border-radius: 10px;
+    border: 1.5px solid var(--line-2); background: rgba(255,255,255,0.7);
+    font-family: inherit; font-size: 0.9rem; color: var(--text); outline: none;
     transition: all 0.25s;
 }
-.form-group input:focus { border-color: #0a0a0a; background: #fff; box-shadow: 0 0 0 3px rgba(10,10,10,0.06); }
+.form-group input:focus {
+    border-color: var(--accent); background: #fff;
+    box-shadow: 0 0 0 3px rgba(230,57,70,0.1);
+}
 
 .qr-layout { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 8px 0; }
 .qr-box {
@@ -117,87 +88,73 @@ body {
     overflow: hidden; padding: 10px;
     box-shadow: 0 8px 32px rgba(10,10,10,0.08);
     display: flex; align-items: center; justify-content: center;
-    position: relative;
 }
 .qr-box img { width: 100%; height: 100%; object-fit: contain; }
 .qr-ph {
     width: 100%; height: 100%; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 6px;
-    color: var(--text-dim); font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem; background: #f4f6fb; border-radius: 12px;
+    color: var(--text-3); font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem; background: var(--bg); border-radius: 12px;
 }
 .qr-amount {
-    font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 900;
-    color: var(--accent); padding: 10px 24px;
-    background: rgba(230,57,70,0.08); border-radius: 12px;
-}
-.qr-note {
-    font-size: 0.8rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;
-    text-align: center; line-height: 1.7;
-}
-.qr-note b { color: var(--text); font-weight: 800; }
-.qr-code-hl {
-    display: inline-block; background: rgba(230,57,70,0.1); color: var(--accent);
-    padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(230,57,70,0.3);
-    font-weight: 800; letter-spacing: 0.1em;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem; font-weight: 900; color: var(--accent);
+    padding: 10px 24px; background: rgba(230,57,70,0.08); border-radius: 12px;
 }
 .qr-bankinfo {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
-    display: grid; grid-template-columns: auto auto; gap: 6px 16px;
-    padding: 12px 18px; background: rgba(10,10,10,0.03);
-    border-radius: 10px; max-width: 100%;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+    display: grid; grid-template-columns: auto auto; gap: 8px 20px;
+    padding: 14px 20px; background: rgba(10,10,10,0.03);
+    border-radius: 12px; max-width: 100%; width: 100%;
 }
-.qr-bankinfo span:nth-child(odd) { color: var(--text-dim); font-size: 0.75rem; }
-.qr-bankinfo span:nth-child(even) { font-weight: 800; color: var(--text); }
+.qr-bankinfo span:nth-child(odd) { color: var(--text-3); font-size: 0.72rem; }
+.qr-bankinfo span:nth-child(even) { font-weight: 800; color: var(--text); text-align: right; }
+.qr-bankinfo .highlight {
+    color: var(--accent); font-weight: 800;
+    background: rgba(230,57,70,0.1); padding: 3px 10px;
+    border-radius: 6px; border: 1px solid rgba(230,57,70,0.3);
+    letter-spacing: 0.08em; display: inline-block;
+}
+.qr-note {
+    font-size: 0.8rem; color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center; line-height: 1.7; font-weight: 500;
+}
+.qr-note b { color: var(--text); font-weight: 800; }
 
-/* ============ POLLING INDICATOR ============ */
 .poll-bar {
     display: flex; align-items: center; justify-content: center; gap: 10px;
     padding: 14px; margin-top: 16px;
-    background: rgba(10,10,10,0.03); border-radius: 12px;
-    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
-    color: var(--text-dim);
+    background: rgba(230,57,70,0.05); border: 1px solid rgba(230,57,70,0.15);
+    border-radius: 12px; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem; color: var(--text-2); font-weight: 500;
 }
 .poll-dot {
-    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 12px rgba(230,57,70,0.6);
     animation: pulse 1.4s infinite ease-in-out;
 }
 @keyframes pulse {
     0%, 100% { opacity: 0.3; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
+    50% { opacity: 1; transform: scale(1.3); }
 }
 .poll-bar b { color: var(--text); font-weight: 800; }
 
-/* ============ SUCCESS SCREEN ============ */
 .success-screen {
-    display: none;
-    position: fixed; inset: 0; z-index: 999;
-    background: linear-gradient(180deg, #f4f6fb 0%, #eef0f6 100%);
-    align-items: center; justify-content: center;
-    padding: 24px;
-    animation: successFade 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    display: none; position: fixed; inset: 0; z-index: 999;
+    background: linear-gradient(180deg, var(--bg) 0%, #eef0f6 100%);
+    align-items: center; justify-content: center; padding: 24px;
 }
 .success-screen.on { display: flex; }
-@keyframes successFade { from { opacity: 0; } to { opacity: 1; } }
-
-.success-inner {
-    text-align: center; max-width: 480px; width: 100%;
-    animation: successUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes successUp {
-    from { opacity: 0; transform: translateY(30px) scale(0.96); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
+.success-inner { text-align: center; max-width: 480px; width: 100%; }
 .success-check {
     width: 120px; height: 120px; margin: 0 auto 32px;
-    position: relative;
-    display: flex; align-items: center; justify-content: center;
+    position: relative; display: flex; align-items: center; justify-content: center;
 }
 .success-check::before {
     content: ''; position: absolute; inset: 0; border-radius: 50%;
-    background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
-    box-shadow: 0 20px 60px rgba(22,163,74,0.35), 0 0 0 1px rgba(22,163,74,0.1) inset;
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    box-shadow: 0 20px 60px rgba(22,163,74,0.35);
     animation: checkPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
 }
 .success-check::after {
@@ -205,10 +162,7 @@ body {
     background: radial-gradient(circle, rgba(34,197,94,0.25) 0%, transparent 70%);
     animation: glowPulse 2.4s ease-in-out infinite;
 }
-@keyframes checkPop {
-    from { transform: scale(0); }
-    to { transform: scale(1); }
-}
+@keyframes checkPop { from { transform: scale(0); } to { transform: scale(1); } }
 @keyframes glowPulse {
     0%, 100% { opacity: 0.5; transform: scale(1); }
     50% { opacity: 1; transform: scale(1.08); }
@@ -223,70 +177,28 @@ body {
 @keyframes drawCheck { to { stroke-dashoffset: 0; } }
 
 .success-title {
-    font-size: 2rem; font-weight: 900;
-    letter-spacing: -0.03em; line-height: 1.15;
+    font-size: 2rem; font-weight: 900; letter-spacing: -0.03em;
+    line-height: 1.15;
     background: linear-gradient(135deg, #0a0a0a 0%, #16a34a 100%);
-    -webkit-background-clip: text; background-clip: text;
-    color: transparent;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
     margin-bottom: 14px;
-    animation: successUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
 }
-.success-sub {
-    font-size: 0.95rem; color: var(--text-dim);
-    line-height: 1.7; margin-bottom: 24px;
-    animation: successUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
-}
+.success-sub { font-size: 0.95rem; color: var(--text-2); line-height: 1.7; margin-bottom: 24px; }
 .success-sub b { color: var(--text); font-weight: 800; }
 .success-code-box {
-    display: inline-block;
-    font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
-    padding: 12px 22px; border-radius: 12px;
-    background: rgba(22,163,74,0.08);
-    border: 1px solid rgba(22,163,74,0.25);
-    color: #0a0a0a; margin-bottom: 28px;
-    animation: successUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+    display: inline-block; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem; padding: 12px 22px; border-radius: 12px;
+    background: rgba(22,163,74,0.08); border: 1px solid rgba(22,163,74,0.25);
+    color: var(--text); margin-bottom: 28px;
 }
-.success-code-box b { color: var(--ok); letter-spacing: 0.1em; font-weight: 800; }
-
-.success-btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-    padding: 16px 32px; border-radius: 14px;
-    background: #0a0a0a; color: #fff;
-    font-weight: 800; font-size: 0.9rem; text-decoration: none;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    box-shadow: 0 12px 32px rgba(10,10,10,0.25);
-    transition: all 0.3s; border: none; cursor: pointer;
-    animation: successUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
-}
-.success-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(10,10,10,0.35); }
-
-.btn {
-    padding: 14px 24px; border: none; border-radius: 12px;
-    font-size: 0.88rem; font-weight: 700; font-family: inherit; cursor: pointer;
-    display: inline-flex; align-items: center; justify-content: center;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    transition: all 0.3s; position: relative; overflow: hidden;
-}
-.btn-primary { background: #0a0a0a; color: #fff; box-shadow: 0 8px 24px rgba(10,10,10,0.2); }
-.btn-primary::before {
-    content: ''; position: absolute; top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(230,57,70,0.5), transparent);
-    transition: left 0.6s;
-}
-.btn-primary:hover::before { left: 100%; }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(10,10,10,0.3); }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-full { width: 100%; padding: 16px; font-size: 0.95rem; }
-
-.hidden { display: none !important; }
+.success-code-box b { color: #16a34a; letter-spacing: 0.1em; font-weight: 800; }
 
 @media (max-width: 640px) {
-    body { padding: 80px 12px 40px; }
-    .navbar { top: 12px; padding: 10px 14px; }
-    .card { padding: 16px; }
+    .checkout-wrap { padding: 100px 14px 60px; }
     .qr-box { width: 200px; height: 200px; }
     .qr-amount { font-size: 1.2rem; padding: 8px 18px; }
+    .qr-bankinfo { grid-template-columns: 1fr; gap: 6px; }
+    .qr-bankinfo span:nth-child(even) { text-align: left; }
     .success-title { font-size: 1.5rem; }
     .success-check { width: 96px; height: 96px; }
     .success-check svg { width: 44px; height: 44px; }
@@ -299,7 +211,7 @@ body {
 <div class="bg-orb bg-orb-1"></div>
 <div class="bg-orb bg-orb-2"></div>
 
-<nav class="navbar">
+<nav class="navbar glass">
     <a href="index.html" class="logo">
         <div class="logo-badge"><span class="logo-qm">QM</span></div>
         <div class="logo-text">
@@ -307,14 +219,14 @@ body {
             <span class="logo-sub">By:QuangMinh</span>
         </div>
     </a>
-    <a href="index.html" class="nav-back">← Quay lại</a>
+    <a href="index.html" class="back-link">← Quay lại</a>
 </nav>
 
-<div class="container">
+<div class="checkout-wrap">
 
-    <div class="step-block" id="step1">
+    <div class="step-block" data-step="1">
         <div class="step-head">
-            <div class="step-number">1</div>
+            <div class="step-number">01</div>
             <div class="step-head-text">
                 <h3>Sản phẩm</h3>
                 <p>Thông tin đơn hàng</p>
@@ -323,53 +235,51 @@ body {
         <div class="card">
             <div class="product-info">
                 <div>
-                    <div class="product-name" id="cpName">Đang tải...</div>
-                    <div class="product-desc" id="cpDesc"></div>
+                    <div class="name" id="cpName">Đang tải…</div>
+                    <div class="desc" id="cpDesc">—</div>
                 </div>
-                <div class="product-price" id="cpPrice">0đ</div>
+                <div class="price" id="cpPrice">0đ</div>
             </div>
         </div>
     </div>
 
-    <div class="step-block" id="step2">
+    <div class="step-block" data-step="2">
         <div class="step-head">
-            <div class="step-number">2</div>
+            <div class="step-number">02</div>
             <div class="step-head-text">
-                <h3>Lưu ý</h3>
-                <p>Đọc kỹ trước khi mua</p>
+                <h3>Lưu ý quan trọng</h3>
+                <p>Đọc kỹ trước khi thanh toán</p>
             </div>
         </div>
         <div class="note">
             <div class="note-icon">!</div>
             <div>
-                Tất cả sản phẩm là <b>file IPA</b>. Bạn <b>bắt buộc</b> phải có <b>ESign</b> để cài đặt.
+                Tất cả sản phẩm đều là <b>file IPA</b>. Bạn <b>bắt buộc</b> phải có ứng dụng <b>ESign</b> để cài đặt.
                 Chưa có? Mua tại <a href="https://muacert.com" target="_blank">muacert.com</a>
             </div>
         </div>
     </div>
 
-    <div class="step-block" id="step3">
+    <div class="step-block" data-step="3">
         <div class="step-head">
-            <div class="step-number">3</div>
+            <div class="step-number">03</div>
             <div class="step-head-text">
                 <h3>Email nhận file</h3>
-                <p>Link tải sẽ gửi về email này</p>
+                <p>Link tải sẽ được gửi tới email này</p>
             </div>
         </div>
         <div class="card">
-            <div class="form-group" style="margin-bottom:0;">
-                <label>Email của bạn *</label>
+            <div class="form-group" style="margin-bottom:14px;">
+                <label>Email của bạn</label>
                 <input type="email" id="customerEmail" placeholder="your-email@example.com" autocomplete="email">
             </div>
-            <button class="btn btn-primary btn-full" id="createOrderBtn" style="margin-top:14px;">
-                TẠO ĐƠN & LẤY MÃ QR
-            </button>
+            <button class="btn btn-primary btn-full" id="createOrderBtn">TẠO ĐƠN & LẤY MÃ QR</button>
         </div>
     </div>
 
-    <div class="step-block hidden" id="step4">
+    <div class="step-block" id="step4" style="display:none;">
         <div class="step-head">
-            <div class="step-number">4</div>
+            <div class="step-number">04</div>
             <div class="step-head-text">
                 <h3>Chuyển khoản</h3>
                 <p>Quét QR — hệ thống tự xác nhận</p>
@@ -379,20 +289,19 @@ body {
             <div class="qr-layout">
                 <div class="qr-box">
                     <img id="qrImage" src="" alt="QR" style="display:none;">
-                    <div class="qr-ph" id="qrPh"><span>Đang tạo QR...</span></div>
+                    <div class="qr-ph" id="qrPh"><span>Đang tạo QR…</span></div>
                 </div>
                 <div class="qr-amount" id="qrAmount">0đ</div>
                 <div class="qr-bankinfo">
-                    <span>Ngân hàng</span><span id="bankName">MB</span>
-                    <span>Số TK</span><span id="bankAccount">-</span>
-                    <span>Số tiền</span><span id="bankAmount">-</span>
-                    <span>Nội dung</span><span class="qr-code-hl" id="bankCode">QM0000</span>
+                    <span>Ngân hàng</span><span id="bankName">—</span>
+                    <span>Số tài khoản</span><span id="bankAccount">—</span>
+                    <span>Số tiền</span><span id="bankAmount">—</span>
+                    <span>Nội dung CK</span><span class="highlight" id="bankCode">—</span>
                 </div>
                 <div class="qr-note">
-                    Mở app ngân hàng → Quét QR → Nhập đúng <b>số tiền</b> và <b>nội dung CK</b>
+                    Mở app ngân hàng → Quét QR → Nhập đúng <b>số tiền</b> và <b>nội dung</b>
                 </div>
             </div>
-
             <div class="poll-bar">
                 <span class="poll-dot"></span>
                 <span>Đang chờ xác nhận thanh toán… <b>tự động</b></span>
@@ -402,7 +311,6 @@ body {
 
 </div>
 
-<!-- SUCCESS SCREEN -->
 <div class="success-screen" id="successScreen">
     <div class="success-inner">
         <div class="success-check">
@@ -416,20 +324,18 @@ body {
             Link tải IPA đã được gửi đến <b id="successEmail">email của bạn</b>.
         </p>
         <div class="success-code-box">
-            Mã đơn: <b id="successCode">—</b>
+            Mã đơn · <b id="successCode">—</b>
         </div>
         <br>
-        <a href="index.html" class="success-btn">← VỀ TRANG CHỦ</a>
+        <a href="index.html" class="btn btn-primary">← VỀ TRANG CHỦ</a>
     </div>
 </div>
 
 <script>
-let productData = null;
-let currentOrder = null;
-let pollTimer = null;
-
 const $ = id => document.getElementById(id);
 const fmt = n => n.toLocaleString('vi-VN') + 'đ';
+
+let productData = null, currentOrder = null, pollTimer = null;
 
 function getProductId() {
     const p = new URLSearchParams(location.search);
@@ -437,26 +343,26 @@ function getProductId() {
 }
 
 async function loadProduct() {
-    const id = getProductId();
     try {
-        const r = await fetch('/api/products/' + id);
+        const r = await fetch('/api/products/' + getProductId());
         if (!r.ok) throw new Error('Không tải được sản phẩm');
         productData = await r.json();
         $('cpName').textContent = productData.name;
-        $('cpDesc').textContent = (productData.game || '') + (productData.size ? ' · ' + (productData.size/1024/1024).toFixed(1) + ' MB' : '');
-        $('cpPrice').textContent = fmt(productData.price * 1000);
+        $('cpDesc').textContent = (productData.game || '') + ' · MOD IPA';
+        $('cpPrice').textContent = fmt(productData.price);
     } catch (e) {
         $('cpName').textContent = 'Lỗi: ' + e.message;
     }
 }
 
 async function createOrder() {
+    if (!productData) return alert('Chưa tải được sản phẩm, vui lòng thử lại!');
     const email = $('customerEmail').value.trim();
     if (!email) return alert('Vui lòng nhập email!');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert('Email không hợp lệ!');
 
     const btn = $('createOrderBtn');
-    btn.textContent = 'ĐANG TẠO ĐƠN...';
+    btn.textContent = 'ĐANG TẠO ĐƠN…';
     btn.disabled = true;
 
     try {
@@ -480,11 +386,12 @@ async function createOrder() {
 
         const img = $('qrImage');
         img.onload = () => { img.style.display = 'block'; $('qrPh').style.display = 'none'; };
-        img.onerror = () => { $('qrPh').innerHTML = '<span>Lỗi tải QR</span><small>CK thủ công theo thông tin bên dưới</small>'; };
+        img.onerror = () => { $('qrPh').innerHTML = '<span>Lỗi tải QR</span>'; };
         img.src = data.qr;
 
-        $('step3').classList.add('hidden');
-        $('step4').classList.remove('hidden');
+        document.querySelector('[data-step="3"]').style.display = 'none';
+        $('step4').style.display = 'block';
+        gsap.fromTo($('step4'), { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' });
         $('step4').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         startPolling();
@@ -507,26 +414,25 @@ async function checkStatus() {
         const r = await fetch('/api/order/' + currentOrder.order_code + '/status');
         if (!r.ok) return;
         const d = await r.json();
-
-        if (d.delivered) {
-            clearInterval(pollTimer);
-            showSuccess();
-        }
+        if (d.delivered) { clearInterval(pollTimer); showSuccess(); }
     } catch {}
 }
 
 function showSuccess() {
     $('successCode').textContent = currentOrder.order_code;
-    const email = $('customerEmail').value.trim() || sessionStorage.getItem('lastEmail') || 'email của bạn';
-    $('successEmail').textContent = email;
+    $('successEmail').textContent = sessionStorage.getItem('lastEmail') || 'email của bạn';
     $('successScreen').classList.add('on');
     document.body.style.overflow = 'hidden';
+    gsap.fromTo('.success-inner', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' });
 }
 
 $('createOrderBtn').addEventListener('click', createOrder);
 $('customerEmail').addEventListener('keypress', e => { if (e.key === 'Enter') createOrder(); });
 
-loadProduct();
+window.addEventListener('load', () => {
+    loadProduct();
+    gsap.to('.step-block', { opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power2.out', delay: 0.15 });
+});
 </script>
 </body>
 </html>
