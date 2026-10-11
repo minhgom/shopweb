@@ -270,3 +270,26 @@ window.filterCategory = filterCategory;
 window.toggleChat = toggleChat;
 window.sendChat = sendChat;
 window.toggleWishlist = toggleWishlist;
+/* ===== FIX TAB SWITCH — GSAP bị đứng khi đổi tab ===== */
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        // Tab quay lại → refresh ScrollTrigger + reset trạng thái reveal
+        if (typeof ScrollTrigger !== 'undefined') {
+            setTimeout(() => ScrollTrigger.refresh(), 100);
+        }
+        // Đảm bảo mọi card đã hiển thị thì giữ nguyên hiển thị
+        document.querySelectorAll('.category-card, .guide-step, .support-card, .cta-card, .product-card, .esign-box').forEach(el => {
+            const rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight && rect.bottom > 0) {
+                el.style.opacity = '1';
+                el.style.transform = 'none';
+            }
+        });
+    }
+});
+
+window.addEventListener('focus', () => {
+    if (typeof ScrollTrigger !== 'undefined') {
+        setTimeout(() => ScrollTrigger.refresh(), 100);
+    }
+});
