@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lịch sử mua hàng — QM MOD iOS</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Be Vietnam Pro', sans-serif;
+    background: #f4f6fb; color: #0a0a0a;
+    min-height: 100vh; padding: 120px 20px 60px;
+}
+.bg-pattern {
+    position: fixed; inset: 0; z-index: -3;
+    background-image:
+        linear-gradient(rgba(10,10,10,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(10,10,10,0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+.wrap { max-width: 900px; margin: 0 auto; }
+.head {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 28px; gap: 16px; flex-wrap: wrap;
+}
+.head h1 { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.02em; }
+.head p { color: #6b7280; font-size: 0.88rem; margin-top: 4px; }
+.back-btn {
+    padding: 10px 18px; border-radius: 10px;
+    background: #0a0a0a; color: #fff;
+    text-decoration: none; font-size: 0.82rem;
+    font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.empty {
+    padding: 60px 20px; text-align: center;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(10,10,10,0.08);
+    border-radius: 18px; color: #6b7280;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;
+}
+.empty a { color: #e63946; font-weight: 700; text-decoration: none; }
+.order {
+    background: #fff; border: 1px solid rgba(10,10,10,0.08);
+    border-radius: 18px; padding: 20px 22px;
+    margin-bottom: 14px; display: flex;
+    justify-content: space-between; align-items: center;
+    gap: 16px; flex-wrap: wrap;
+    box-shadow: 0 4px 16px rgba(10,10,10,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.order:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(10,10,10,0.08);
+}
+.order-info { flex: 1; min-width: 220px; }
+.order-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem; font-weight: 700;
+    color: #e63946; letter-spacing: 0.08em;
+    margin-bottom: 6px;
+}
+.order-name { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+.order-meta {
+    font-size: 0.78rem; color: #6b7280;
+    font-family: 'JetBrains Mono', monospace;
+}
+.tag {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 6px; font-size: 0.68rem;
+    font-weight: 700; margin-left: 8px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+.tag.pending { background: #fef3c7; color: #d97706; }
+.tag.delivered { background: #d1fae5; color: #16a34a; }
+.tag.rejected { background: #fee2e2; color: #e63946; }
+.dl-btn {
+    padding: 12px 22px; border-radius: 10px;
+    background: #0a0a0a; color: #fff;
+    text-decoration: none; font-size: 0.82rem;
+    font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; white-space: nowrap;
+}
+.dl-btn.disabled {
+    background: #e5e7eb; color: #9ca3af;
+    pointer-events: none;
+}
+.msg {
+    text-align: center; padding: 40px 20px;
+    color: #6b7280;
+}
+@media (max-width: 600px) {
+    .order { flex-direction: column; align-items: stretch; }
+    .dl-btn { text-align: center; }
+}
+</style>
+</head>
+<body>
+<div class="bg-pattern"></div>
+<div class="wrap">
+    <div class="head">
+        <div>
+            <h1>📦 Lịch sử mua hàng</h1>
+            <p>Tải lại file IPA bất cứ lúc nào — link có hiệu lực 7 ngày</p>
+        </div>
+        <a href="index.html" class="back-btn">← Trang chủ</a>
+    </div>
+    <div id="content" class="msg">Đang tải...</div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+(async function () {
+    const content = document.getElementById('content');
+    try {
+        const r = await fetch('/api/my-downloads', { credentials: 'same-origin', cache: 'no-store' });
+        if (r.status === 401) {
+            content.innerHTML = 'Bạn chưa đăng nhập. <a href="login.html">Đăng nhập ngay →</a>';
+            return;
+        }
+        const d = await r.json();
+        if (!d.downloads || !d.downloads.length) {
+            content.innerHTML = 'Chưa có đơn hàng nào. <a href="index.html#products">Mua ngay →</a>';
+            return;
+        }
+
+        const fmt = n => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+        const esc = s => String(s || '').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+
+        content.className = '';
+        content.innerHTML = d.downloads.map(o => {
+            const tag = o.status === 'delivered'
+                ? '<span class="tag delivered">Đã gửi</span>'
+                : o.status === 'rejected'
+                    ? '<span class="tag rejected">Từ chối</span>'
+                    : '<span class="tag pending">Chờ CK</span>';
+            const canDownload = o.status === 'delivered' && o.download_token;
+            const url = canDownload ? 'download.html?token=' + o.download_token : '#';
+            return `
+                <div class="order">
+                    <div class="order-info">
+                        <div class="order-code">${esc(o.order_code)}</div>
+                        <div class="order-name">${esc(o.product_name)} ${tag}</div>
+                        <div class="order-meta">${esc(o.game)} · ${fmt(o.amount)} · ${new Date(o.created_at).toLocaleDateString('vi-VN')}</div>
+                    </div>
+                    <a class="dl-btn ${canDownload ? '' : 'disabled'}" href="${url}">
+                        ${canDownload ? '⬇ TẢI LẠI' : '⏳ CHƯA CÓ FILE'}
+                    </a>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        content.innerHTML = 'Lỗi tải dữ liệu: ' + e.message;
+    }
+})();
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 /* QM MOD iOS — auth.js
  * Tự gắn token đăng nhập (Authorization: Bearer ...) vào mọi request /api/ cùng domain.
  * Nhờ vậy đăng nhập vẫn hoạt động kể cả khi trình duyệt (Safari iOS) không lưu cookie.
- * Phải nạp TRƯỚC script.js và các script khác:  <script src="auth.js"></script>
+ * Phải nạp TRƯỚC script.js và các script khác: <script src="auth.js"></script>
  */
 (function () {
     if (window.QMAuth) return;
@@ -43,4 +43,4 @@
         } catch (e) { /* không chặn request nếu có lỗi */ }
         return originalFetch(input, init);
     };
-})();   
+})();
