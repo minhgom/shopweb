@@ -12,3 +12,4 @@ github_pat_*drive-service.json
 shopweb.db*
 node_modules/
 _snapshots/
+drive-service.json
