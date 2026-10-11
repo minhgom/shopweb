@@ -1,4 +1,4 @@
-// QM MOD iOS — Backend v3 (SePay + Drive proxy + order status)
+// QM MOD iOS — Backend v4 (SePay + Drive proxy + reset admin)
 const express = require('express');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcrypt');
@@ -252,7 +252,7 @@ app.post('/api/checkout', orderLimiter, (req, res) => {
 
         const orderCode = 'QM' + crypto.randomBytes(4).toString('hex').toUpperCase();
         const downloadToken = crypto.randomBytes(32).toString('hex');
-        const amount = product.price * 1000;
+        const amount = product.price;
 
         db.prepare(`INSERT INTO orders (customer_email, product_id, order_code, download_token, token_exp, amount, status) VALUES (?,?,?,?,?,?, 'pending')`)
           .run(customer_email, product_id, orderCode, downloadToken, Date.now()+7*24*3600*1000, amount);
@@ -353,7 +353,6 @@ app.get('/api/file/:token', async (req, res) => {
     }
 });
 
-// Metadata only (cho download.html)
 app.get('/api/download-by-token/:token', (req, res) => {
     const { token } = req.params;
     if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
@@ -384,7 +383,6 @@ app.post('/api/admin/login', loginLimiter, async (req, res) => {
     } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// Nhập link Drive (JSON)
 app.post('/api/admin/upload-product', requireAdmin, (req, res) => {
     const name = sanitize(req.body.name);
     const game = sanitize(req.body.game);
@@ -422,7 +420,6 @@ app.post('/api/admin/delete-product/:id', requireAdmin, (req, res) => {
     catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
-// Manual confirm/reject order (backup khi webhook fail)
 app.post('/api/admin/confirm-order/:code', requireAdmin, async (req, res) => {
     try {
         const o = db.prepare(`SELECT o.*, p.name AS product_name, p.game FROM orders o JOIN products p ON o.product_id=p.id WHERE o.order_code=?`).get(req.params.code);
@@ -459,9 +456,31 @@ app.post('/api/admin/ban-user/:id', requireAdmin, (req, res) => {
     catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
+// Đổi pass admin
+app.post('/api/admin/change-password', requireAdmin, async (req, res) => {
+    const { old_password, new_password } = req.body || {};
+    if (!old_password || !new_password || new_password.length < 6)
+        return res.status(400).json({ error: 'Thiếu thông tin hoặc pass < 6 ký tự' });
+    const adminId = req.cookies.isAdmin;
+    const admin = db.prepare('SELECT * FROM admins WHERE id=?').get(adminId);
+    if (!admin || !await bcrypt.compare(old_password, admin.password_hash))
+        return res.status(401).json({ error: 'Pass cũ sai' });
+    const hash = await bcrypt.hash(new_password, 12);
+    db.prepare('UPDATE admins SET password_hash=? WHERE id=?').run(hash, adminId);
+    res.json({ success: true });
+});
+
 app.get('/api/admin/security-logs', requireAdmin, (req, res) => {
     try { res.json(db.prepare('SELECT * FROM security_logs ORDER BY id DESC LIMIT 200').all()); }
     catch { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ===== TEMP RESET ADMIN — XÓA SAU KHI DÙNG =====
+app.get('/reset-admin-temp', async (req, res) => {
+    if (req.query.key !== 'reset-shopweb-2026') return res.status(403).send('Nope');
+    const hash = await bcrypt.hash('admin123', 10);
+    db.prepare('UPDATE admins SET password_hash=? WHERE username=?').run(hash, 'admin');
+    res.send('OK — admin / admin123');
 });
 
 // 404 + error
