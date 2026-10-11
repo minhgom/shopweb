@@ -1,63 +1,43 @@
 /* ============================================================
-   QM MOD iOS — script.js (GSAP)
+   QM MOD iOS — script.js
    ============================================================ */
 
-// ===== GSAP =====
-if (typeof gsap !== 'undefined') {
+if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
     gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 }
 
 console.log('[QM] script loaded');
 
-// ===== STATE =====
 let currentGame = 'all';
 let currentSort = 'default';
 let currentSearch = '';
 let wishlist = JSON.parse(localStorage.getItem('qm_wishlist') || '[]');
 
-// ===== DATA =====
 const PRODUCTS_DATA = [
-    { id: 1, name: 'Truckers of Europe 3 — Mod Full', game: 'TOE3', price: 20000, badge: 'hot', badgeText: 'HOT' },
-    { id: 2, name: 'BUSSID — Mod Xe Khách', game: 'BUSSID', price: 25000, badge: 'new', badgeText: 'NEW' },
-    { id: 3, name: 'GTA — Mod Xe Độ', game: 'GTA SAN', price: 35000, badge: 'sale', badgeText: 'SALE' },
-    { id: 4, name: 'Truck Simulator USA EVO — Mod Full', game: 'TRUCK SIM', price: 25000, badge: '', badgeText: '' },
-    { id: 5, name: 'Combo 3 App Pre — Locket + YouTube + Spotify', game: 'LOCKET', price: 25000, badge: 'vip', badgeText: 'VIP' }
+    { id: 1, name: 'BUSSID — Mod Xe Khách', game: 'BUSSID', price: 25000, desc: 'Mod xe khách cho các thiết bị iOS', badge: 'new', badgeText: 'NEW' },
+    { id: 2, name: 'GTA San Andreas — Mod Xe Độ', game: 'GTA SAN', price: 35000, desc: 'Mod xe độ cho iOS', badge: 'sale', badgeText: 'SALE' },
+    { id: 3, name: 'Truckers of Europe 3 — Hack Full', game: 'TOE3', price: 20000, desc: 'Hack full tiền', badge: 'hot', badgeText: 'HOT' },
+    { id: 4, name: 'Truck Simulator USA EVO — Hack Full', game: 'TRUCK SIM', price: 25000, desc: 'Hack full tiền', badge: '', badgeText: '' },
+    { id: 5, name: 'Combo 3 App Premium', game: 'LOCKET', price: 25000, desc: 'Locket Gold (quay 15s không VPN) + Spotify Premium + YouTube Premium', badge: 'vip', badgeText: 'VIP' }
 ];
 
 const $ = id => document.getElementById(id);
 const fmt = n => n.toLocaleString('vi-VN') + 'đ';
 
-// ===== LOADER =====
+/* ===== LOADER ===== */
 window.addEventListener('load', () => {
-    const loader = document.querySelector('.loader-screen');
+    const loader = $('loader');
     if (!loader) return;
 
-    if (typeof gsap === 'undefined') {
-        setTimeout(() => loader.classList.add('done'), 1800);
-        return;
-    }
-
-    const counter = { v: 0 };
-    const tl = gsap.timeline();
-
-    tl.to('.loader-bar-fill', { width: '100%', duration: 1.6, ease: 'power2.inOut' }, 0)
-      .to(counter, {
-          v: 100, duration: 1.6, ease: 'power2.inOut',
-          onUpdate: () => {
-              const el = document.querySelector('.loader-percent');
-              if (el) el.textContent = Math.round(counter.v) + '%';
-          }
-      }, 0)
-      .to('.loader-text span', { opacity: 1, y: 0, stagger: 0.06, duration: 0.4 }, 0.3)
-      .to('.loader-screen', {
-          opacity: 0, duration: 0.6, delay: 0.4,
-          onComplete: () => { loader.style.display = 'none'; heroIntro(); }
-      });
+    setTimeout(() => {
+        loader.classList.add('done');
+        setTimeout(() => { loader.style.display = 'none'; heroIntro(); }, 800);
+    }, 2200);
 });
 
-// ===== HERO INTRO =====
+/* ===== HERO INTRO ===== */
 function heroIntro() {
-    if (typeof gsap === 'undefined') return;
+    if (typeof gsap === 'undefined') { typing(); return; }
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
     tl.from('.navbar', { y: -80, opacity: 0, duration: 0.8 })
       .from('.hero-badge', { y: 20, opacity: 0, duration: 0.6 }, '-=0.4')
@@ -68,7 +48,7 @@ function heroIntro() {
     typing();
 }
 
-// ===== TYPING =====
+/* ===== TYPING ===== */
 const TYPING_TEXT = [
     'MOD GAME iOS — GIÁ RẺ NHẤT',
     'NHẬN LINK TẢI TRONG 30 GIÂY',
@@ -86,9 +66,16 @@ function typing() {
     setTimeout(typing, deleting ? 35 : 75);
 }
 
-// ===== SCROLL REVEAL =====
+/* ===== SCROLL REVEAL (chỉ chạy nếu có GSAP) ===== */
 function initScrollReveal() {
-    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+        // Fallback: hiển thị tất cả
+        document.querySelectorAll('.reveal').forEach(el => {
+            el.style.opacity = 1;
+            el.style.transform = 'none';
+        });
+        return;
+    }
 
     gsap.from('.esign-box', {
         scrollTrigger: { trigger: '.esign-box', start: 'top 85%' },
@@ -103,8 +90,8 @@ function initScrollReveal() {
     });
 
     gsap.from('.category-card', {
-        scrollTrigger: { trigger: '.categories-grid', start: 'top 80%' },
-        y: 60, opacity: 0, scale: 0.95,
+        scrollTrigger: { trigger: '.categories-grid', start: 'top 85%' },
+        y: 50, opacity: 0, scale: 0.96,
         duration: 0.8, stagger: 0.12, ease: 'power3.out'
     });
 
@@ -115,7 +102,7 @@ function initScrollReveal() {
 
     gsap.from('.support-card', {
         scrollTrigger: { trigger: '.support-grid', start: 'top 85%' },
-        y: 40, opacity: 0, scale: 0.9, duration: 0.6, stagger: 0.1, ease: 'back.out(1.4)'
+        y: 40, opacity: 0, scale: 0.92, duration: 0.6, stagger: 0.1, ease: 'back.out(1.4)'
     });
 
     gsap.from('.cta-card', {
@@ -124,20 +111,7 @@ function initScrollReveal() {
     });
 }
 
-// ===== PARALLAX =====
-function initParallax() {
-    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
-    gsap.to('.bg-orb-1', {
-        scrollTrigger: { trigger: 'body', start: 'top top', end: 'bottom bottom', scrub: 1 },
-        y: 300, x: -100, ease: 'none'
-    });
-    gsap.to('.bg-orb-2', {
-        scrollTrigger: { trigger: 'body', start: 'top top', end: 'bottom bottom', scrub: 1 },
-        y: -300, x: 100, ease: 'none'
-    });
-}
-
-// ===== NAVBAR SCROLL =====
+/* ===== NAVBAR SCROLL ===== */
 window.addEventListener('scroll', () => {
     const nav = document.querySelector('.navbar');
     const btt = $('backToTop');
@@ -145,7 +119,7 @@ window.addEventListener('scroll', () => {
     if (btt) btt.classList.toggle('show', window.scrollY > 400);
 });
 
-// ===== RENDER PRODUCTS =====
+/* ===== RENDER PRODUCTS ===== */
 function renderProducts() {
     const grid = $('productsGrid');
     if (!grid) return;
@@ -169,7 +143,7 @@ function renderProducts() {
     }
 
     grid.innerHTML = list.map(p => `
-        <div class="product-card reveal" data-id="${p.id}">
+        <div class="product-card" data-id="${p.id}">
             ${p.badge ? `<div class="product-badge ${p.badge}">${p.badgeText}</div>` : ''}
             <button class="wishlist-btn ${wishlist.includes(p.id) ? 'active' : ''}" data-wish="${p.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -178,20 +152,19 @@ function renderProducts() {
             </button>
             <div class="product-game">${p.game}</div>
             <div class="product-name">${p.name}</div>
+            <div class="product-desc">${p.desc}</div>
             <div class="product-price">${fmt(p.price)}</div>
             <button class="btn btn-primary btn-full" data-buy="${p.id}">MUA NGAY</button>
         </div>
     `).join('');
 
-    // GSAP stagger nếu có
     if (typeof gsap !== 'undefined') {
         gsap.fromTo('.product-card',
-            { y: 40, opacity: 0, scale: 0.96 },
-            { y: 0, opacity: 1, scale: 1, duration: 0.5, stagger: 0.08, ease: 'power3.out' }
+            { y: 30, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5, stagger: 0.08, ease: 'power3.out' }
         );
     }
 
-    // Bind events
     grid.querySelectorAll('[data-buy]').forEach(b => {
         b.addEventListener('click', () => location.href = `checkout.html?id=${b.dataset.buy}`);
     });
@@ -210,14 +183,10 @@ function renderProducts() {
 
 function updateWishlist() {
     const el = $('wishlistCount');
-    if (!el) return;
-    el.textContent = wishlist.length;
-    if (typeof gsap !== 'undefined') {
-        gsap.fromTo(el, { scale: 1.6 }, { scale: 1, duration: 0.4, ease: 'back.out(2)' });
-    }
+    if (el) el.textContent = wishlist.length;
 }
 
-// ===== EVENTS =====
+/* ===== EVENTS ===== */
 function initEvents() {
     document.querySelectorAll('.tab').forEach(t => {
         t.addEventListener('click', () => {
@@ -235,7 +204,7 @@ function initEvents() {
     if (sort) sort.addEventListener('change', e => { currentSort = e.target.value; renderProducts(); });
 }
 
-// ===== GLOBAL FUNCTIONS =====
+/* ===== GLOBAL FUNCTIONS ===== */
 function scrollToId(id) {
     const target = document.getElementById(id);
     if (!target) return;
@@ -285,27 +254,19 @@ function toggleWishlist() {
     scrollToId('products');
 }
 
-function handleSearch() {}
-function handleSort() {}
-
-// ===== INIT =====
+/* ===== INIT ===== */
 document.addEventListener('DOMContentLoaded', () => {
     renderProducts();
     updateWishlist();
     initEvents();
     initScrollReveal();
-    initParallax();
-
-    if (typeof ScrollTrigger !== 'undefined') {
-        setTimeout(() => ScrollTrigger.refresh(), 300);
-    }
+    setTimeout(() => {
+        if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
+    }, 500);
 });
 
-// Expose globals cho HTML inline onclick
 window.scrollToId = scrollToId;
 window.filterCategory = filterCategory;
 window.toggleChat = toggleChat;
 window.sendChat = sendChat;
 window.toggleWishlist = toggleWishlist;
-window.handleSearch = handleSearch;
-window.handleSort = handleSort;

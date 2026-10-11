@@ -13,8 +13,6 @@
 <body>
 
     <div class="bg-pattern"></div>
-    <div class="bg-orb bg-orb-1"></div>
-    <div class="bg-orb bg-orb-2"></div>
 
     <div class="announce-bar">
         <div class="announce-content">
@@ -27,14 +25,22 @@
         </div>
     </div>
 
+    <!-- LOADER -->
     <div class="loader-screen" id="loader">
-        <div class="loader-text">
+        <div class="loader-rings">
+            <div class="loader-ring loader-ring-1"></div>
+            <div class="loader-ring loader-ring-2"></div>
+            <div class="loader-ring loader-ring-3"></div>
+            <div class="loader-logo">QM</div>
+        </div>
+        <div class="loader-title">
             <span>Q</span><span>U</span><span>A</span><span>N</span><span>G</span><span>M</span><span>I</span><span>N</span><span>H</span>
         </div>
         <div class="loader-bar"><div class="loader-bar-fill"></div></div>
         <div class="loader-percent">0%</div>
     </div>
 
+    <!-- NAVBAR -->
     <nav class="navbar glass" id="navbar">
         <a href="index.html" class="logo">
             <div class="logo-badge"><span class="logo-qm">QM</span></div>
@@ -58,6 +64,7 @@
         </div>
     </nav>
 
+    <!-- HERO -->
     <section class="hero">
         <div class="hero-badge glass">
             <span class="badge-line"></span>
@@ -77,11 +84,11 @@
         </div>
     </section>
 
-    <!-- ESIGN -->
+    <!-- ESIGN — ảnh app không viền -->
     <section class="section">
         <div class="esign-box">
             <div class="esign-left">
-                <img src="images/esign.png" alt="ESign" class="esign-icon" onerror="this.style.display='none'">
+                <img src="images/esign.png" alt="ESign App" class="esign-icon" onerror="this.style.display='none'">
             </div>
             <div class="esign-right">
                 <div class="esign-tag">// BẮT BUỘC</div>
@@ -107,7 +114,7 @@
 
         <div class="categories-grid">
             <!-- BUSSID -->
-            <div class="category-card glass reveal" onclick="filterCategory('BUSSID')">
+            <div class="category-card reveal" onclick="filterCategory('BUSSID')">
                 <div class="category-bg" style="background-image: url('images/bussid-bg.jpg');"></div>
                 <div class="category-shade"></div>
                 <div class="category-badge new">NEW</div>
@@ -115,7 +122,7 @@
                     <img src="images/bussid-logo.png" alt="BUSSID" class="category-logo" onerror="this.style.display='none'">
                     <div class="category-info">
                         <div class="category-name">BUSSID</div>
-                        <div class="category-note">Mod xe khách cho iOS</div>
+                        <div class="category-note">Mod xe khách cho các thiết bị iOS</div>
                         <div class="category-price">25K</div>
                     </div>
                 </div>
@@ -123,7 +130,7 @@
             </div>
 
             <!-- GTA SAN -->
-            <div class="category-card glass reveal" onclick="filterCategory('GTA SAN')">
+            <div class="category-card reveal" onclick="filterCategory('GTA SAN')">
                 <div class="category-bg" style="background-image: url('images/gta-bg.jpg');"></div>
                 <div class="category-shade"></div>
                 <div class="category-badge sale">SALE</div>
@@ -139,7 +146,7 @@
             </div>
 
             <!-- TOE3 -->
-            <div class="category-card glass reveal" onclick="filterCategory('TOE3')">
+            <div class="category-card reveal" onclick="filterCategory('TOE3')">
                 <div class="category-bg" style="background-image: url('images/toe3-bg.jpg');"></div>
                 <div class="category-shade"></div>
                 <div class="category-badge hot">HOT</div>
@@ -155,7 +162,7 @@
             </div>
 
             <!-- TRUCK SIM EVO -->
-            <div class="category-card glass reveal" onclick="filterCategory('TRUCK SIM')">
+            <div class="category-card reveal" onclick="filterCategory('TRUCK SIM')">
                 <div class="category-bg" style="background-image: url('images/tsusa-bg.jpg');"></div>
                 <div class="category-shade"></div>
                 <div class="category-badge">EVO</div>
@@ -171,7 +178,7 @@
             </div>
 
             <!-- LOCKET COMBO -->
-            <div class="category-card glass reveal" onclick="filterCategory('LOCKET')">
+            <div class="category-card reveal" onclick="filterCategory('LOCKET')">
                 <div class="category-bg" style="background-image: url('images/locket-bg.jpg');"></div>
                 <div class="category-shade"></div>
                 <div class="category-badge vip">VIP</div>
@@ -199,9 +206,9 @@
         <div class="product-toolbar glass">
             <div class="search-box">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="searchInput" placeholder="Tìm sản phẩm..." oninput="handleSearch()">
+                <input type="text" id="searchInput" placeholder="Tìm sản phẩm...">
             </div>
-            <select class="sort-select" id="sortSelect" onchange="handleSort()">
+            <select class="sort-select" id="sortSelect">
                 <option value="default">Mặc định</option>
                 <option value="price-asc">Giá thấp đến cao</option>
                 <option value="price-desc">Giá cao đến thấp</option>
@@ -229,25 +236,25 @@
         </div>
 
         <div class="guide-grid">
-            <div class="guide-step glass reveal">
+            <div class="guide-step reveal">
                 <div class="step-num">01</div>
                 <div class="step-line"></div>
                 <div class="step-title">MUA ESIGN</div>
-                <p>Truy cập <a href="https://muacert.com" target="_blank">muacert.com</a> để mua chứng chỉ ký IPA. Xem video hướng dẫn <a href="https://youtu.be/7MsdWUH6vYU?si=VA4uxiy32OKgrtX-" target="_blank">tại đây</a>.</p>
+                <p>Truy cập <a href="https://muacert.com" target="_blank">muacert.com</a> mua chứng chỉ. Xem hướng dẫn <a href="https://youtu.be/7MsdWUH6vYU?si=VA4uxiy32OKgrtX-" target="_blank">tại đây</a>.</p>
             </div>
-            <div class="guide-step glass reveal">
+            <div class="guide-step reveal">
                 <div class="step-num">02</div>
                 <div class="step-line"></div>
                 <div class="step-title">CHỌN MOD</div>
                 <p>Chọn game bạn muốn — thanh toán và nhận mail tự động trong 30 giây.</p>
             </div>
-            <div class="guide-step glass reveal">
+            <div class="guide-step reveal">
                 <div class="step-num">03</div>
                 <div class="step-line"></div>
                 <div class="step-title">TẢI FILE</div>
                 <p>Tải file IPA trong mail. Với BUSSID có 3 file: ESign + BUSSID + file xe. Tải lần lượt.</p>
             </div>
-            <div class="guide-step glass reveal">
+            <div class="guide-step reveal">
                 <div class="step-num">04</div>
                 <div class="step-line"></div>
                 <div class="step-title">CÀI ĐẶT</div>
@@ -264,22 +271,22 @@
         </div>
 
         <div class="support-grid">
-            <a href="https://zalo.me/0383415468" target="_blank" class="support-card glass reveal">
+            <a href="https://zalo.me/0383415468" target="_blank" class="support-card reveal">
                 <div class="support-icon zl">Zalo</div>
                 <div class="support-name">Zalo</div>
                 <div class="support-desc">0383415468</div>
             </a>
-            <a href="https://www.facebook.com/share/18EqS17BRJ/?mibextid=wwXIfr" target="_blank" class="support-card glass reveal">
+            <a href="https://www.facebook.com/share/18EqS17BRJ/?mibextid=wwXIfr" target="_blank" class="support-card reveal">
                 <div class="support-icon fb">f</div>
                 <div class="support-name">Facebook</div>
                 <div class="support-desc">QuangMinh</div>
             </a>
-            <a href="https://www.tiktok.com/@ngi.hng.bussid" target="_blank" class="support-card glass reveal">
+            <a href="https://www.tiktok.com/@ngi.hng.bussid" target="_blank" class="support-card reveal">
                 <div class="support-icon tt">♪</div>
                 <div class="support-name">TikTok</div>
                 <div class="support-desc">ngi.hng.bussid</div>
             </a>
-            <a href="mailto:fileipanguoihungbussid@gmail.com" class="support-card glass reveal">
+            <a href="mailto:fileipanguoihungbussid@gmail.com" class="support-card reveal">
                 <div class="support-icon em">✉</div>
                 <div class="support-name">Email</div>
                 <div class="support-desc">fileipanguoihungbussid</div>
@@ -289,7 +296,7 @@
 
     <!-- CTA -->
     <section class="section">
-        <div class="cta-card glass reveal">
+        <div class="cta-card reveal">
             <div class="cta-line"></div>
             <h2>SẴN SÀNG CHƠI GAME MOD?</h2>
             <p>Đặt hàng ngay — nhận file trong 5 phút</p>
