@@ -13,7 +13,6 @@
             color: #0a0a0a;
             min-height: 100vh;
             padding: 100px 24px 60px;
-            position: relative;
         }
         .bg-pattern {
             position: fixed; inset: 0; z-index: -3;
@@ -22,12 +21,6 @@
                 linear-gradient(90deg, rgba(10,10,10,0.03) 1px, transparent 1px);
             background-size: 50px 50px;
         }
-        .bg-orb { position: fixed; border-radius: 50%; filter: blur(80px); z-index: -2; }
-        .bg-orb-1 { width: 500px; height: 500px; top: -100px; right: -100px;
-            background: radial-gradient(circle, rgba(230,57,70,0.15), transparent 70%); }
-        .bg-orb-2 { width: 500px; height: 500px; bottom: -100px; left: -100px;
-            background: radial-gradient(circle, rgba(10,10,10,0.08), transparent 70%); }
-
         .auth-back {
             position: fixed; top: 56px; left: 24px;
             padding: 10px 18px;
@@ -41,15 +34,13 @@
             font-weight: 600;
             z-index: 10;
         }
-        .auth-back:hover { color: #e63946; }
-
         .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
         .auth-box {
             width: 100%; max-width: 440px;
             padding: 40px 36px 32px;
             border-radius: 24px;
-            background: rgba(255,255,255,0.55);
-            backdrop-filter: blur(20px) saturate(180%);
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255,255,255,0.85);
             box-shadow: 0 8px 32px rgba(10,10,10,0.08);
         }
@@ -94,7 +85,7 @@
             padding: 13px 16px;
             border-radius: 10px;
             border: 1.5px solid rgba(10,10,10,0.15);
-            background: rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.9);
             font-family: inherit;
             font-size: 0.9rem;
             outline: none;
@@ -103,32 +94,6 @@
             border-color: #0a0a0a;
             background: #fff;
             box-shadow: 0 0 0 3px rgba(10,10,10,0.08);
-        }
-
-        .auth-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .auth-check {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            font-size: 0.82rem;
-            color: #6b7280;
-        }
-        .auth-check input[type="checkbox"] {
-            width: 16px; height: 16px;
-            cursor: pointer;
-        }
-        .auth-forgot {
-            color: #e63946;
-            text-decoration: none;
-            font-size: 0.82rem;
-            font-weight: 600;
         }
 
         .auth-btn {
@@ -144,20 +109,21 @@
             letter-spacing: 0.05em;
             text-transform: uppercase;
             cursor: pointer;
-            margin-top: 4px;
         }
-        .auth-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,10,10,0.25); }
         .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .auth-msg {
             text-align: center;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             font-weight: 600;
+            padding: 12px;
+            border-radius: 10px;
             min-height: 20px;
-            margin-top: 4px;
+            word-break: break-all;
         }
-        .auth-msg.err { color: #e63946; }
-        .auth-msg.ok { color: #16a34a; }
+        .auth-msg.err { color: #fff; background: #e63946; }
+        .auth-msg.ok { color: #fff; background: #16a34a; }
+        .auth-msg.info { color: #0a0a0a; background: #f5f5f7; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; text-align: left; }
 
         .auth-divider { position: relative; text-align: center; margin: 22px 0; }
         .auth-divider::before {
@@ -189,21 +155,14 @@
             font-family: inherit;
             font-size: 0.85rem;
             font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
             text-align: center;
             text-decoration: none;
-            cursor: pointer;
         }
-        .auth-btn-outline:hover { background: #0a0a0a; color: #fff; }
     </style>
 </head>
 <body>
 
     <div class="bg-pattern"></div>
-    <div class="bg-orb bg-orb-1"></div>
-    <div class="bg-orb bg-orb-2"></div>
-
     <a href="index.html" class="auth-back">← Về trang chủ</a>
 
     <div class="auth-page">
@@ -217,21 +176,13 @@
 
             <div class="auth-form">
                 <div class="auth-field">
-                    <label for="loginEmail">Email</label>
-                    <input type="email" id="loginEmail" placeholder="your-email@example.com" autocomplete="email">
+                    <label>Email</label>
+                    <input type="text" id="loginEmail" placeholder="admin hoặc your@email.com">
                 </div>
 
                 <div class="auth-field">
-                    <label for="loginPassword">Mật khẩu</label>
-                    <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
-                </div>
-
-                <div class="auth-row">
-                    <label class="auth-check">
-                        <input type="checkbox" id="remember">
-                        <span>Ghi nhớ</span>
-                    </label>
-                    <a href="forgot.html" class="auth-forgot">Quên mật khẩu?</a>
+                    <label>Mật khẩu</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••">
                 </div>
 
                 <button type="button" class="auth-btn" id="loginBtn">ĐĂNG NHẬP</button>
@@ -245,14 +196,15 @@
     </div>
 
     <script>
-        console.log('[login] script loaded');
-
+        // ===== BƯỚC 1: DEBUG NGAY KHI LOAD =====
         function showMsg(text, type) {
             var el = document.getElementById('loginMsg');
+            if (!el) return;
             el.textContent = text;
             el.className = 'auth-msg ' + (type || '');
         }
 
+        // ===== BƯỚC 2: HÀM LOGIN =====
         function doLogin() {
             var emailEl = document.getElementById('loginEmail');
             var passEl = document.getElementById('loginPassword');
@@ -261,16 +213,14 @@
             var email = (emailEl.value || '').trim();
             var pass = passEl.value || '';
 
-            console.log('[login] click submit:', email);
-
             if (!email || !pass) {
-                showMsg('Vui lòng nhập đầy đủ thông tin', 'err');
+                showMsg('⚠ Vui lòng nhập đầy đủ email và mật khẩu', 'err');
                 return;
             }
 
             btn.textContent = 'ĐANG ĐĂNG NHẬP...';
             btn.disabled = true;
-            showMsg('Đang kiểm tra...', '');
+            showMsg('⏳ Đang gửi yêu cầu tới server...', 'info');
 
             fetch('/api/login', {
                 method: 'POST',
@@ -278,32 +228,43 @@
                 body: JSON.stringify({ email: email, password: pass })
             })
             .then(function(r) {
-                return r.text().then(function(t) {
+                // Đọc response dạng text trước để debug
+                return r.text().then(function(txt) {
                     var data;
-                    try { data = JSON.parse(t); } catch(e) { data = { raw: t }; }
+                    try { data = JSON.parse(txt); } catch(e) {
+                        data = { parseError: true, raw: txt.slice(0, 300) };
+                    }
                     return { ok: r.ok, status: r.status, data: data };
                 });
             })
             .then(function(res) {
-                console.log('[login] response:', res);
+                // Hiển thị toàn bộ response lên màn hình
+                var debugText = 'STATUS: ' + res.status + '\n' +
+                                'BODY: ' + JSON.stringify(res.data, null, 2);
+                showMsg(debugText, 'info');
 
                 if (!res.ok) {
-                    showMsg('Lỗi ' + res.status + ': ' + (res.data.error || 'Server không phản hồi'), 'err');
+                    setTimeout(function() {
+                        showMsg('❌ Lỗi ' + res.status + ': ' + (res.data.error || 'Server error'), 'err');
+                    }, 2000);
                     btn.textContent = 'ĐĂNG NHẬP';
                     btn.disabled = false;
                     return;
                 }
 
-                if (!res.data.success) {
-                    showMsg(res.data.error || 'Đăng nhập thất bại', 'err');
+                if (!res.data || !res.data.success) {
+                    setTimeout(function() {
+                        showMsg('❌ ' + ((res.data && res.data.error) || 'Đăng nhập thất bại'), 'err');
+                    }, 2000);
                     btn.textContent = 'ĐĂNG NHẬP';
                     btn.disabled = false;
                     return;
                 }
 
-                try { localStorage.setItem('user', JSON.stringify(res.data.user)); } catch(e) {}
-
-                showMsg('Đăng nhập thành công! Đang chuyển...', 'ok');
+                // THÀNH CÔNG
+                setTimeout(function() {
+                    showMsg('✅ Đăng nhập thành công! Đang chuyển hướng...', 'ok');
+                }, 1500);
 
                 setTimeout(function() {
                     if (res.data.role === 'admin') {
@@ -311,35 +272,27 @@
                     } else {
                         window.location.href = '/';
                     }
-                }, 600);
+                }, 2500);
             })
             .catch(function(err) {
-                console.error('[login] fetch error:', err);
-                showMsg('Lỗi kết nối: ' + err.message, 'err');
+                showMsg('❌ LỖI FETCH: ' + err.message + '\n\nKiểm tra:\n- Server có chạy không?\n- URL /api/login có đúng không?', 'err');
                 btn.textContent = 'ĐĂNG NHẬP';
                 btn.disabled = false;
             });
         }
 
-        // Gắn event sau khi DOM load
-        document.addEventListener('DOMContentLoaded', function() {
-            var btn = document.getElementById('loginBtn');
-            var emailEl = document.getElementById('loginEmail');
-            var passEl = document.getElementById('loginPassword');
+        // ===== BƯỚC 3: GẮN EVENT =====
+        document.getElementById('loginBtn').addEventListener('click', doLogin);
 
-            if (btn) btn.addEventListener('click', doLogin);
-
-            function onEnter(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    doLogin();
-                }
-            }
-            if (emailEl) emailEl.addEventListener('keydown', onEnter);
-            if (passEl) passEl.addEventListener('keydown', onEnter);
-
-            console.log('[login] events attached');
+        document.getElementById('loginEmail').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); doLogin(); }
         });
+        document.getElementById('loginPassword').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); doLogin(); }
+        });
+
+        // Thông báo đã sẵn sàng
+        showMsg('✓ Trang đã sẵn sàng. Nhập thông tin rồi bấm ĐĂNG NHẬP.', 'info');
     </script>
 </body>
 </html>
