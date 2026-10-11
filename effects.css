@@ -736,4 +736,230 @@ footer { padding: 60px 24px 32px; background: #0a0a0a; color: #fff; margin-top: 
     .guide-grid { grid-template-columns: repeat(2, 1fr); }
     .support-grid { grid-template-columns: repeat(2, 1fr); }
     .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+}/* ============ ANIMATIONS ============ */
+
+/* Scroll reveal — fade up */
+.reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+}
+.reveal.in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Stagger delay cho card con */
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+
+/* Hero title animation */
+.hero-line-1 {
+    animation: heroIn 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.hero-line-2 {
+    animation: heroIn 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+.hero-badge { animation: heroIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
+.hero-subtitle { animation: heroIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both; }
+.hero-buttons { animation: heroIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both; }
+@keyframes heroIn {
+    from { opacity: 0; transform: translateY(30px); filter: blur(6px); }
+    to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* Navbar slide down */
+.navbar {
+    animation: navIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes navIn {
+    from { opacity: 0; transform: translate(-50%, -40px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ESign box slide in */
+.esign-box {
+    animation: esignIn 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-play-state: paused;
+}
+.esign-box.in { animation-play-state: running; }
+@keyframes esignIn {
+    from { opacity: 0; transform: translateX(-60px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* Category card hover 3D tilt */
+.category-card {
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
+    transform-style: preserve-3d;
+}
+.category-card:hover {
+    transform: translateY(-8px) scale(1.02);
+}
+
+/* Category card glow pulse */
+.category-badge.hot {
+    animation: badgePulse 2s ease-in-out infinite;
+}
+@keyframes badgePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(230,57,70,0.6); }
+    50% { box-shadow: 0 0 0 8px rgba(230,57,70,0); }
+}
+
+.category-badge.new {
+    animation: badgePulseGreen 2s ease-in-out infinite;
+}
+@keyframes badgePulseGreen {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.6); }
+    50% { box-shadow: 0 0 0 8px rgba(22,163,74,0); }
+}
+
+/* Product card lift + glow */
+.product-card {
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.5s ease,
+                border-color 0.3s ease;
+}
+.product-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 30px 60px rgba(230,57,70,0.2), 0 0 0 1px rgba(230,57,70,0.3);
+}
+.product-card:hover .product-game {
+    animation: gameTagShine 0.6s ease;
+}
+@keyframes gameTagShine {
+    0% { background: rgba(230,57,70,0.08); }
+    50% { background: rgba(230,57,70,0.25); }
+    100% { background: rgba(230,57,70,0.08); }
+}
+
+/* Icon app nổi bồng bềnh */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+.logo-badge {
+    animation: float 3s ease-in-out infinite;
+}
+.esign-icon {
+    animation: float 4s ease-in-out infinite;
+}
+
+/* Wishlist heart nhịp */
+.wishlist-btn.active svg {
+    animation: heartBeat 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes heartBeat {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+}
+
+/* Guide step stagger */
+.guide-step {
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.4s ease,
+                border-color 0.3s;
+}
+.guide-step:hover {
+    transform: translateY(-8px) rotate(-1deg);
+}
+
+/* Step number gradient animation */
+.step-num {
+    background: linear-gradient(135deg, #0a0a0a 0%, #e63946 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% 200%;
+    animation: stepGradient 4s ease infinite;
+}
+@keyframes stepGradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Support card bounce hover */
+.support-card {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.4s ease,
+                border-color 0.3s;
+}
+.support-card:hover {
+    transform: translateY(-8px) scale(1.03);
+}
+.support-card:hover .support-icon {
+    animation: iconBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes iconBounce {
+    0% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.15) rotate(-8deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Button shine */
+.btn-primary { position: relative; overflow: hidden; }
+.btn-primary::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.7s ease;
+    pointer-events: none;
+}
+.btn-primary:hover::after { left: 100%; }
+
+/* Section header underline animation */
+.section-header {
+    position: relative;
+}
+.section-header::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.section-header.in::before {
+    transform: scaleY(1);
+}
+
+/* CTA card glow pulse */
+.cta-card {
+    animation: ctaGlow 4s ease-in-out infinite;
+}
+@keyframes ctaGlow {
+    0%, 100% { box-shadow: 0 24px 64px rgba(0,0,0,0.12); }
+    50% { box-shadow: 0 24px 80px rgba(230,57,70,0.25); }
+}
+
+/* Loading shimmer cho ảnh */
+.category-bg {
+    background-image: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+}
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Cursor hiệu ứng mượt */
+html { scroll-behavior: smooth; }
+
+/* Reduce motion cho ai bị chóng mặt */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
