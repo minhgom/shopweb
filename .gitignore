@@ -19,3 +19,4 @@ database.json.corrupt-*
 .env
 drive-service.json
 node_modules/
+database.json
