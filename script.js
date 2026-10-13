@@ -392,4 +392,17 @@ renderProducts();
 updateWishlist();
 typing();
 loadProducts();
-loadAuth();
+loadAuth(); /* ===== MOBILE MENU ===== */
+function toggleMobileMenu() {
+    const links = document.querySelector('.nav-links');
+    if (links) links.classList.toggle('open');
+}
+window.toggleMobileMenu = toggleMobileMenu;
+
+document.addEventListener('click', e => {
+    const links = document.querySelector('.nav-links');
+    if (!links || !links.classList.contains('open')) return;
+    if (!links.contains(e.target) && !e.target.closest('.nav-hamburger')) {
+        links.classList.remove('open');
+    }
+});
