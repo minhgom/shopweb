@@ -1,4 +1,4 @@
-// QM MOD iOS — Backend v17 (Resend email)
+// QM MOD iOS — Backend v18 (signed download token)
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
@@ -23,7 +23,7 @@ if (!COOKIE_SECRET) {
 }
 
 // ===== RESEND =====
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = process.env.FROM_EMAIL || 'QM MOD iOS <onboarding@resend.dev>';
 
 // ===== CORS =====
@@ -58,7 +58,7 @@ if (!HAS_PUBLIC) {
             s.startsWith('.') ||
             s === 'node_modules' ||
             BLOCKED_FILES.has(s.toLowerCase()) ||
-            /\.(env|json|key|pem|log)$/i.test(s)
+            /\.(env|key|pem|log)$/i.test(s)
         );
         if (bad && !p.startsWith('/api/')) return res.status(404).send('Không tìm thấy');
         next();
@@ -142,7 +142,41 @@ function safeEqual(a, b) {
     return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
-// Rate limit in-memory
+// ============================================================
+//  SIGNED DOWNLOAD TOKEN — tự chứa data, đéo cần DB
+// ============================================================
+function makeDownloadToken(orderCode, files, productName, ttlMs) {
+    const payload = {
+        o: orderCode,
+        n: productName || '',
+        f: (files || []).map(f => ({
+            i: f.file_id,
+            n: f.name || 'file.ipa',
+            l: f.label || 'File',
+            s: f.size || null,
+            m: f.mime || 'application/octet-stream'
+        })),
+        e: Date.now() + (ttlMs || 7 * 24 * 3600 * 1000)
+    };
+    const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const sig = crypto.createHmac('sha256', COOKIE_SECRET).update(body).digest('base64url');
+    return body + '.' + sig;
+}
+
+function verifyDownloadToken(token) {
+    try {
+        const parts = String(token || '').split('.');
+        if (parts.length !== 2) return null;
+        const [body, sig] = parts;
+        const expect = crypto.createHmac('sha256', COOKIE_SECRET).update(body).digest('base64url');
+        if (!safeEqual(sig, expect)) return null;
+        const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+        if (!payload.e || payload.e <= Date.now()) return null;
+        return payload;
+    } catch { return null; }
+}
+
+// Rate limit
 const attempts = new Map();
 function rateLimit(key, max, windowMs) {
     const now = Date.now();
@@ -250,7 +284,7 @@ function requireAdmin(req, res, next) {
 }
 
 // ============================================================
-//  AUTH USER
+//  AUTH
 // ============================================================
 app.post('/api/register', (req, res) => {
     try {
@@ -266,13 +300,10 @@ app.post('/api/register', (req, res) => {
 
         const user = {
             id: db.nextUserId++,
-            username,
-            email,
+            username, email,
             password_hash: hashPassword(password),
-            reset_token: null,
-            reset_expires: null,
-            is_banned: 0,
-            is_admin: false,
+            reset_token: null, reset_expires: null,
+            is_banned: 0, is_admin: false,
             created_at: new Date().toISOString()
         };
         db.users.push(user);
@@ -332,7 +363,6 @@ app.get('/api/me', (req, res) => {
     });
 });
 
-// ===== FORGOT — DÙNG RESEND =====
 app.post('/api/forgot', async (req, res) => {
     try {
         if (!rateLimit('forgot:' + req.ip, 5, 15 * 60 * 1000)) {
@@ -350,18 +380,17 @@ app.post('/api/forgot', async (req, res) => {
         saveDB(db);
 
         const link = `${BASE_URL}/reset.html?token=${token}`;
-        try {
-            const result = await resend.emails.send({
-                from: FROM_EMAIL,
-                to: email,
-                subject: 'Đặt lại mật khẩu',
-                html: `<p>Xin chào <b>${u.username}</b>,</p><p><a href="${link}">ĐẶT LẠI MẬT KHẨU</a> (30 phút)</p>`
-            });
-            console.log('[forgot] Resend:', JSON.stringify(result));
-        } catch (mailErr) {
-            console.error('[forgot] Resend error:', mailErr.message);
+        if (resend) {
+            try {
+                await resend.emails.send({
+                    from: FROM_EMAIL, to: email,
+                    subject: 'Đặt lại mật khẩu',
+                    html: `<p>Xin chào <b>${u.username}</b>,</p><p><a href="${link}">ĐẶT LẠI MẬT KHẨU</a> (30 phút)</p>`
+                });
+            } catch (mailErr) {
+                console.error('[forgot] Resend error:', mailErr.message);
+            }
         }
-
         res.json({ success: true });
     } catch (e) {
         console.error('[forgot]', e.message);
@@ -391,10 +420,12 @@ app.get('/api/health', (req, res) => {
         ok: true,
         users: db.users.length,
         products: db.products.length,
+        orders: db.orders.length,
         uptime_seconds: Math.round(process.uptime()),
         cookie_secret_from_env: !!process.env.COOKIE_SECRET,
         db_file_custom: !!process.env.DB_FILE,
-        resend_key_set: !!process.env.RESEND_API_KEY
+        resend_key_set: !!process.env.RESEND_API_KEY,
+        signed_token: true
     });
 });
 
@@ -475,7 +506,7 @@ app.get('/api/order/:code/status', (req, res) => {
 });
 
 // ============================================================
-//  SEPAY WEBHOOK
+//  SEPAY WEBHOOK — tạo signed token khi thanh toán
 // ============================================================
 app.post('/api/sepay/webhook', async (req, res) => {
     try {
@@ -499,22 +530,31 @@ app.post('/api/sepay/webhook', async (req, res) => {
 
         order.status = 'delivered';
         order.paid_at = new Date().toISOString();
-        saveDB(db);
 
         const product = db.products.find(x => x.id === order.product_id);
-        const link = `${BASE_URL}/download.html?token=${order.download_token}`;
+        const signedToken = makeDownloadToken(
+            order.order_code,
+            (product && product.files) || [],
+            product ? product.name : '',
+            7 * 24 * 3600 * 1000
+        );
+        order.signed_token = signedToken;
+        saveDB(db);
 
-        try {
-            await resend.emails.send({
-                from: FROM_EMAIL,
-                to: order.customer_email,
-                subject: `Đơn ${code} — Link tải ${product ? product.name : ''}`,
-                html: `<h2 style="color:#16a34a">✓ Thanh toán thành công</h2>
-                    <p>Đơn <b>${code}</b> — ${amount.toLocaleString('vi-VN')}đ</p>
-                    <p><b>${product ? product.name : ''}</b></p>
-                    <a href="${link}" style="display:inline-block;padding:14px 28px;background:#0a0a0a;color:#fff;text-decoration:none;border-radius:10px;font-weight:bold">MỞ TRANG TẢI</a>`
-            });
-        } catch (e) { console.error('[sepay] mail fail:', e.message); }
+        const link = `${BASE_URL}/download.html?t=${signedToken}`;
+        if (resend) {
+            try {
+                await resend.emails.send({
+                    from: FROM_EMAIL,
+                    to: order.customer_email,
+                    subject: `Đơn ${code} — Link tải ${product ? product.name : ''}`,
+                    html: `<h2 style="color:#16a34a">✓ Thanh toán thành công</h2>
+                        <p>Đơn <b>${code}</b> — ${amount.toLocaleString('vi-VN')}đ</p>
+                        <p><b>${product ? product.name : ''}</b></p>
+                        <a href="${link}" style="display:inline-block;padding:14px 28px;background:#0a0a0a;color:#fff;text-decoration:none;border-radius:10px;font-weight:bold">MỞ TRANG TẢI</a>`
+                });
+            } catch (e) { console.error('[sepay] mail fail:', e.message); }
+        }
 
         res.json({ ok: true, matched: true, delivered: true });
     } catch (e) {
@@ -524,10 +564,71 @@ app.post('/api/sepay/webhook', async (req, res) => {
 });
 
 // ============================================================
-//  DOWNLOAD
+//  DOWNLOAD — SIGNED TOKEN (chính)
 // ============================================================
+app.get('/api/dl-info/:token', (req, res) => {
+    const { token } = req.params;
+    const payload = verifyDownloadToken(token);
+    if (!payload) return res.status(410).json({ error: 'Link hết hạn hoặc không hợp lệ' });
+    res.json({
+        success: true,
+        order_code: payload.o,
+        product_name: payload.n,
+        files: (payload.f || []).map((f, i) => ({
+            index: i,
+            label: f.l,
+            name: f.n,
+            size: f.s,
+            url: '/api/dl/' + encodeURIComponent(token) + '?i=' + i
+        }))
+    });
+});
+
+app.get('/api/dl/:token', async (req, res) => {
+    const { token } = req.params;
+    const payload = verifyDownloadToken(token);
+    if (!payload) return res.status(410).send('Link hết hạn hoặc không hợp lệ');
+
+    const idx = parseInt(req.query.i || 0);
+    const f = payload.f && payload.f[idx];
+    if (!f || !f.i) return res.status(404).send('File không tồn tại');
+
+    try {
+        const dr = await drive.files.get({ fileId: f.i, alt: 'media' }, { responseType: 'stream' });
+        const safe = String(f.n || 'download.ipa').replace(/[^\x20-\x7E]/g, '_').replace(/[\r\n"]/g, '');
+        res.setHeader('Content-Type', f.m || 'application/octet-stream');
+        if (f.s) res.setHeader('Content-Length', String(f.s));
+        res.setHeader('Content-Disposition', `attachment; filename="${safe}"`);
+        res.setHeader('Cache-Control', 'private, no-store');
+        await pipeline(dr.data, res);
+    } catch (e) {
+        console.error('[signed-dl]', e.message);
+        if (!res.headersSent) res.status(502).send('Lỗi tải file');
+        else res.destroy();
+    }
+});
+
+// Route gộp: nhận cả signed token (có dấu .) và DB token (64 ký tự)
 app.get('/api/order-files/:token', (req, res) => {
     const { token } = req.params;
+
+    // Signed token
+    if (token.includes('.')) {
+        const payload = verifyDownloadToken(token);
+        if (!payload) return res.status(410).json({ error: 'Hết hạn hoặc không hợp lệ' });
+        return res.json({
+            success: true,
+            order_code: payload.o,
+            product_name: payload.n,
+            game: '',
+            files: (payload.f || []).map((f, i) => ({
+                index: i, label: f.l, name: f.n, size: f.s,
+                url: '/api/dl/' + encodeURIComponent(token) + '?i=' + i
+            }))
+        });
+    }
+
+    // DB token (64 ký tự)
     if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
 
     const o = db.orders.find(x => x.download_token === token);
@@ -551,6 +652,41 @@ app.get('/api/order-files/:token', (req, res) => {
             url: `/api/file/${token}/${i}`
         }))
     });
+});
+
+// Backward compat
+app.get('/api/download-by-token/:token', (req, res) => {
+    const { token } = req.params;
+
+    if (token.includes('.')) {
+        const payload = verifyDownloadToken(token);
+        if (!payload) return res.status(410).json({ error: 'Hết hạn' });
+        return res.json({
+            success: true,
+            product_name: payload.n,
+            game: '',
+            order_code: payload.o,
+            files: (payload.f || []).map((f, i) => ({
+                index: i, label: f.l, name: f.n, size: f.s,
+                url: '/api/dl/' + encodeURIComponent(token) + '?i=' + i
+            }))
+        });
+    }
+
+    if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
+    try {
+        const o = db.orders.find(x => x.download_token === token);
+        if (!o) return res.status(404).json({ error: 'Link không tồn tại' });
+        if (o.token_exp && o.token_exp <= Date.now()) return res.status(410).json({ error: 'Hết hạn' });
+        const p = db.products.find(x => x.id === o.product_id);
+        res.json({
+            success: true,
+            product_name: p ? p.name : '',
+            game: p ? p.game : '',
+            video_url: p ? p.video_url : '',
+            order_code: o.order_code
+        });
+    } catch { res.status(500).json({ error: 'Lỗi server' }); }
 });
 
 app.get('/api/file/:token/:index', async (req, res) => {
@@ -601,9 +737,19 @@ app.get('/api/my-downloads', requireLogin, (req, res) => {
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .map(o => {
             const p = db.products.find(x => x.id === o.product_id);
+            // Tạo signed token mới mỗi lần list → link tải luôn hoạt động
+            let freshToken = o.download_token;
+            if (o.status === 'delivered') {
+                freshToken = makeDownloadToken(
+                    o.order_code,
+                    (p && p.files) || [],
+                    p ? p.name : '',
+                    7 * 24 * 3600 * 1000
+                );
+            }
             return {
                 id: o.id, order_code: o.order_code, status: o.status,
-                paid_at: o.paid_at, download_token: o.download_token,
+                paid_at: o.paid_at, download_token: freshToken,
                 amount: o.amount, created_at: o.created_at,
                 product_name: p ? p.name : '',
                 game: p ? p.game : '',
@@ -727,19 +873,27 @@ app.post('/api/admin/confirm-order/:code', requireAdmin, async (req, res) => {
 
         o.status = 'delivered';
         o.paid_at = new Date().toISOString();
-        saveDB(db);
 
         const p = db.products.find(x => x.id === o.product_id);
-        const link = `${BASE_URL}/download.html?token=${o.download_token}`;
+        const signedToken = makeDownloadToken(
+            o.order_code,
+            (p && p.files) || [],
+            p ? p.name : '',
+            7 * 24 * 3600 * 1000
+        );
+        o.signed_token = signedToken;
+        saveDB(db);
 
-        try {
-            await resend.emails.send({
-                from: FROM_EMAIL,
-                to: o.customer_email,
-                subject: `Đơn ${o.order_code} — Link tải ${p ? p.name : ''}`,
-                html: `<p>Đơn <b>${o.order_code}</b> đã thanh toán.</p><p><a href="${link}">MỞ TRANG TẢI</a></p>`
-            });
-        } catch (e) { console.error('mail fail:', e.message); }
+        const link = `${BASE_URL}/download.html?t=${signedToken}`;
+        if (resend) {
+            try {
+                await resend.emails.send({
+                    from: FROM_EMAIL, to: o.customer_email,
+                    subject: `Đơn ${o.order_code} — Link tải ${p ? p.name : ''}`,
+                    html: `<p>Đơn <b>${o.order_code}</b> đã thanh toán.</p><p><a href="${link}">MỞ TRANG TẢI</a></p>`
+                });
+            } catch (e) { console.error('mail fail:', e.message); }
+        }
 
         res.json({ success: true });
     } catch (e) {
