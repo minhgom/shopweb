@@ -1,4 +1,4 @@
-// QM MOD iOS — Backend v18 (signed download token)
+// QM MOD iOS — Backend v19 (Drive DB persistence)
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { google } = require('googleapis');
 const { pipeline } = require('stream/promises');
+const { Readable } = require('stream');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -66,18 +67,97 @@ if (!HAS_PUBLIC) {
 }
 app.use(express.static(HAS_PUBLIC ? PUBLIC_DIR : __dirname, { dotfiles: 'ignore' }));
 
-// ===== JSON DB =====
-const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'database.json');
+// ============================================================
+//  GOOGLE DRIVE — SERVICE ACCOUNT
+// ============================================================
+const driveAuth = new google.auth.GoogleAuth({
+    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './drive-service.json',
+    scopes: ['https://www.googleapis.com/auth/drive']
+});
+const drive = google.drive({ version: 'v3', auth: driveAuth });
+
+// ============================================================
+//  DRIVE DB — load/save database.json lên Drive
+//  Cần env: DRIVE_DB_ID = ID file database.json trên Drive
+//           (file phải share cho service account với quyền Editor)
+// ============================================================
+const DB_FILE_ID = process.env.DRIVE_DB_ID;
+const LOCAL_FALLBACK = path.join(__dirname, 'database.json');
 
 function emptyDB() {
     return { users: [], products: [], orders: [], nextUserId: 1, nextProductId: 1, nextOrderId: 1 };
 }
 
-function loadDB() {
+async function loadDBFromDrive() {
+    if (!DB_FILE_ID) {
+        console.warn('[DriveDB] Chưa có DRIVE_DB_ID, dùng local fallback');
+        return loadLocalDB();
+    }
     try {
-        if (!fs.existsSync(DB_FILE)) throw new Error('no file');
-        const raw = fs.readFileSync(DB_FILE, 'utf8').trim();
-        if (!raw) throw new Error('empty');
+        const res = await drive.files.get(
+            { fileId: DB_FILE_ID, alt: 'media' },
+            { responseType: 'stream' }
+        );
+        const chunks = [];
+        for await (const chunk of res.data) chunks.push(chunk);
+        const raw = Buffer.concat(chunks).toString('utf8').trim();
+
+        if (!raw) {
+            console.warn('[DriveDB] File rỗng, tạo DB mới');
+            return emptyDB();
+        }
+
+        // Drive có thể wrap JSON trong Google Docs format — thử parse
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch {
+            // Nếu là Google Docs native, không đọc được raw → thử extract text
+            console.warn('[DriveDB] Không parse JSON, file có thể là Google Docs native');
+            return emptyDB();
+        }
+
+        const orders = Array.isArray(parsed.orders) ? parsed.orders : [];
+        const maxOrderId = orders.reduce((m, o) => Math.max(m, Number(o.id) || 0), 0);
+        console.log('[DriveDB] Loaded —', parsed.users?.length || 0, 'users,', parsed.products?.length || 0, 'products');
+        return {
+            users: Array.isArray(parsed.users) ? parsed.users : [],
+            products: Array.isArray(parsed.products) ? parsed.products : [],
+            orders,
+            nextUserId: Number(parsed.nextUserId) || 1,
+            nextProductId: Number(parsed.nextProductId) || 1,
+            nextOrderId: Number(parsed.nextOrderId) || (maxOrderId + 1)
+        };
+    } catch (e) {
+        console.error('[DriveDB] Load fail:', e.message);
+        return loadLocalDB();
+    }
+}
+
+async function saveDBToDrive(data) {
+    if (!DB_FILE_ID) {
+        return saveLocalDB(data);
+    }
+    try {
+        const body = JSON.stringify(data, null, 2);
+        await drive.files.update({
+            fileId: DB_FILE_ID,
+            media: {
+                mimeType: 'application/json',
+                body: Readable.from([body])
+            }
+        });
+    } catch (e) {
+        console.error('[DriveDB] Save fail:', e.message);
+        // Fallback lưu local phòng khi Drive lỗi
+        saveLocalDB(data);
+    }
+}
+
+function loadLocalDB() {
+    try {
+        const raw = fs.readFileSync(LOCAL_FALLBACK, 'utf8').trim();
+        if (!raw) return emptyDB();
         const d = JSON.parse(raw);
         const orders = Array.isArray(d.orders) ? d.orders : [];
         const maxOrderId = orders.reduce((m, o) => Math.max(m, Number(o.id) || 0), 0);
@@ -89,28 +169,59 @@ function loadDB() {
             nextProductId: Number(d.nextProductId) || 1,
             nextOrderId: Number(d.nextOrderId) || (maxOrderId + 1)
         };
-    } catch (e) {
-        console.warn('[DB] reset:', e.message);
-        try {
-            if (fs.existsSync(DB_FILE) && fs.readFileSync(DB_FILE, 'utf8').trim()) {
-                fs.renameSync(DB_FILE, DB_FILE + '.corrupt-' + Date.now());
-            }
-        } catch {}
+    } catch {
         return emptyDB();
     }
 }
 
-function saveDB(data) {
+function saveLocalDB(data) {
     try {
-        const tmp = DB_FILE + '.tmp';
-        fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
-        fs.renameSync(tmp, DB_FILE);
+        fs.writeFileSync(LOCAL_FALLBACK + '.tmp', JSON.stringify(data, null, 2));
+        fs.renameSync(LOCAL_FALLBACK + '.tmp', LOCAL_FALLBACK);
     } catch (e) {
-        console.error('[DB] save fail:', e.message);
+        console.error('[LocalDB] Save fail:', e.message);
     }
 }
 
-// ===== PASSWORD =====
+// ===== DB + AUTO SAVE =====
+let db = emptyDB();
+let savePending = false;
+let saveTimer = null;
+
+function saveDB() {
+    savePending = true;
+    if (saveTimer) return;
+    // Debounce 3s: nhiều update liên tục chỉ save 1 lần
+    saveTimer = setTimeout(async () => {
+        saveTimer = null;
+        if (!savePending) return;
+        savePending = false;
+        await saveDBToDrive(db);
+    }, 3000);
+}
+
+// Auto-save định kỳ 30s phòng khi debounce bỏ sót
+setInterval(() => {
+    if (savePending) {
+        savePending = false;
+        saveDBToDrive(db);
+    }
+}, 30000).unref();
+
+// Save trước khi tắt
+process.on('SIGTERM', async () => {
+    console.log('[DB] SIGTERM, flushing...');
+    await saveDBToDrive(db);
+    process.exit(0);
+});
+process.on('SIGINT', async () => {
+    await saveDBToDrive(db);
+    process.exit(0);
+});
+
+// ============================================================
+//  PASSWORD
+// ============================================================
 function hashPassword(password) {
     const salt = crypto.randomBytes(16).toString('hex');
     const hash = crypto.scryptSync(password, salt, 64).toString('hex');
@@ -143,7 +254,7 @@ function safeEqual(a, b) {
 }
 
 // ============================================================
-//  SIGNED DOWNLOAD TOKEN — tự chứa data, đéo cần DB
+//  SIGNED DOWNLOAD TOKEN
 // ============================================================
 function makeDownloadToken(orderCode, files, productName, ttlMs) {
     const payload = {
@@ -230,10 +341,10 @@ function readId(req, name) {
     return m ? verifyToken(m[1], name === 'isAdmin' ? 'a' : 'u') : null;
 }
 
-// ===== LOAD DB + ADMIN =====
-let db = loadDB();
-
-(function ensureAdmin() {
+// ============================================================
+//  ENSURE ADMIN
+// ============================================================
+function ensureAdmin() {
     const envPass = process.env.ADMIN_PASSWORD;
     let a = db.users.find(u => u.username === 'admin' && u.is_admin);
     if (!a) {
@@ -247,24 +358,16 @@ let db = loadDB();
             is_banned: 0,
             created_at: new Date().toISOString()
         });
-        saveDB(db);
+        saveDB();
         console.log('[DB] Đã tạo admin. Tài khoản: admin');
         if (!envPass) console.log('[DB] Mật khẩu admin (chỉ hiện 1 lần):', pass);
     } else if (envPass && !verifyPassword(envPass, a.password_hash)) {
         a.password_hash = hashPassword(envPass);
         a.is_banned = 0;
-        saveDB(db);
+        saveDB();
         console.log('[DB] Đã cập nhật mật khẩu admin theo ADMIN_PASSWORD');
     }
-})();
-console.log('[DB] ready —', db.users.length, 'users,', db.products.length, 'products');
-
-// ===== DRIVE =====
-const driveAuth = new google.auth.GoogleAuth({
-    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './drive-service.json',
-    scopes: ['https://www.googleapis.com/auth/drive.readonly']
-});
-const drive = google.drive({ version: 'v3', auth: driveAuth });
+}
 
 // ===== MIDDLEWARE =====
 function requireLogin(req, res, next) {
@@ -307,7 +410,7 @@ app.post('/api/register', (req, res) => {
             created_at: new Date().toISOString()
         };
         db.users.push(user);
-        saveDB(db);
+        saveDB();
 
         res.cookie('uid', user.id, COOKIE_OPTS);
         res.json({ success: true, token: signToken('u', user.id), user: { id: user.id, username, email } });
@@ -377,7 +480,7 @@ app.post('/api/forgot', async (req, res) => {
         const token = crypto.randomBytes(32).toString('hex');
         u.reset_token = token;
         u.reset_expires = Date.now() + 30 * 60 * 1000;
-        saveDB(db);
+        saveDB();
 
         const link = `${BASE_URL}/reset.html?token=${token}`;
         if (resend) {
@@ -408,7 +511,7 @@ app.post('/api/reset', (req, res) => {
         u.password_hash = hashPassword(password);
         u.reset_token = null;
         u.reset_expires = null;
-        saveDB(db);
+        saveDB();
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: 'Lỗi: ' + e.message });
@@ -423,9 +526,8 @@ app.get('/api/health', (req, res) => {
         orders: db.orders.length,
         uptime_seconds: Math.round(process.uptime()),
         cookie_secret_from_env: !!process.env.COOKIE_SECRET,
-        db_file_custom: !!process.env.DB_FILE,
-        resend_key_set: !!process.env.RESEND_API_KEY,
-        signed_token: true
+        drive_db: !!DB_FILE_ID,
+        resend_key_set: !!process.env.RESEND_API_KEY
     });
 });
 
@@ -478,7 +580,7 @@ app.post('/api/checkout', (req, res) => {
             created_at: new Date().toISOString(),
             paid_at: null
         });
-        saveDB(db);
+        saveDB();
 
         const bankName = process.env.BANK_NAME || 'MB';
         const bank = process.env.BANK_ACCOUNT || '0383415468';
@@ -506,7 +608,7 @@ app.get('/api/order/:code/status', (req, res) => {
 });
 
 // ============================================================
-//  SEPAY WEBHOOK — tạo signed token khi thanh toán
+//  SEPAY WEBHOOK
 // ============================================================
 app.post('/api/sepay/webhook', async (req, res) => {
     try {
@@ -539,7 +641,7 @@ app.post('/api/sepay/webhook', async (req, res) => {
             7 * 24 * 3600 * 1000
         );
         order.signed_token = signedToken;
-        saveDB(db);
+        saveDB();
 
         const link = `${BASE_URL}/download.html?t=${signedToken}`;
         if (resend) {
@@ -564,7 +666,7 @@ app.post('/api/sepay/webhook', async (req, res) => {
 });
 
 // ============================================================
-//  DOWNLOAD — SIGNED TOKEN (chính)
+//  DOWNLOAD — SIGNED TOKEN
 // ============================================================
 app.get('/api/dl-info/:token', (req, res) => {
     const { token } = req.params;
@@ -608,11 +710,9 @@ app.get('/api/dl/:token', async (req, res) => {
     }
 });
 
-// Route gộp: nhận cả signed token (có dấu .) và DB token (64 ký tự)
 app.get('/api/order-files/:token', (req, res) => {
     const { token } = req.params;
 
-    // Signed token
     if (token.includes('.')) {
         const payload = verifyDownloadToken(token);
         if (!payload) return res.status(410).json({ error: 'Hết hạn hoặc không hợp lệ' });
@@ -628,7 +728,6 @@ app.get('/api/order-files/:token', (req, res) => {
         });
     }
 
-    // DB token (64 ký tự)
     if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
 
     const o = db.orders.find(x => x.download_token === token);
@@ -654,41 +753,6 @@ app.get('/api/order-files/:token', (req, res) => {
     });
 });
 
-// Backward compat
-app.get('/api/download-by-token/:token', (req, res) => {
-    const { token } = req.params;
-
-    if (token.includes('.')) {
-        const payload = verifyDownloadToken(token);
-        if (!payload) return res.status(410).json({ error: 'Hết hạn' });
-        return res.json({
-            success: true,
-            product_name: payload.n,
-            game: '',
-            order_code: payload.o,
-            files: (payload.f || []).map((f, i) => ({
-                index: i, label: f.l, name: f.n, size: f.s,
-                url: '/api/dl/' + encodeURIComponent(token) + '?i=' + i
-            }))
-        });
-    }
-
-    if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
-    try {
-        const o = db.orders.find(x => x.download_token === token);
-        if (!o) return res.status(404).json({ error: 'Link không tồn tại' });
-        if (o.token_exp && o.token_exp <= Date.now()) return res.status(410).json({ error: 'Hết hạn' });
-        const p = db.products.find(x => x.id === o.product_id);
-        res.json({
-            success: true,
-            product_name: p ? p.name : '',
-            game: p ? p.game : '',
-            video_url: p ? p.video_url : '',
-            order_code: o.order_code
-        });
-    } catch { res.status(500).json({ error: 'Lỗi server' }); }
-});
-
 app.get('/api/file/:token/:index', async (req, res) => {
     try {
         const { token, index } = req.params;
@@ -707,7 +771,7 @@ app.get('/api/file/:token/:index', async (req, res) => {
         if (!f || !f.file_id) return res.status(404).json({ error: 'File không tồn tại' });
 
         o.downloads = (o.downloads || 0) + 1;
-        saveDB(db);
+        saveDB();
 
         const dr = await drive.files.get({ fileId: f.file_id, alt: 'media' }, { responseType: 'stream' });
         const safe = String(f.name || `${p.name}_${idx + 1}.ipa`).replace(/[^\x20-\x7E]/g, '_').replace(/[\r\n"]/g, '');
@@ -737,7 +801,6 @@ app.get('/api/my-downloads', requireLogin, (req, res) => {
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .map(o => {
             const p = db.products.find(x => x.id === o.product_id);
-            // Tạo signed token mới mỗi lần list → link tải luôn hoạt động
             let freshToken = o.download_token;
             if (o.status === 'delivered') {
                 freshToken = makeDownloadToken(
@@ -821,7 +884,7 @@ app.post('/api/admin/upload-product', requireAdmin, (req, res) => {
             created_at: new Date().toISOString()
         };
         db.products.push(product);
-        saveDB(db);
+        saveDB();
 
         res.json({ success: true, id: product.id, file_count: files.length });
     } catch (e) {
@@ -861,7 +924,7 @@ app.get('/api/admin/users', requireAdmin, (req, res) => {
 app.post('/api/admin/delete-product/:id', requireAdmin, (req, res) => {
     const id = parseInt(req.params.id);
     db.products = db.products.filter(p => p.id !== id);
-    saveDB(db);
+    saveDB();
     res.json({ success: true });
 });
 
@@ -882,7 +945,7 @@ app.post('/api/admin/confirm-order/:code', requireAdmin, async (req, res) => {
             7 * 24 * 3600 * 1000
         );
         o.signed_token = signedToken;
-        saveDB(db);
+        saveDB();
 
         const link = `${BASE_URL}/download.html?t=${signedToken}`;
         if (resend) {
@@ -903,25 +966,25 @@ app.post('/api/admin/confirm-order/:code', requireAdmin, async (req, res) => {
 
 app.post('/api/admin/reject-order/:code', requireAdmin, (req, res) => {
     const o = db.orders.find(x => x.order_code === req.params.code);
-    if (o) { o.status = 'rejected'; saveDB(db); }
+    if (o) { o.status = 'rejected'; saveDB(); }
     res.json({ success: true });
 });
 
 app.post('/api/admin/delete-order/:code', requireAdmin, (req, res) => {
     db.orders = db.orders.filter(o => o.order_code !== req.params.code);
-    saveDB(db);
+    saveDB();
     res.json({ success: true });
 });
 
 app.post('/api/admin/ban-user/:id', requireAdmin, (req, res) => {
     const u = db.users.find(x => x.id === parseInt(req.params.id));
-    if (u && !u.is_admin) { u.is_banned = 1; saveDB(db); }
+    if (u && !u.is_admin) { u.is_banned = 1; saveDB(); }
     res.json({ success: true });
 });
 
 app.post('/api/admin/unban-user/:id', requireAdmin, (req, res) => {
     const u = db.users.find(x => x.id === parseInt(req.params.id));
-    if (u) { u.is_banned = 0; saveDB(db); }
+    if (u) { u.is_banned = 0; saveDB(); }
     res.json({ success: true });
 });
 
@@ -934,4 +997,14 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Lỗi server' });
 });
 
-app.listen(PORT, () => console.log(`[+] http://localhost:${PORT}`));
+// ============================================================
+//  BOOT — load DB từ Drive rồi mới start server
+// ============================================================
+(async () => {
+    console.log('[BOOT] Loading DB from Drive...');
+    db = await loadDBFromDrive();
+    console.log('[DB] ready —', db.users.length, 'users,', db.products.length, 'products,', db.orders.length, 'orders');
+    ensureAdmin();
+
+    app.listen(PORT, () => console.log(`[+] http://localhost:${PORT}`));
+})();
