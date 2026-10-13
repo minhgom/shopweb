@@ -258,10 +258,14 @@ body {
 .hero-title { display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px; }
 .hero-line-1 {
     display: block; font-size: clamp(2.2rem, 6vw, 5rem);
-    font-weight: 900; letter-spacing: -0.035em; line-height: 1.05;
+    font-weight: 900; letter-spacing: -0.035em; line-height: 1.15;
+    padding: 0.1em 0.15em 0.1em 0;
+    overflow: visible;
 }
 .hero-line-1 em {
     font-style: italic;
+    padding-right: 0.1em;
+    display: inline-block;
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     -webkit-background-clip: text; background-clip: text; color: transparent;
 }

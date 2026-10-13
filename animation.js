@@ -306,4 +306,52 @@
   } else {
     init();
   }
+})();/* ===== GLASS SPECULAR — hotspot chạy theo cursor ===== */
+(function initGlassSpecular() {
+    const selector = '.glass, .navbar, .hero-badge, .product-toolbar, .tabs, .chat-box, .btn-outline';
+    document.querySelectorAll(selector).forEach(el => {
+        el.addEventListener('mousemove', e => {
+            const r = el.getBoundingClientRect();
+            const x = ((e.clientX - r.left) / r.width) * 100;
+            const y = ((e.clientY - r.top) / r.height) * 100;
+            el.style.setProperty('--mx', x + '%');
+            el.style.setProperty('--my', y + '%');
+        });
+        el.addEventListener('mouseleave', () => {
+            el.style.removeProperty('--mx');
+            el.style.removeProperty('--my');
+        });
+    });
+})();
+
+/* ===== MORPH FLIP — modal mọc ra từ card ===== */
+(function initMorphFLIP() {
+    const overlay = document.getElementById('morphOverlay');
+    const card = overlay && overlay.querySelector('.morph-card');
+    if (!overlay || !card) return;
+
+    window.addEventListener('morph-open', e => {
+        const src = e.detail && e.detail.source;
+        if (!src) return;
+        const from = src.getBoundingClientRect();
+        // reset để đo vị trí đích
+        card.style.transition = 'none';
+        card.style.transform = 'none';
+        card.style.opacity = '1';
+        const to = card.getBoundingClientRect();
+        const dx = from.left - to.left + (from.width - to.width) / 2;
+        const dy = from.top - to.top + (from.height - to.height) / 2;
+        const sx = from.width / to.width;
+        const sy = from.height / to.height;
+        card.style.transformOrigin = 'center center';
+        card.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+        card.style.opacity = '0.3';
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                card.style.transition = '';
+                card.style.transform = '';
+                card.style.opacity = '';
+            });
+        });
+    });
 })();
