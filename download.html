@@ -1,205 +1,116 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tải file — By:QuangMinh</title>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="effects.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tải file IPA — QM MOD iOS</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Be Vietnam Pro', sans-serif; background: #f4f6fb; color: #0a0a0a; min-height: 100vh; padding: 40px 16px; }
+.bg-pattern { position: fixed; inset: 0; z-index: -3;
+  background-image: linear-gradient(rgba(10,10,10,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(10,10,10,0.03) 1px, transparent 1px);
+  background-size: 50px 50px; }
+.container { max-width: 640px; margin: 0 auto; }
+.head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; padding: 16px 20px; background: #fff; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+.head a { text-decoration: none; color: #0a0a0a; font-weight: 700; font-size: 0.85rem; }
+.head .back { color: #6b7280; font-weight: 600; }
+.section-header { margin-bottom: 24px; padding-left: 16px; border-left: 4px solid #e63946; }
+.section-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #e63946; letter-spacing: 0.22em; margin-bottom: 8px; font-weight: 700; }
+.section-title { font-size: 1.6rem; font-weight: 900; margin-bottom: 6px; }
+.section-sub { color: #6b7280; font-size: 0.85rem; }
+.success-block { text-align: center; margin-bottom: 24px; }
+.success-icon { width: 72px; height: 72px; margin: 0 auto 14px; background: linear-gradient(135deg, #16a34a, #22c55e); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #fff; font-weight: 900; box-shadow: 0 12px 32px rgba(22,163,74,0.3); }
+.prod-name { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
+.order-code { display: inline-block; padding: 6px 14px; background: rgba(230,57,70,0.08); color: #e63946; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.82rem; letter-spacing: 0.1em; }
+.file-card { background: #fff; border-radius: 14px; padding: 18px 20px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; border: 1px solid rgba(10,10,10,0.06); }
+.file-info { flex: 1; min-width: 160px; }
+.file-label { font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; }
+.file-name { font-size: 0.75rem; color: #6b7280; font-family: 'JetBrains Mono', monospace; word-break: break-all; }
+.file-btn { padding: 11px 20px; background: #0a0a0a; color: #fff; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+.file-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,10,10,0.25); }
+.note-box { margin-top: 20px; padding: 14px 16px; background: rgba(230,57,70,0.06); border: 1px solid rgba(230,57,70,0.2); border-radius: 12px; font-size: 0.82rem; line-height: 1.7; color: #6b7280; }
+.note-box b { color: #e63946; }
+.error-box { padding: 32px 20px; text-align: center; background: rgba(230,57,70,0.06); border: 1px solid rgba(230,57,70,0.3); border-radius: 14px; }
+.error-box h2 { color: #e63946; font-size: 1.1rem; margin-bottom: 8px; }
+.loading { text-align: center; padding: 60px 20px; color: #6b7280; font-family: 'JetBrains Mono', monospace; }
+</style>
 </head>
 <body>
+<div class="bg-pattern"></div>
+<div class="container">
+    <div class="head">
+        <a href="index.html"><b>QM</b> MOD iOS</a>
+        <a href="index.html" class="back">Trang chủ</a>
+    </div>
+    <div id="content">
+        <div class="loading">Đang tải...</div>
+    </div>
+</div>
 
-    <div class="bg-pattern"></div>
-    <div class="bg-orb bg-orb-1"></div>
-    <div class="bg-orb bg-orb-2"></div>
+<script>
+(async function () {
+    const content = document.getElementById('content');
+    const params = new URLSearchParams(location.search);
+    const token = params.get('t') || params.get('token');
 
-    <nav class="navbar glass">
-        <a href="index.html" class="logo">
-            <div class="logo-badge"><span class="logo-qm">QM</span></div>
-            <div class="logo-text">
-                <span class="logo-main">MOD<i>iOS</i></span>
-                <span class="logo-sub">By:QuangMinh</span>
-            </div>
-        </a>
-        <div class="nav-links">
-            <a href="index.html">Trang chủ</a>
-        </div>
-    </nav>
+    console.log('[download] token:', token ? token.slice(0, 20) + '...' : 'MISSING');
 
-    <section class="section" style="padding-top: 140px;">
-        <div class="section-header">
-            <span class="section-tag">// TẢI FILE</span>
-            <h2 class="section-title" id="pageTitle">ĐANG TẢI...</h2>
-            <p class="section-subtitle" id="pageSubtitle"></p>
-        </div>
+    if (!token) {
+        content.innerHTML = `<div class="error-box"><h2>❌ Thiếu token</h2><p>URL không có tham số <code>?t=</code> hoặc <code>?token=</code></p></div>`;
+        return;
+    }
 
-        <div id="loadingBox" class="glass-card" style="text-align:center; padding: 60px 20px;">
-            <p style="color:#6b7280;">Đang kiểm tra link...</p>
-        </div>
+    try {
+        const url = '/api/order-files/' + encodeURIComponent(token);
+        const r = await fetch(url, { cache: 'no-store' });
+        const text = await r.text();
+        let d;
+        try { d = JSON.parse(text); } catch { d = null; }
 
-        <div id="downloadBox" style="display:none;">
-            <div class="glass-card download-success-card">
-                <div class="success-icon" style="width:72px;height:72px;margin:0 auto 20px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;">✓</div>
+        console.log('[download] status:', r.status, 'data:', d);
 
-                <h3 id="productName" class="download-title">Sản phẩm</h3>
-                <p id="productGame" class="download-subtitle">Game</p>
+        if (!r.ok || !d) {
+            content.innerHTML = `<div class="error-box"><h2>❌ Không tải được</h2><p>HTTP ${r.status}</p><p style="font-size:0.75rem;margin-top:8px;">${(text || '').slice(0, 200)}</p></div>`;
+            return;
+        }
 
-                <div class="download-code-wrap">
-                    Mã đơn: <b id="orderCode" class="download-code">QM0000</b>
+        if (!d.files || !d.files.length) {
+            content.innerHTML = `
+                <div class="section-header">
+                    <div class="section-tag">// TẢI FILE</div>
+                    <h1 class="section-title">Danh sách trống</h1>
+                    <p class="section-sub">Admin chưa cấu hình file cho sản phẩm này.</p>
                 </div>
+                <div class="error-box"><h2>⚠ Đơn ${d.order_code || ''}</h2><p>Product: ${d.product_name || 'N/A'}</p></div>
+            `;
+            return;
+        }
 
-                <div class="download-buttons">
-                    <a href="#" id="ipaBtn" class="btn btn-primary morph-btn" target="_blank">
-                        ⬇ TẢI FILE IPA
-                    </a>
-                    <a href="#" id="videoBtn" class="btn btn-outline" target="_blank" style="display:none;">
-                        🎥 VIDEO HƯỚNG DẪN
-                    </a>
-                </div>
-
-                <div class="download-note">
-                    <p>⚠ Cần ứng dụng <b>ESign</b> để cài đặt. Mua tại <a href="https://muacert.com" target="_blank">muacert.com</a></p>
-                    <p style="margin-top:8px; font-size: 0.75rem; color:#999;">Link này dành riêng cho bạn. Không chia sẻ cho người khác.</p>
-                </div>
+        content.innerHTML = `
+            <div class="success-block">
+                <div class="success-icon">✓</div>
+                <div class="prod-name">${d.product_name}</div>
+                <div class="order-code">Mã đơn · ${d.order_code}</div>
             </div>
-        </div>
-
-        <div id="errorBox" style="display:none;">
-            <div class="glass-card" style="text-align:center; padding: 60px 20px;">
-                <div style="font-size:3rem; margin-bottom:16px;">❌</div>
-                <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:10px;">Link không hợp lệ</h3>
-                <p style="color:#6b7280; font-size:0.9rem; margin-bottom:24px;">Link này đã hết hạn hoặc không tồn tại.</p>
-                <a href="index.html" class="btn btn-primary morph-btn">← VỀ TRANG CHỦ</a>
+            ${d.files.map((f, i) => `
+                <div class="file-card">
+                    <div class="file-info">
+                        <div class="file-label">${f.label || ('File ' + (i + 1))}</div>
+                        <div class="file-name">${f.name || ''}</div>
+                    </div>
+                    <a class="file-btn" href="${f.url}" download>⬇ TẢI</a>
+                </div>
+            `).join('')}
+            <div class="note-box">
+                <b>⚠ Lưu ý:</b> Cần cài ESign trước để cài file IPA. Link riêng cho bạn, đừng chia sẻ.
             </div>
-        </div>
-    </section>
-
-    <style>
-        .download-success-card {
-            text-align: center;
-            padding: 48px 32px;
-        }
-        .download-title {
-            font-size: 1.4rem;
-            font-weight: 800;
-            margin-bottom: 6px;
-            color: #0a0a0a;
-        }
-        .download-subtitle {
-            font-size: 0.85rem;
-            color: #6b7280;
-            font-family: 'JetBrains Mono', monospace;
-            margin-bottom: 24px;
-        }
-        .download-code-wrap {
-            font-size: 0.9rem;
-            color: #6b7280;
-            font-family: 'JetBrains Mono', monospace;
-            margin-bottom: 28px;
-        }
-        .download-code {
-            background: rgba(230,57,70,0.1);
-            color: #e63946;
-            padding: 4px 12px;
-            border-radius: 6px;
-            border: 1px solid rgba(230,57,70,0.3);
-            font-weight: 700;
-            letter-spacing: 0.05em;
-        }
-        .download-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-        .download-buttons .btn {
-            width: 100%;
-            padding: 16px;
-            font-size: 0.95rem;
-        }
-        .download-note {
-            padding-top: 20px;
-            border-top: 1px solid rgba(10,10,10,0.08);
-            font-size: 0.85rem;
-            color: #6b7280;
-            line-height: 1.6;
-        }
-        .download-note a {
-            color: #e63946;
-            font-weight: 700;
-            text-decoration: none;
-        }
-        @media (min-width: 768px) {
-            .download-buttons { flex-direction: row; justify-content: center; }
-            .download-buttons .btn { width: auto; min-width: 200px; }
-        }
-    </style>
-
-    <script>
-        function getToken() {
-            const p = new URLSearchParams(window.location.search);
-            return p.get('token');
-        }
-
-        async function loadDownload() {
-            const token = getToken();
-
-            if (!token) {
-                showError();
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/download-by-token/' + token);
-                const data = await res.json();
-
-                if (!data.success) {
-                    showError();
-                    return;
-                }
-
-                showDownload(data);
-            } catch (err) {
-                showError();
-            }
-        }
-
-        function showDownload(data) {
-            document.getElementById('loadingBox').style.display = 'none';
-            document.getElementById('downloadBox').style.display = 'block';
-
-            document.getElementById('pageTitle').textContent = 'TẢI FILE IPA';
-            document.getElementById('pageSubtitle').textContent = 'Cảm ơn bạn đã mua hàng';
-
-            document.getElementById('productName').textContent = data.product_name;
-            document.getElementById('productGame').textContent = data.game;
-            document.getElementById('orderCode').textContent = data.order_code;
-
-            const ipaBtn = document.getElementById('ipaBtn');
-            if (data.ipa_path) {
-                ipaBtn.href = data.ipa_path;
-                ipaBtn.style.display = 'inline-flex';
-            } else {
-                ipaBtn.style.display = 'none';
-            }
-
-            const videoBtn = document.getElementById('videoBtn');
-            if (data.video_url) {
-                videoBtn.href = data.video_url;
-                videoBtn.style.display = 'inline-flex';
-            }
-        }
-
-        function showError() {
-            document.getElementById('loadingBox').style.display = 'none';
-            document.getElementById('errorBox').style.display = 'block';
-            document.getElementById('pageTitle').textContent = 'LỖI';
-            document.getElementById('pageSubtitle').textContent = '';
-        }
-
-        document.addEventListener('DOMContentLoaded', loadDownload);
-    </script>
-
+        `;
+    } catch (e) {
+        console.error('[download] error:', e);
+        content.innerHTML = `<div class="error-box"><h2>❌ Lỗi kết nối</h2><p>${e.message}</p></div>`;
+    }
+})();
+</script>
 </body>
 </html>
