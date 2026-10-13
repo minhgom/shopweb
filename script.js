@@ -1,17 +1,28 @@
-/* QM MOD iOS — script.js v9 (login state + sản phẩm từ server) */
+/* QM MOD iOS — script.js v10 (loader % + morph FLIP) */
 console.log('[QM] script loaded');
 
-/* ===== LOADER ===== */
+/* ===== LOADER — đếm % thật ===== */
 window.addEventListener('load', () => {
     const loader = document.getElementById('loader');
+    const pct = document.getElementById('loaderPercent');
     if (!loader) return;
+
+    let v = 0;
+    const timer = setInterval(() => {
+        v += 3 + Math.random() * 5;
+        if (v >= 100) { v = 100; clearInterval(timer); }
+        if (pct) pct.textContent = Math.floor(v) + '%';
+    }, 60);
+
     setTimeout(() => {
+        clearInterval(timer);
+        if (pct) pct.textContent = '100%';
         loader.classList.add('done');
         setTimeout(() => { loader.style.display = 'none'; }, 600);
-    }, 1800);
+    }, 1900);
 });
 
-/* ===== TYPING — TÊN GAME ===== */
+/* ===== TYPING ===== */
 const TYPING_TEXT = [
     'BUS SIMULATOR INDONESIA',
     'GTA SAN ANDREAS',
@@ -32,8 +43,6 @@ function typing() {
 }
 
 /* ===== PRODUCTS ===== */
-// Dữ liệu mô tả/nhãn (dự phòng + bổ sung cho sản phẩm lấy từ server theo TÊN).
-// Giá và id THẬT lấy từ server (/api/products) khi có.
 const PRODUCT_META = [
     { id: 1, name: 'Bus Simulator Indonesia — Mod Xe Khách', game: 'BUSSID', price: 25000, desc: 'Mod xe khách cho các thiết bị iOS', badge: 'new', badgeText: 'NEW' },
     { id: 2, name: 'GTA San Andreas — Mod Xe Độ', game: 'GTA SAN', price: 35000, desc: 'Mod xe độ cho iOS', badge: 'sale', badgeText: 'SALE' },
@@ -55,13 +64,12 @@ let currentSearch = '';
 let wishlist = [];
 try { wishlist = JSON.parse(localStorage.getItem('qm_wishlist') || '[]'); } catch (e) { wishlist = []; }
 
-/* Lấy sản phẩm thật từ server để id khớp với lúc thanh toán */
 async function loadProducts() {
     try {
         const r = await fetch('/api/products', { cache: 'no-store' });
         if (!r.ok) return;
         const list = await r.json();
-        if (!Array.isArray(list) || !list.length) return; // chưa có sản phẩm -> giữ dữ liệu dự phòng
+        if (!Array.isArray(list) || !list.length) return;
         PRODUCTS_DATA = list.map(p => {
             const meta = PRODUCT_META.find(m => m.name === p.name) || {};
             return {
@@ -137,7 +145,7 @@ function renderProducts() {
         </div>
     `).join('');
 
-    // Click MUA NGAY — ripple + particles + morph
+    // Click MUA NGAY — ripple + particles + morph FLIP
     grid.querySelectorAll('[data-morph]').forEach(b => {
         b.addEventListener('click', () => {
             b.classList.add('clicked');
@@ -146,7 +154,8 @@ function renderProducts() {
             const rect = b.getBoundingClientRect();
             spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
 
-            setTimeout(() => openMorph(parseInt(b.dataset.morph)), 150);
+            const card = b.closest('.product-card');
+            setTimeout(() => openMorph(parseInt(b.dataset.morph), card), 150);
         });
     });
 
@@ -169,8 +178,8 @@ function updateWishlist() {
     if (el) el.textContent = wishlist.length;
 }
 
-/* ===== MORPH MODAL ===== */
-function openMorph(id) {
+/* ===== MORPH MODAL — nhận sourceEl cho FLIP ===== */
+function openMorph(id, sourceEl) {
     const p = PRODUCTS_DATA.find(x => x.id === id);
     if (!p) return;
 
@@ -197,6 +206,11 @@ function openMorph(id) {
 
     overlay.classList.add('on');
     document.body.style.overflow = 'hidden';
+
+    // Bắn event cho animations.js chạy FLIP morph
+    if (sourceEl) {
+        window.dispatchEvent(new CustomEvent('morph-open', { detail: { source: sourceEl } }));
+    }
 }
 
 function closeMorph(e) {
@@ -209,7 +223,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeMorph();
 });
 
-/* ===== ĐĂNG NHẬP: hiển thị trạng thái trên thanh menu ===== */
+/* ===== ĐĂNG NHẬP ===== */
 window.QM_USER = null;
 
 async function doLogout(e) {
@@ -224,12 +238,11 @@ function renderAuthUI() {
     const u = window.QM_USER;
     if (!u) return;
 
-    // Tìm các link đăng nhập / đăng ký ở bất kỳ đâu trên trang (menu desktop + mobile)
     const loginLinks = document.querySelectorAll('a[href="login.html"], a[href="/login.html"]');
     const registerLinks = document.querySelectorAll('a[href="register.html"], a[href="/register.html"]');
 
     loginLinks.forEach(a => {
-        if (a.closest('.auth-box')) return; // không đụng vào trang login/register
+        if (a.closest('.auth-box')) return;
         a.textContent = '👤 ' + u.username;
         a.setAttribute('href', u.is_admin ? 'admin.html' : '#');
         a.classList.add('is-user');
@@ -243,7 +256,6 @@ function renderAuthUI() {
         a.addEventListener('click', doLogout);
     });
 
-    // Nếu menu không có link đăng ký để đổi thành "Đăng xuất" thì thêm 1 nút nhỏ
     if (!registerLinks.length && loginLinks.length && !document.getElementById('qmLogoutBtn')) {
         const first = loginLinks[0];
         const out = document.createElement('a');
@@ -263,7 +275,7 @@ async function loadAuth() {
         const r = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' });
         const d = await r.json();
         window.QM_USER = d && d.logged ? d.user : null;
-        if (!window.QM_USER && window.QMAuth) QMAuth.clear(); // token cũ/hết hạn thì xoá
+        if (!window.QM_USER && window.QMAuth) QMAuth.clear();
         renderAuthUI();
     } catch (e) {
         console.warn('[QM] không kiểm tra được đăng nhập', e);
