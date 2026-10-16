@@ -1,4 +1,4 @@
-// QM MOD iOS — Backend v19 (Drive DB persistence)
+// QM MOD iOS — Backend v20 (Upstash Redis persistence)
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
@@ -9,7 +9,6 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { google } = require('googleapis');
 const { pipeline } = require('stream/promises');
-const { Readable } = require('stream');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,7 +67,7 @@ if (!HAS_PUBLIC) {
 app.use(express.static(HAS_PUBLIC ? PUBLIC_DIR : __dirname, { dotfiles: 'ignore' }));
 
 // ============================================================
-//  GOOGLE DRIVE — SERVICE ACCOUNT
+//  GOOGLE DRIVE — chỉ dùng để tải file IPA (không lưu DB)
 // ============================================================
 const driveAuth = new google.auth.GoogleAuth({
     keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './drive-service.json',
@@ -77,49 +76,51 @@ const driveAuth = new google.auth.GoogleAuth({
 const drive = google.drive({ version: 'v3', auth: driveAuth });
 
 // ============================================================
-//  DRIVE DB — load/save database.json lên Drive
-//  Cần env: DRIVE_DB_ID = ID file database.json trên Drive
-//           (file phải share cho service account với quyền Editor)
+//  UPSTASH REDIS — storage cho DB
 // ============================================================
-const DB_FILE_ID = process.env.DRIVE_DB_ID;
-const LOCAL_FALLBACK = path.join(__dirname, 'database.json');
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const DB_KEY = 'shopweb:db';
 
+async function redisGet(key) {
+    if (!UPSTASH_URL || !UPSTASH_TOKEN) throw new Error('Missing Upstash env');
+    const r = await fetch(`${UPSTASH_URL}/get/${encodeURIComponent(key)}`, {
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
+    });
+    if (!r.ok) throw new Error(`Redis GET ${r.status}: ${await r.text()}`);
+    const j = await r.json();
+    return j.result;
+}
+
+async function redisSet(key, value) {
+    if (!UPSTASH_URL || !UPSTASH_TOKEN) throw new Error('Missing Upstash env');
+    const r = await fetch(`${UPSTASH_URL}/set/${encodeURIComponent(key)}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` },
+        body: String(value)
+    });
+    if (!r.ok) throw new Error(`Redis SET ${r.status}: ${await r.text()}`);
+    return true;
+}
+
+// ============================================================
+//  DB LOAD/SAVE (Upstash)
+// ============================================================
 function emptyDB() {
     return { users: [], products: [], orders: [], nextUserId: 1, nextProductId: 1, nextOrderId: 1 };
 }
 
-async function loadDBFromDrive() {
-    if (!DB_FILE_ID) {
-        console.warn('[DriveDB] Chưa có DRIVE_DB_ID, dùng local fallback');
-        return loadLocalDB();
-    }
+async function loadDB() {
     try {
-        const res = await drive.files.get(
-            { fileId: DB_FILE_ID, alt: 'media' },
-            { responseType: 'stream' }
-        );
-        const chunks = [];
-        for await (const chunk of res.data) chunks.push(chunk);
-        const raw = Buffer.concat(chunks).toString('utf8').trim();
-
+        const raw = await redisGet(DB_KEY);
         if (!raw) {
-            console.warn('[DriveDB] File rỗng, tạo DB mới');
+            console.warn('[RedisDB] No data, tạo DB mới');
             return emptyDB();
         }
-
-        // Drive có thể wrap JSON trong Google Docs format — thử parse
-        let parsed;
-        try {
-            parsed = JSON.parse(raw);
-        } catch {
-            // Nếu là Google Docs native, không đọc được raw → thử extract text
-            console.warn('[DriveDB] Không parse JSON, file có thể là Google Docs native');
-            return emptyDB();
-        }
-
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
         const orders = Array.isArray(parsed.orders) ? parsed.orders : [];
         const maxOrderId = orders.reduce((m, o) => Math.max(m, Number(o.id) || 0), 0);
-        console.log('[DriveDB] Loaded —', parsed.users?.length || 0, 'users,', parsed.products?.length || 0, 'products');
+        console.log('[RedisDB] Loaded —', parsed.users?.length || 0, 'users,', parsed.products?.length || 0, 'products');
         return {
             users: Array.isArray(parsed.users) ? parsed.users : [],
             products: Array.isArray(parsed.products) ? parsed.products : [],
@@ -129,68 +130,16 @@ async function loadDBFromDrive() {
             nextOrderId: Number(parsed.nextOrderId) || (maxOrderId + 1)
         };
     } catch (e) {
-        console.error('[DriveDB] Load fail:', e.message);
-        return loadLocalDB();
-    }
-}
-
-async function saveDBToDrive(data) {
-    // Luôn save local trước (backup nhanh)
-    saveLocalDB(data);
-
-    if (!DB_FILE_ID) return;
-
-    const body = JSON.stringify(data, null, 2);
-    let lastErr = null;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-            await drive.files.update({
-                fileId: DB_FILE_ID,
-                media: {
-                    mimeType: 'application/json',
-                    body: Readable.from([body])
-                }
-            });
-            return; // thành công
-        } catch (e) {
-            lastErr = e;
-            console.warn(`[DriveDB] Save attempt ${attempt}/3 fail:`, e.message);
-            if (attempt < 3) {
-                await new Promise(r => setTimeout(r, 1000 * attempt));
-            }
-        }
-    }
-    console.error('[DriveDB] Save FAILED after 3 retries:', lastErr?.message);
-}
-
-function loadLocalDB() {
-    try {
-        const raw = fs.readFileSync(LOCAL_FALLBACK, 'utf8').trim();
-        if (!raw) return emptyDB();
-        const d = JSON.parse(raw);
-        const orders = Array.isArray(d.orders) ? d.orders : [];
-        const maxOrderId = orders.reduce((m, o) => Math.max(m, Number(o.id) || 0), 0);
-        return {
-            users: Array.isArray(d.users) ? d.users : [],
-            products: Array.isArray(d.products) ? d.products : [],
-            orders,
-            nextUserId: Number(d.nextUserId) || 1,
-            nextProductId: Number(d.nextProductId) || 1,
-            nextOrderId: Number(d.nextOrderId) || (maxOrderId + 1)
-        };
-    } catch {
+        console.error('[RedisDB] Load fail:', e.message);
         return emptyDB();
     }
 }
 
-function saveLocalDB(data) {
-    // Trên Render: filesystem read-only hoặc path quá dài → skip
-    if (IS_PROD || process.env.RENDER) return;
+async function saveDBToStorage(data) {
     try {
-        fs.writeFileSync(LOCAL_FALLBACK + '.tmp', JSON.stringify(data, null, 2));
-        fs.renameSync(LOCAL_FALLBACK + '.tmp', LOCAL_FALLBACK);
+        await redisSet(DB_KEY, JSON.stringify(data));
     } catch (e) {
-        console.error('[LocalDB] Save fail:', e.message);
+        console.error('[RedisDB] Save fail:', e.message);
     }
 }
 
@@ -199,39 +148,26 @@ let db = emptyDB();
 let saveInFlight = false;
 let saveQueued = false;
 
-// Save ngay lập tức, không debounce. Nếu đang save thì queue lại.
 async function saveDB() {
-    if (saveInFlight) {
-        saveQueued = true;
-        return;
-    }
+    if (saveInFlight) { saveQueued = true; return; }
     saveInFlight = true;
     saveQueued = false;
     try {
-        await saveDBToDrive(db);
+        await saveDBToStorage(db);
     } finally {
         saveInFlight = false;
-        if (saveQueued) {
-            saveQueued = false;
-            saveDB();
-        }
+        if (saveQueued) { saveQueued = false; saveDB(); }
     }
 }
 
-// Backup local định kỳ 5 phút (không ghi Drive, chỉ ghi local)
-setInterval(() => {
-    saveLocalDB(db);
-    console.log('[Backup] Local snapshot saved');
-}, 5 * 60 * 1000).unref();
-
-// Save trước khi tắt
+// Flush khi tắt
 process.on('SIGTERM', async () => {
     console.log('[DB] SIGTERM, flushing...');
-    await saveDBToDrive(db);
+    await saveDBToStorage(db);
     process.exit(0);
 });
 process.on('SIGINT', async () => {
-    await saveDBToDrive(db);
+    await saveDBToStorage(db);
     process.exit(0);
 });
 
@@ -268,7 +204,6 @@ function safeEqual(a, b) {
     const y = Buffer.from(String(b));
     return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
-
 // ============================================================
 //  SIGNED DOWNLOAD TOKEN
 // ============================================================
@@ -375,13 +310,12 @@ function ensureAdmin() {
             created_at: new Date().toISOString()
         });
         saveDB();
-        console.log('[DB] Đã tạo admin. Tài khoản: admin');
-        if (!envPass) console.log('[DB] Mật khẩu admin (chỉ hiện 1 lần):', pass);
+        console.log('[DB] Đã tạo admin');
     } else if (envPass && !verifyPassword(envPass, a.password_hash)) {
         a.password_hash = hashPassword(envPass);
         a.is_banned = 0;
         saveDB();
-        console.log('[DB] Đã cập nhật mật khẩu admin theo ADMIN_PASSWORD');
+        console.log('[DB] Cập nhật mật khẩu admin');
     }
 }
 
@@ -542,7 +476,8 @@ app.get('/api/health', (req, res) => {
         orders: db.orders.length,
         uptime_seconds: Math.round(process.uptime()),
         cookie_secret_from_env: !!process.env.COOKIE_SECRET,
-        drive_db: !!DB_FILE_ID,
+        storage: 'upstash-redis',
+        redis_configured: !!(UPSTASH_URL && UPSTASH_TOKEN),
         resend_key_set: !!process.env.RESEND_API_KEY
     });
 });
@@ -622,7 +557,6 @@ app.get('/api/order/:code/status', (req, res) => {
         delivered: o.status === 'delivered', paid_at: o.paid_at
     });
 });
-
 // ============================================================
 //  SEPAY WEBHOOK
 // ============================================================
@@ -1014,11 +948,11 @@ app.use((err, req, res, next) => {
 });
 
 // ============================================================
-//  BOOT — load DB từ Drive rồi mới start server
+//  BOOT
 // ============================================================
 (async () => {
-    console.log('[BOOT] Loading DB from Drive...');
-    db = await loadDBFromDrive();
+    console.log('[BOOT] Loading DB from Upstash...');
+    db = await loadDB();
     console.log('[DB] ready —', db.users.length, 'users,', db.products.length, 'products,', db.orders.length, 'orders');
     ensureAdmin();
 
