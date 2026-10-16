@@ -2,7 +2,8 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="theme-color" content="#f5f5f7">
     <title>QM MOD iOS — By:QuangMinh</title>
     <meta name="description" content="Shop mod game iOS uy tín — Bus Simulator, GTA San, TOE3, Truck Sim">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,6 +43,9 @@
         <div class="loader-percent" id="loaderPercent">0%</div>
     </div>
 
+    <!-- Lớp nền mờ khi mở menu trên điện thoại -->
+    <div class="nav-backdrop" id="navBackdrop"></div>
+
     <nav class="navbar" id="navbar">
         <a href="index.html" class="logo">
             <div class="logo-badge"><span class="logo-qm">QM</span></div>
@@ -68,7 +72,7 @@
             <button class="btn btn-primary btn-sm nav-desktop-login" onclick="openAuthPopup()">Đăng nhập</button>
         </div>
 
-        <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileMenu()" aria-label="Menu">
+        <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                 <line x1="3" y1="6" x2="21" y2="6"/>
                 <line x1="3" y1="12" x2="21" y2="12"/>
@@ -210,7 +214,7 @@
         <div class="product-toolbar">
             <div class="search-box">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="searchInput" placeholder="Tìm sản phẩm...">
+                <input type="search" id="searchInput" placeholder="Tìm sản phẩm..." autocomplete="off" enterkeyhint="search">
             </div>
             <select class="sort-select" id="sortSelect">
                 <option value="default">Mặc định</option>
@@ -319,7 +323,7 @@
         <div class="cta-card">
             <div class="cta-line"></div>
             <h2>SẴN SÀNG CHƠI GAME MOD?</h2>
-            <p>Đặt hàng ngay — nhận file trong 5 phút</p>
+            <p>Đặt hàng ngay — nhận file trong 30 giây</p>
             <button class="btn btn-primary" onclick="scrollToId('products')">ĐẶT HÀNG NGAY</button>
         </div>
     </section>
@@ -368,7 +372,7 @@
             <div class="chat-msg bot">Xin chào! Mình là support của QuangMinh. Bạn cần giúp gì?</div>
         </div>
         <div class="chat-footer">
-            <input type="text" id="chatInput" placeholder="Nhập tin nhắn...">
+            <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." autocomplete="off" enterkeyhint="send">
             <button onclick="sendChat()">Gửi</button>
         </div>
     </div>
@@ -394,5 +398,88 @@
     </div>
 
     <script src="script.js" defer></script>
+
+    <!-- ============================================================
+         UI HELPERS (menu 3 gạch, chat, nút lên đầu trang)
+         Chạy SAU script.js nên sẽ ghi đè các hàm cùng tên bên trong script.js.
+         Không đụng tới logic sản phẩm / đăng nhập / thanh toán.
+         ============================================================ -->
+    <script>
+    (function () {
+        function ready(fn) {
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+            else fn();
+        }
+
+        ready(function () {
+            var navbar    = document.getElementById('navbar');
+            var navLinks  = document.getElementById('navLinks');
+            var burger    = document.getElementById('navHamburger');
+            var backdrop  = document.getElementById('navBackdrop');
+            var chatBox   = document.getElementById('chatBox');
+            var toTop     = document.getElementById('backToTop');
+
+            /* ---------- MENU 3 GẠCH ---------- */
+            function setMenu(open) {
+                navbar.classList.toggle('menu-open', open);
+                burger.classList.toggle('open', open);
+                backdrop.classList.toggle('on', open);
+                burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+            window.toggleMobileMenu = function () {
+                setMenu(!navbar.classList.contains('menu-open'));
+            };
+
+            // bấm nền mờ / bấm ra ngoài / nhấn Esc → đóng menu
+            backdrop.addEventListener('click', function () { setMenu(false); });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
+            document.addEventListener('click', function (e) {
+                if (navbar.classList.contains('menu-open') && !navbar.contains(e.target)) setMenu(false);
+            });
+            // bấm vào link trong menu → tự đóng
+            navLinks.addEventListener('click', function (e) {
+                if (e.target.closest('a:not(.nav-mobile-login)')) setMenu(false);
+            });
+            // xoay ngang / mở rộng màn hình → đóng menu
+            window.addEventListener('resize', function () {
+                if (window.innerWidth > 960) setMenu(false);
+            });
+
+            /* ---------- CHAT ---------- */
+            window.toggleChat = function () {
+                var isOpen = chatBox.classList.toggle('open');
+                chatBox.style.display = '';   // bỏ display inline do bản cũ để lại (nếu có)
+                if (isOpen) {
+                    var input = document.getElementById('chatInput');
+                    if (input && window.innerWidth > 768) input.focus();
+                    var body = document.getElementById('chatBody');
+                    if (body) body.scrollTop = body.scrollHeight;
+                }
+            };
+            var chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' && typeof window.sendChat === 'function') {
+                        e.preventDefault();
+                        window.sendChat();
+                    }
+                });
+            }
+
+            /* ---------- NAVBAR + NÚT LÊN ĐẦU ---------- */
+            var ticking = false;
+            function onScroll() {
+                var y = window.scrollY || document.documentElement.scrollTop;
+                navbar.classList.toggle('scrolled', y > 40);
+                toTop.classList.toggle('show', y > 600);
+                ticking = false;
+            }
+            window.addEventListener('scroll', function () {
+                if (!ticking) { ticking = true; requestAnimationFrame(onScroll); }
+            }, { passive: true });
+            onScroll();
+        });
+    })();
+    </script>
 </body>
 </html>
