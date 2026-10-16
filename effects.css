@@ -1,9 +1,5 @@
 /* ============================================
-   QM MOD iOS — LIQUID GLASS v12 (Optimized)
-   - Hamburger chuyển sang PHẢI
-   - Mobile menu dạng dropdown từ góc phải
-   - Tối ưu animation, giảm lag
-   - Xóa "Bảo hành trọn đời" references
+   QM MOD iOS — LIQUID GLASS v13
    ============================================ */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -20,8 +16,6 @@
     --line-2: rgba(10,10,10,0.12);
     --shadow: 0 4px 16px rgba(0,0,0,0.06);
     --shadow-lg: 0 24px 64px rgba(0,0,0,0.12);
-    --glass: rgba(255,255,255,0.8);
-
     --glass-bg: rgba(255,255,255,0.46);
     --glass-bg-strong: rgba(255,255,255,0.62);
     --glass-blur: blur(26px) saturate(190%) brightness(1.06);
@@ -154,7 +148,7 @@ body {
 @keyframes barFill { 0% { width: 0; } 100% { width: 100%; } }
 
 /* ============================================
-   NAVBAR — Liquid Glass
+   NAVBAR
    ============================================ */
 .navbar {
     position: fixed; top: 48px; left: 50%; transform: translateX(-50%);
@@ -189,6 +183,7 @@ body {
     transition: color 0.2s;
 }
 .nav-links a:hover { color: var(--accent); }
+.nav-mobile-login { display: none; }
 
 .nav-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .nav-icon-btn {
@@ -209,9 +204,6 @@ body {
     padding: 0 4px;
 }
 
-/* ============================================
-   HAMBURGER — RIGHT SIDE
-   ============================================ */
 .nav-hamburger {
     display: none;
     width: 38px; height: 38px;
@@ -635,4 +627,10 @@ body {
 }
 .morph-badge.hot { background: var(--accent); }
 .morph-badge.new { background: #16a34a; }
-.m
+.morph-badge.sale { background: #f59e0b; }
+.morph-badge.vip { background: #8b5cf6; }
+.morph-game {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; font-weight: 700;
+    color: var(--accent); letter-spacing: 0.1em;
+    margin-bottom:

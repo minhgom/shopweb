@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>QM MOD iOS — By:QuangMinh</title>
     <meta name="description" content="Shop mod game iOS uy tín — Bus Simulator, GTA San, TOE3, Truck Sim">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,8 +16,6 @@
 <body>
 
     <div class="bg-pattern"></div>
-    <div class="bg-orb bg-orb-1"></div>
-    <div class="bg-orb bg-orb-2"></div>
 
     <div class="announce-bar">
         <div class="announce-content">
@@ -53,12 +51,13 @@
             </div>
         </a>
 
-        <div class="nav-links">
+        <div class="nav-links" id="navLinks">
             <a href="#categories">Danh mục</a>
             <a href="#products">Sản phẩm</a>
             <a href="#guide">Cài đặt</a>
             <a href="#support">Hỗ trợ</a>
             <a href="history.html">Đơn của tôi</a>
+            <a href="#" class="nav-mobile-login" onclick="event.preventDefault(); toggleMobileMenu(); openAuthPopup();">Đăng nhập</a>
         </div>
 
         <div class="nav-actions">
@@ -66,15 +65,16 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 <span class="wishlist-count" id="wishlistCount">0</span>
             </button>
-            <button class="btn btn-primary btn-sm" onclick="openAuthPopup()">Đăng nhập</button>
-            <button class="nav-hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                    <line x1="3" y1="6" x2="21" y2="6"/>
-                    <line x1="3" y1="12" x2="21" y2="12"/>
-                    <line x1="3" y1="18" x2="21" y2="18"/>
-                </svg>
-            </button>
+            <button class="btn btn-primary btn-sm nav-desktop-login" onclick="openAuthPopup()">Đăng nhập</button>
         </div>
+
+        <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileMenu()" aria-label="Menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
     </nav>
 
     <section class="hero">
