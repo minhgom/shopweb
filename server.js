@@ -135,23 +135,32 @@ async function loadDBFromDrive() {
 }
 
 async function saveDBToDrive(data) {
-    if (!DB_FILE_ID) {
-        return saveLocalDB(data);
-    }
-    try {
-        const body = JSON.stringify(data, null, 2);
-        await drive.files.update({
-            fileId: DB_FILE_ID,
-            media: {
-                mimeType: 'application/json',
-                body: Readable.from([body])
+    // Luôn save local trước (backup nhanh)
+    saveLocalDB(data);
+
+    if (!DB_FILE_ID) return;
+
+    const body = JSON.stringify(data, null, 2);
+    let lastErr = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            await drive.files.update({
+                fileId: DB_FILE_ID,
+                media: {
+                    mimeType: 'application/json',
+                    body: Readable.from([body])
+                }
+            });
+            return; // thành công
+        } catch (e) {
+            lastErr = e;
+            console.warn(`[DriveDB] Save attempt ${attempt}/3 fail:`, e.message);
+            if (attempt < 3) {
+                await new Promise(r => setTimeout(r, 1000 * attempt));
             }
-        });
-    } catch (e) {
-        console.error('[DriveDB] Save fail:', e.message);
-        // Fallback lưu local phòng khi Drive lỗi
-        saveLocalDB(data);
+        }
     }
+    console.error('[DriveDB] Save FAILED after 3 retries:', lastErr?.message);
 }
 
 function loadLocalDB() {
@@ -175,6 +184,8 @@ function loadLocalDB() {
 }
 
 function saveLocalDB(data) {
+    // Trên Render: filesystem read-only hoặc path quá dài → skip
+    if (IS_PROD || process.env.RENDER) return;
     try {
         fs.writeFileSync(LOCAL_FALLBACK + '.tmp', JSON.stringify(data, null, 2));
         fs.renameSync(LOCAL_FALLBACK + '.tmp', LOCAL_FALLBACK);
@@ -185,28 +196,33 @@ function saveLocalDB(data) {
 
 // ===== DB + AUTO SAVE =====
 let db = emptyDB();
-let savePending = false;
-let saveTimer = null;
+let saveInFlight = false;
+let saveQueued = false;
 
-function saveDB() {
-    savePending = true;
-    if (saveTimer) return;
-    // Debounce 3s: nhiều update liên tục chỉ save 1 lần
-    saveTimer = setTimeout(async () => {
-        saveTimer = null;
-        if (!savePending) return;
-        savePending = false;
+// Save ngay lập tức, không debounce. Nếu đang save thì queue lại.
+async function saveDB() {
+    if (saveInFlight) {
+        saveQueued = true;
+        return;
+    }
+    saveInFlight = true;
+    saveQueued = false;
+    try {
         await saveDBToDrive(db);
-    }, 3000);
+    } finally {
+        saveInFlight = false;
+        if (saveQueued) {
+            saveQueued = false;
+            saveDB();
+        }
+    }
 }
 
-// Auto-save định kỳ 30s phòng khi debounce bỏ sót
+// Backup local định kỳ 5 phút (không ghi Drive, chỉ ghi local)
 setInterval(() => {
-    if (savePending) {
-        savePending = false;
-        saveDBToDrive(db);
-    }
-}, 30000).unref();
+    saveLocalDB(db);
+    console.log('[Backup] Local snapshot saved');
+}, 5 * 60 * 1000).unref();
 
 // Save trước khi tắt
 process.on('SIGTERM', async () => {
