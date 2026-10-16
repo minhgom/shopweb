@@ -1,10 +1,10 @@
 /* ============================================
-   QM MOD iOS - auth.js (Phiên bản Apps Script)
-   Xử lý đăng nhập / đăng ký qua Google Sheets
+   QM MOD iOS - auth.js (v2 - Backend API)
+   Xử lý đăng nhập / đăng ký qua Node.js Backend
    ============================================ */
 
-// ⚠️ DÁN URL APPS SCRIPT CỦA MÀY VÀO ĐÂY:
-const API_URL = 'https://script.google.com/macros/s/AKfycbzWEg7jzWzZz0JDaTkhptWdxPleDVwZ0H8O_imGnX-fAkO3-En7dfkM9GnxLBVFSR_tTg/exec';
+// ⚠️ Backend cùng domain, dùng đường dẫn tương đối
+const API_BASE = '/api';
 
 // ====== MỞ POPUP ĐĂNG NHẬP/ĐĂNG KÝ ======
 function openAuthPopup() {
@@ -51,14 +51,20 @@ async function doLogin() {
   msg.style.color = '#3b82f6';
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch(`${API_BASE}/login`, {
       method: 'POST',
-      body: JSON.stringify({ action: 'login', email, password })
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password })
     });
     const data = await res.json();
 
-    if (data.ok) {
+    if (res.ok && data.success) {
       localStorage.setItem('user', email);
+      if (data.token) localStorage.setItem('token', data.token);
+      if (data.user && data.user.is_admin) {
+        localStorage.setItem('is_admin', '1');
+      }
       msg.textContent = 'Đăng nhập thành công!';
       msg.style.color = '#22c55e';
       setTimeout(() => {
@@ -66,7 +72,7 @@ async function doLogin() {
         location.reload();
       }, 800);
     } else {
-      msg.textContent = data.msg;
+      msg.textContent = data.error || 'Sai thông tin đăng nhập';
       msg.style.color = '#ef4444';
     }
   } catch (err) {
@@ -87,18 +93,37 @@ async function doRegister() {
     return;
   }
 
+  if (password.length < 6) {
+    msg.textContent = 'Mật khẩu phải từ 6 ký tự';
+    msg.style.color = '#ef4444';
+    return;
+  }
+
   msg.textContent = 'Đang xử lý...';
   msg.style.color = '#3b82f6';
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch(`${API_BASE}/register`, {
       method: 'POST',
-      body: JSON.stringify({ action: 'register', email, password })
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password })
     });
     const data = await res.json();
 
-    msg.textContent = data.msg;
-    msg.style.color = data.ok ? '#22c55e' : '#ef4444';
+    if (res.ok && data.success) {
+      localStorage.setItem('user', email);
+      if (data.token) localStorage.setItem('token', data.token);
+      msg.textContent = 'Đăng ký thành công!';
+      msg.style.color = '#22c55e';
+      setTimeout(() => {
+        closeAuthPopup();
+        location.reload();
+      }, 800);
+    } else {
+      msg.textContent = data.error || 'Đăng ký thất bại';
+      msg.style.color = '#ef4444';
+    }
   } catch (err) {
     msg.textContent = 'Lỗi kết nối: ' + err.message;
     msg.style.color = '#ef4444';
@@ -114,9 +139,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (user) {
     loginBtn.textContent = user.split('@')[0];
-    loginBtn.onclick = () => {
+    loginBtn.onclick = async () => {
       if (confirm('Đăng xuất khỏi ' + user + '?')) {
+        try {
+          await fetch(`${API_BASE}/logout`, {
+            method: 'POST',
+            credentials: 'include'
+          });
+        } catch (e) { /* ignore */ }
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('is_admin');
         location.reload();
       }
     };
