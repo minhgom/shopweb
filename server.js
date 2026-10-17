@@ -70,10 +70,20 @@ app.use(express.static(HAS_PUBLIC ? PUBLIC_DIR : __dirname, { dotfiles: 'ignore'
 //  GOOGLE DRIVE — dùng service account để tải file IPA
 //  (file phải được SHARE cho email của service account)
 // ============================================================
-const driveAuth = new google.auth.GoogleAuth({
-    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './drive-service.json',
+let driveAuthOptions = {
     scopes: ['https://www.googleapis.com/auth/drive']
-});
+};
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+    try {
+        driveAuthOptions.credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+    } catch (e) {
+        console.error('[Drive] Lỗi parse JSON từ env:', e.message);
+        driveAuthOptions.keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS || './drive-service.json';
+    }
+} else {
+    driveAuthOptions.keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS || './drive-service.json';
+}
+const driveAuth = new google.auth.GoogleAuth(driveAuthOptions);
 const drive = google.drive({ version: 'v3', auth: driveAuth });
 
 const driveMetaCache = new Map();
