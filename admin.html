@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel — QM Shop</title>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="auth.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -173,7 +172,12 @@ async function adminLogin() {
         });
         const data = await res.json();
         if (data.success) {
-            if (data.token && window.QMAuth) QMAuth.save(data);
+            // Lưu token trực tiếp vào localStorage (thay cho QMAuth.save)
+            if (data.admin_token) localStorage.setItem('admin_token', data.admin_token);
+            if (data.token) localStorage.setItem('token', data.token);
+            if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('is_admin', '1');
+
             document.getElementById('loginBox').style.display = 'none';
             document.getElementById('panel').style.display = 'block';
             loadProducts();
@@ -189,7 +193,11 @@ async function adminLogin() {
 
 async function adminLogout() {
     try { await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) {}
-    if (window.QMAuth) QMAuth.clear();
+    // Xoá sạch token (thay cho QMAuth.clear)
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('is_admin');
     location.reload();
 }
 

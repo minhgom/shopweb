@@ -1,220 +1,295 @@
 /* ============================================
-   QM MOD iOS — ANIMATION UPGRADE PACK
+   QM MOD iOS — ANIMATION PACK v2  (CSS)
    Load AFTER effects.css:
    <link rel="stylesheet" href="effects.css">
    <link rel="stylesheet" href="animations.css">
+
+   Ghi chú kỹ thuật:
+   - Dùng thuộc tính riêng lẻ translate / rotate / scale cho hiệu ứng phụ
+     => cộng dồn được với transform có sẵn trong effects.css, không đè nhau.
+   - Card 3D dùng biến --t-* (đặt riêng để KHÔNG trùng --rx/--ry/--mx/--my
+     mà effects.css dùng cho ripple & glass).
+   - Mọi chuyển động của tilt do animations.js điều khiển bằng lò xo (spring).
    ============================================ */
 
-/* ---------- 1. AMBIENT GLOW BACKGROUND (replaces flat bg-pattern glow) ---------- */
+:root {
+    --qm-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --qm-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---------- 1. NỀN: glow tĩnh + blob trôi + canvas hạt 3D ---------- */
 .bg-pattern {
     background:
-        radial-gradient(ellipse 60% 50% at 20% 0%, rgba(230,57,70,0.14), transparent 60%),
-        radial-gradient(ellipse 50% 40% at 85% 15%, rgba(255,71,87,0.10), transparent 55%),
+        radial-gradient(ellipse 60% 50% at 20% 0%, rgba(230,57,70,0.12), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 85% 15%, rgba(255,71,87,0.08), transparent 55%),
         radial-gradient(ellipse 70% 50% at 50% 100%, rgba(10,10,10,0.04), transparent 60%);
-    background-size: 200% 200%;
-    animation: bgDrift 22s ease-in-out infinite;
-}
-@keyframes bgDrift {
-    0%, 100% { background-position: 0% 0%, 100% 0%, 50% 100%; }
-    50% { background-position: 20% 30%, 80% 40%, 40% 80%; }
+    animation: none;
 }
 
-/* floating particle dots behind hero */
-.particle-field {
-    position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden;
+/* blob do JS tạo (chỉ animate transform => chạy bằng GPU, không repaint) */
+.ambient {
+    position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
 }
-.particle-field span {
-    position: absolute; bottom: -20px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(230,57,70,0.5), rgba(230,57,70,0));
-    animation: particleRise linear infinite;
+.ambient .blob {
+    position: absolute; border-radius: 50%; will-change: transform;
+    width: 52vmax; height: 52vmax;
+    background: radial-gradient(circle, rgba(230,57,70,0.15), rgba(230,57,70,0) 62%);
+    translate: calc(var(--ax, 0) * var(--d, 30) * 1px) calc(var(--ay, 0) * var(--d, 30) * 1px);
+    animation: blobFloat 28s ease-in-out infinite alternate;
 }
-@keyframes particleRise {
-    0% { transform: translateY(0) translateX(0); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 0.6; }
-    100% { transform: translateY(-110vh) translateX(var(--drift, 40px)); opacity: 0; }
+.ambient .b1 { --d: 40; left: -14vmax; top: -18vmax; }
+.ambient .b2 { --d: -55; right: -20vmax; top: 8vh; width: 46vmax; height: 46vmax; animation-duration: 34s; animation-delay: -9s;
+    background: radial-gradient(circle, rgba(255,120,90,0.12), rgba(255,120,90,0) 62%); }
+.ambient .b3 { --d: 70; left: 18vw; bottom: -26vmax; width: 60vmax; height: 60vmax; animation-duration: 40s; animation-delay: -16s;
+    background: radial-gradient(circle, rgba(10,10,10,0.05), rgba(10,10,10,0) 62%); }
+@keyframes blobFloat {
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    50%  { transform: translate3d(6vmax, 4vmax, 0) scale(1.12); }
+    100% { transform: translate3d(-4vmax, 8vmax, 0) scale(0.94); }
 }
 
-/* ---------- 2. LOADER — smoother exit, glow pulse on logo ---------- */
-.loader-logo {
-    animation: logoPulse 1.8s ease-in-out infinite;
+.fx-canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    z-index: -1; pointer-events: none;
 }
+
+/* ---------- 2. LOADER ---------- */
+.loader-logo { animation: logoPulse 1.8s ease-in-out infinite; }
 @keyframes logoPulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(230,57,70,0.4); }
     50% { box-shadow: 0 0 0 14px rgba(230,57,70,0); }
 }
 .loader-title span {
-    animation: letterPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    animation-delay: calc(var(--i) * 0.05s);
+    display: inline-block;
+    animation: letterPop 0.55s var(--qm-spring) both;
 }
+.loader-title span:nth-child(1) { animation-delay: .00s; }
+.loader-title span:nth-child(2) { animation-delay: .05s; }
+.loader-title span:nth-child(3) { animation-delay: .10s; }
+.loader-title span:nth-child(4) { animation-delay: .15s; }
+.loader-title span:nth-child(5) { animation-delay: .20s; }
+.loader-title span:nth-child(6) { animation-delay: .25s; }
+.loader-title span:nth-child(7) { animation-delay: .30s; }
+.loader-title span:nth-child(8) { animation-delay: .35s; }
+.loader-title span:nth-child(9) { animation-delay: .40s; }
 @keyframes letterPop {
-    0% { opacity: 0; transform: translateY(10px) scale(0.6); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
+    0% { opacity: 0; transform: translateY(14px) scale(0.6) rotateX(70deg); }
+    100% { opacity: 1; transform: translateY(0) scale(1) rotateX(0); }
 }
 .loader-screen.done {
     transition: opacity .6s cubic-bezier(.65,0,.35,1), visibility .6s, filter .6s;
     filter: blur(8px);
 }
 
-/* ---------- 3. SCROLL REVEAL (needs .reveal class + JS observer in animations.js) ---------- */
-.reveal {
-    opacity: 0;
-    transform: translateY(36px);
-    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: transform, opacity;
+/* ---------- 3. SCROLL REVEAL ----------
+   Dùng `translate` + `opacity` => không đụng tới transform của tilt. */
+.rv-card { opacity: 0; translate: 0 40px; }
+.rv-card.in-view { opacity: 1; translate: 0 0; }
+
+.reveal       { opacity: 0; translate: 0 36px; transition: opacity .7s var(--qm-ease), translate .7s var(--qm-ease); will-change: opacity, translate; }
+.reveal.in-view { opacity: 1; translate: 0 0; }
+.reveal-scale { opacity: 0; scale: .88; transition: opacity .6s ease, scale .6s var(--qm-spring); }
+.reveal-scale.in-view { opacity: 1; scale: 1; }
+.reveal-left  { opacity: 0; translate: -40px 0; filter: blur(6px); transition: opacity .7s ease, translate .8s var(--qm-ease), filter .7s ease; }
+.reveal-left.in-view { opacity: 1; translate: 0 0; filter: blur(0); }
+.reveal-right { opacity: 0; translate: 40px 0; transition: opacity .7s ease, translate .8s var(--qm-ease); }
+.reveal-right.in-view { opacity: 1; translate: 0 0; }
+
+/* ---------- 4. CARD 3D (tilt + glare + parallax lớp trong) ---------- */
+.tilt-card[data-tilt] {
+    transform:
+        perspective(900px)
+        translate3d(0, var(--t-lift, 0px), 0)
+        rotateX(var(--t-rx, 0deg))
+        rotateY(var(--t-ry, 0deg))
+        scale(var(--t-sc, 1)) !important;
+    /* KHÔNG transition transform: lò xo JS lo việc đó */
+    transition:
+        opacity .7s var(--qm-ease),
+        translate .8s var(--qm-ease),
+        box-shadow .25s ease,
+        border-color .4s ease,
+        background-color .4s ease !important;
+    -webkit-tap-highlight-color: transparent;
+    backface-visibility: hidden;
 }
-.reveal.in-view { opacity: 1; transform: translateY(0); }
+.tilt-card.is-active { will-change: transform; z-index: 3; }
+.tilt-card.is-active {
+    box-shadow:
+        calc(var(--t-px, 0) * -18px) calc(var(--t-py, 0) * -14px + 24px) 50px -16px rgba(10,10,10,0.32) !important;
+}
 
-.reveal-scale { opacity: 0; transform: scale(0.88); transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.reveal-scale.in-view { opacity: 1; transform: scale(1); }
+/* trễ stagger chỉ áp dụng lúc reveal (opacity, translate) */
+.rv-card.tilt-card[data-tilt] { transition-delay: var(--d, 0s), var(--d, 0s), 0s, 0s, 0s !important; }
+.rv-card.tilt-card[data-tilt].rv-done { transition-delay: 0s !important; }
 
-.reveal-left { opacity: 0; transform: translateX(-40px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
-.reveal-left.in-view { opacity: 1; transform: translateX(0); }
+/* vệt sáng bám theo con trỏ / ngón tay */
+.tilt-glare {
+    position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    z-index: 4; opacity: 0; transition: opacity .35s ease;
+    background:
+        radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.32), rgba(255,255,255,0) 55%),
+        radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(230,57,70,0.10), transparent 70%);
+}
+.tilt-card.is-hover .tilt-glare { opacity: 1; }
 
-.reveal-right { opacity: 0; transform: translateX(40px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
-.reveal-right.in-view { opacity: 1; transform: translateX(0); }
+/* parallax các lớp bên trong (dùng translate => cộng dồn với transform sẵn có) */
+.category-card .category-bg   { scale: 1.12; translate: calc(var(--t-px, 0) * -14px) calc(var(--t-py, 0) * -14px); }
+.category-card .category-logo { translate: calc(var(--t-px, 0) * 10px) calc(var(--t-py, 0) * 10px); }
+.category-card .category-info { translate: calc(var(--t-px, 0) * 5px)  calc(var(--t-py, 0) * 5px); }
+.category-card .category-badge{ translate: calc(var(--t-px, 0) * 14px) calc(var(--t-py, 0) * 14px); }
+.product-card img             { translate: calc(var(--t-px, 0) * 8px)  calc(var(--t-py, 0) * 8px); }
+.category-card:hover .category-arrow { translate: 6px 0; color: #fff; }
+.category-arrow, .category-logo { transition: transform .4s var(--qm-spring), translate .4s var(--qm-spring); }
 
-/* stagger children automatically when parent gets .in-view (set --d via JS per card index, or use nth-child fallback) */
-.stagger > * { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16,1,0.3,1); }
-.stagger.in-view > * { opacity: 1; transform: translateY(0); }
-.stagger.in-view > *:nth-child(1) { transition-delay: 0.00s; }
-.stagger.in-view > *:nth-child(2) { transition-delay: 0.06s; }
-.stagger.in-view > *:nth-child(3) { transition-delay: 0.12s; }
-.stagger.in-view > *:nth-child(4) { transition-delay: 0.18s; }
-.stagger.in-view > *:nth-child(5) { transition-delay: 0.24s; }
-.stagger.in-view > *:nth-child(6) { transition-delay: 0.30s; }
-.stagger.in-view > *:nth-child(7) { transition-delay: 0.36s; }
-.stagger.in-view > *:nth-child(8) { transition-delay: 0.42s; }
+/* ---------- 5. HERO: parallax nhiều lớp + nghiêng 3D theo con trỏ ---------- */
+.hero { perspective: 1200px; perspective-origin: 50% 40%; }
+.hero-line-1, .hero-line-2 { display: block; }
 
-/* ---------- 4. HERO TITLE — gradient sheen sweep ---------- */
+.hero-badge {
+    animation: floatY 4s ease-in-out infinite;
+    translate: calc(var(--hx, 0) * -14px) calc(var(--hy, 0) * -10px + var(--hs, 0) * -0.10px);
+}
+.hero-title {
+    rotate: var(--hax, 0) var(--hay, 1) 0 calc(var(--ha, 0) * 1deg);
+    translate: calc(var(--hx, 0) * -8px) calc(var(--hy, 0) * -6px + var(--hs, 0) * -0.14px);
+    will-change: rotate, translate;
+}
+.hero-line-1 { translate: calc(var(--hx, 0) * -10px) calc(var(--hy, 0) * -6px); }
+.hero-line-2 { translate: calc(var(--hx, 0) * 6px)  calc(var(--hy, 0) * 4px); }
+.hero-subtitle { translate: calc(var(--hx, 0) * 5px) calc(var(--hy, 0) * 4px + var(--hs, 0) * -0.06px); }
+.hero-buttons  { translate: calc(var(--hx, 0) * 10px) calc(var(--hy, 0) * 8px + var(--hs, 0) * -0.03px); }
+
 .hero-line-1 em {
-    background: linear-gradient(110deg, var(--accent) 20%, var(--accent-2) 40%, #ffb199 50%, var(--accent-2) 60%, var(--accent) 80%);
+    background: linear-gradient(110deg, var(--accent, #e63946) 20%, var(--accent-2, #ff4757) 40%, #ffb199 50%, var(--accent-2, #ff4757) 60%, var(--accent, #e63946) 80%);
     background-size: 300% 100%;
     -webkit-background-clip: text; background-clip: text; color: transparent;
     animation: gradientSheen 4s linear infinite;
 }
-@keyframes gradientSheen {
-    0% { background-position: 100% 0; }
-    100% { background-position: -100% 0; }
-}
-.hero-badge { animation: floatY 4s ease-in-out infinite; }
-@keyframes floatY {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-}
+@keyframes gradientSheen { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+@keyframes floatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
-/* ---------- 5. MAGNETIC BUTTONS (pair with animations.js mousemove handler) ---------- */
-.btn {
-    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease, background 0.25s ease;
+/* ---------- 6. NÚT: nam châm (translate) + nhấn lún (scale) ---------- */
+.btn, .nav-icon-btn, .chat-toggle, .back-to-top {
+    translate: var(--bx, 0px) var(--by, 0px);
 }
+.btn {
+    transition: transform .25s var(--qm-ease), box-shadow .25s ease, background-color .25s ease,
+                background-position .6s ease, scale .3s var(--qm-spring);
+}
+.btn:active, .nav-icon-btn:active, .nav-hamburger:active { scale: .94; }
 .btn-primary {
     background-size: 200% 100%;
     background-image: linear-gradient(100deg, #0a0a0a 40%, #262626 50%, #0a0a0a 60%);
-    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease, background-position 0.6s ease;
 }
 .btn-primary:hover { background-position: -100% 0; }
 
-/* ---------- 6. CATEGORY + PRODUCT CARDS — tilt + glow on hover (JS sets --rx/--ry/--mx/--my) ---------- */
-.category-card, .product-card {
-    transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--ty, 0px));
-    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s ease, border-color 0.35s ease;
-}
-.category-card:hover, .product-card:hover { --ty: -6px; }
-
-.product-card { position: relative; overflow: hidden; }
-.product-card::after {
-    content: '';
-    position: absolute; inset: 0; z-index: 0; opacity: 0;
-    background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(230,57,70,0.12), transparent 70%);
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-.product-card:hover::after { opacity: 1; }
-.product-card > * { position: relative; z-index: 1; }
-
-.category-logo, .category-arrow { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.category-card:hover .category-logo { transform: scale(1.08) rotate(-2deg); }
-.category-card:hover .category-arrow { transform: translateX(6px); color: #fff; }
-
-/* ---------- 7. BADGES — soft pulse so HOT/NEW/SALE actually catch the eye ---------- */
-.category-badge.hot, .product-badge.hot {
-    animation: badgePulse 2s ease-in-out infinite;
-}
+/* ---------- 7. BADGE ---------- */
+.category-badge.hot, .product-badge.hot { animation: badgePulse 2s ease-in-out infinite; }
 @keyframes badgePulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(230,57,70,0.55); }
     50% { box-shadow: 0 0 0 6px rgba(230,57,70,0); }
 }
 
-/* ---------- 8. PRICE — count-up ready (JS animates textContent; this just adds a settle pop) ---------- */
-.product-price, .category-price, .morph-price {
-    display: inline-block;
-}
-.price-pop { animation: pricePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+/* ---------- 8. GIÁ ---------- */
+.product-price, .category-price, .morph-price { display: inline-block; }
+.price-pop { animation: pricePop .45s var(--qm-spring); }
 @keyframes pricePop {
-    0% { transform: scale(0.7); opacity: 0.4; }
+    0% { transform: scale(.7); opacity: .4; }
     60% { transform: scale(1.12); }
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* ---------- 9. TABS — sliding active pill (JS positions .tab-indicator) ---------- */
+/* ---------- 9. TABS: viên thuốc trượt kiểu lò xo ---------- */
 .tabs { position: relative; }
 .tab-indicator {
-    position: absolute; top: 6px; bottom: 6px; left: 6px;
-    width: 0; border-radius: 9px; background: #0a0a0a;
-    transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), width 0.35s cubic-bezier(0.16,1,0.3,1);
-    z-index: 0;
+    position: absolute; left: 0; top: 0; width: 0; height: 0;
+    border-radius: 10px; background: #0a0a0a; z-index: 0; pointer-events: none;
+    box-shadow: 0 6px 16px -6px rgba(10,10,10,.45);
+    transition: transform .55s cubic-bezier(.34,1.3,.5,1), width .55s cubic-bezier(.34,1.3,.5,1), height .55s ease;
+    will-change: transform, width;
 }
-.tab { position: relative; z-index: 1; transition: color 0.3s ease; }
-.tab.active { background: transparent; } /* indicator provides the bg now */
+.tab { position: relative; z-index: 1; transition: color .3s ease, scale .3s var(--qm-spring); }
+.tab:active { scale: .93; }
+.tabs.has-indicator .tab.active { background: transparent; }
 
-/* ---------- 10. NAVBAR — slide down entrance + shadow breathing on scroll ---------- */
-.navbar {
-    animation: navDrop 0.7s cubic-bezier(0.16,1,0.3,1) both;
-}
+/* ---------- 10. NAVBAR ---------- */
+.navbar { animation: navDrop .8s var(--qm-ease) backwards; }
 @keyframes navDrop {
-    0% { opacity: 0; transform: translate(-50%, -24px); }
-    100% { opacity: 1; transform: translate(-50%, 0); }
+    from { opacity: 0; translate: 0 -28px; }
+    to   { opacity: 1; translate: 0 0; }
+}
+/* viên trượt đi theo link đang rê chuột (chỉ desktop) */
+@media (min-width: 961px) {
+    .nav-links { position: relative; }
+    .nav-links a { position: relative; z-index: 1; }
+    .nav-pill {
+        position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 0;
+        border-radius: 999px; background: rgba(10,10,10,0.07); pointer-events: none; opacity: 0;
+        transition: transform .4s var(--qm-ease), width .4s var(--qm-ease), height .4s var(--qm-ease), opacity .25s ease;
+    }
+    .nav-pill.on { opacity: 1; }
+    .nav-pill.snap { transition: opacity .25s ease; }
+}
+@media (max-width: 960px) { .nav-pill { display: none; } }
+
+/* thanh tiến trình cuộn */
+.scroll-progress { position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 9998; pointer-events: none; }
+.scroll-progress i {
+    display: block; height: 100%; transform-origin: 0 50%; transform: scaleX(0);
+    background: linear-gradient(90deg, var(--accent, #e63946), var(--accent-2, #ff4757));
+    box-shadow: 0 0 10px rgba(230,57,70,.5);
 }
 
-/* ---------- 11. MORPH MODAL — spring pop already present, add backdrop blur grow ---------- */
-.morph-overlay { backdrop-filter: blur(0px); transition: opacity 0.3s ease, visibility 0.3s ease, backdrop-filter 0.4s ease; }
-.morph-overlay.on { backdrop-filter: blur(12px); }
-.morph-price { animation: pricePop 0.45s cubic-bezier(0.34,1.56,0.64,1) 0.1s both; }
-
-/* ---------- 12. CHAT TOGGLE — idle breathing so it's noticed ---------- */
-.chat-toggle {
-    animation: chatBreathe 3s ease-in-out infinite;
+/* ---------- 11. MODAL SẢN PHẨM ---------- */
+.morph-overlay {
+    perspective: 1400px;
+    backdrop-filter: blur(0px);
+    transition: opacity .3s ease, visibility .3s ease, backdrop-filter .4s ease;
 }
+.morph-overlay.on { backdrop-filter: blur(14px); }
+.morph-card { will-change: transform, rotate; }
+
+/* ---------- 12. CHAT / BACK-TO-TOP ---------- */
+.chat-toggle { animation: chatBreathe 3s ease-in-out infinite; }
 @keyframes chatBreathe {
     0%, 100% { box-shadow: 0 8px 24px rgba(10,10,10,0.3); }
     50% { box-shadow: 0 8px 32px rgba(230,57,70,0.35); }
 }
+.back-to-top.show { animation: bounceIn .45s var(--qm-spring); }
+@keyframes bounceIn { 0% { transform: scale(.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
-/* ---------- 13. BACK TO TOP — bounce in ---------- */
-.back-to-top.show { animation: bounceIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-@keyframes bounceIn {
-    0% { transform: scale(0.5); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-/* ---------- 14. CURSOR GLOW (desktop only, follows mouse, JS updates vars on :root) ---------- */
+/* ---------- 13. CURSOR GLOW (chỉ chuột) ---------- */
 .cursor-glow {
     position: fixed; z-index: 1; pointer-events: none;
-    width: 400px; height: 400px; border-radius: 50%;
+    width: 420px; height: 420px; border-radius: 50%;
     left: var(--cx, 50vw); top: var(--cy, 50vh);
     transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(230,57,70,0.06), transparent 70%);
-    transition: opacity 0.3s ease;
-    opacity: 0;
+    background: radial-gradient(circle, rgba(230,57,70,0.07), transparent 70%);
+    opacity: 0; transition: opacity .4s ease;
 }
 .cursor-glow.active { opacity: 1; }
 @media (hover: none) { .cursor-glow { display: none; } }
 
-/* ---------- 15. REDUCED MOTION — respect it ---------- */
+/* ---------- 14. VÒNG SÓNG KHI CHẠM / CLICK ---------- */
+.tap-ring {
+    position: fixed; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
+    border: 2px solid rgba(230,57,70,0.55); background: rgba(230,57,70,0.12);
+    pointer-events: none; z-index: 99990;
+    animation: tapRing .7s cubic-bezier(.2,.7,.2,1) forwards;
+}
+@keyframes tapRing {
+    0%   { transform: scale(.4); opacity: .95; }
+    100% { transform: scale(7);  opacity: 0; }
+}
+
+/* ---------- 15. GIẢM CHUYỂN ĐỘNG ---------- */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+    .rv-card, .reveal, .reveal-scale, .reveal-left, .reveal-right { opacity: 1 !important; translate: none !important; scale: none !important; filter: none !important; }
+    .fx-canvas, .ambient, .cursor-glow, .tap-ring { display: none !important; }
 }
