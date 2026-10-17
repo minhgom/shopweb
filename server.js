@@ -1,5 +1,5 @@
-// QM MOD iOS — Backend v22
-// (Upstash Redis + Drive streaming + nạp key Google linh hoạt + chẩn đoán lỗi)
+// QM MOD iOS — Backend v23
+// (Upstash Redis + Drive streaming + nạp key Google linh hoạt + chẩn đoán lỗi + video hướng dẫn)
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
@@ -476,6 +476,14 @@ function verifyDownloadToken(token) {
     } catch { return null; }
 }
 
+// Lấy video_url mới nhất từ sản phẩm theo mã đơn
+// (sửa video trong admin thì các link tải cũ cũng cập nhật theo)
+function videoUrlForOrderCode(code) {
+    const o = db.orders.find(x => x.order_code === code);
+    const p = o && db.products.find(x => x.id === o.product_id);
+    return (p && p.video_url) || '';
+}
+
 // Rate limit
 const attempts = new Map();
 function rateLimit(key, max, windowMs) {
@@ -872,6 +880,7 @@ app.get('/api/dl-info/:token', (req, res) => {
         success: true,
         order_code: payload.o,
         product_name: payload.n,
+        video_url: videoUrlForOrderCode(payload.o),
         files: (payload.f || []).map((f, i) => ({
             index: i,
             label: f.l,
@@ -912,6 +921,7 @@ app.get('/api/dl/:token', async (req, res) => {
 app.get('/api/order-files/:token', (req, res) => {
     const { token } = req.params;
 
+    // Token mới (có dấu chấm) — link gửi qua email
     if (token.includes('.')) {
         const payload = verifyDownloadToken(token);
         if (!payload) return res.status(410).json({ error: 'Hết hạn hoặc không hợp lệ' });
@@ -920,6 +930,7 @@ app.get('/api/order-files/:token', (req, res) => {
             order_code: payload.o,
             product_name: payload.n,
             game: '',
+            video_url: videoUrlForOrderCode(payload.o),
             files: (payload.f || []).map((f, i) => ({
                 index: i, label: f.l, name: f.n, size: f.s,
                 url: '/api/dl/' + encodeURIComponent(token) + '?i=' + i
@@ -927,6 +938,7 @@ app.get('/api/order-files/:token', (req, res) => {
         });
     }
 
+    // Token cũ 64 ký tự
     if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
 
     const o = db.orders.find(x => x.download_token === token);
@@ -942,6 +954,7 @@ app.get('/api/order-files/:token', (req, res) => {
         order_code: o.order_code,
         product_name: p ? p.name : '',
         game: p ? p.game : '',
+        video_url: p ? (p.video_url || '') : '',
         files: files.map((f, i) => ({
             index: i,
             label: f.label || `File ${i + 1}`,

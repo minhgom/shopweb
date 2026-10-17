@@ -23,6 +23,17 @@ body { font-family: 'Be Vietnam Pro', sans-serif; background: #f4f6fb; color: #0
 .success-icon { width: 72px; height: 72px; margin: 0 auto 14px; background: linear-gradient(135deg, #16a34a, #22c55e); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #fff; font-weight: 900; box-shadow: 0 12px 32px rgba(22,163,74,0.3); }
 .prod-name { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
 .order-code { display: inline-block; padding: 6px 14px; background: rgba(230,57,70,0.08); color: #e63946; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.82rem; letter-spacing: 0.1em; }
+
+/* CSS CHO KHUNG VIDEO */
+.video-box { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); text-align: center; }
+.video-box p { font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; color: #e63946; text-transform: uppercase; letter-spacing: 0.05em; }
+.video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 10px; background: #000; }
+.video-container iframe,
+.video-container video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+.video-open { display: inline-block; margin-top: 12px; font-size: 0.78rem; font-weight: 700; color: #6b7280; text-decoration: none; }
+.video-open:hover { color: #e63946; }
+.video-link-btn { display: inline-block; padding: 12px 22px; background: #0a0a0a; color: #fff; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
 .file-card { background: #fff; border-radius: 14px; padding: 18px 20px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; border: 1px solid rgba(10,10,10,0.06); }
 .file-info { flex: 1; min-width: 160px; }
 .file-label { font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; }
@@ -49,12 +60,61 @@ body { font-family: 'Be Vietnam Pro', sans-serif; background: #f4f6fb; color: #0
 </div>
 
 <script>
+// Chuyển link video thành khung xem được: YouTube / Shorts / Drive / mp4 / link thường
+function buildVideoHtml(rawUrl) {
+    const videoUrl = String(rawUrl || '').trim();
+    if (!/^https?:\/\//i.test(videoUrl)) return '';
+
+    const safeUrl = videoUrl.replace(/"/g, '&quot;');
+    let embedUrl = '';
+    let isFile = false;
+    let m;
+
+    // YouTube: watch?v= / youtu.be / embed / shorts
+    m = videoUrl.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+    if (m) {
+        embedUrl = 'https://www.youtube.com/embed/' + m[1] + '?rel=0';
+    } else {
+        // Google Drive (file phải share "Bất kỳ ai có link")
+        m = videoUrl.match(/drive\.google\.com\/file\/d\/([\w-]{20,})/);
+        if (m) {
+            embedUrl = 'https://drive.google.com/file/d/' + m[1] + '/preview';
+        } else if (/\.(mp4|webm|mov)(\?|$)/i.test(videoUrl)) {
+            embedUrl = safeUrl;
+            isFile = true;
+        } else {
+            embedUrl = ''; // link lạ → hiện nút mở
+        }
+    }
+
+    if (!embedUrl) {
+        return `
+            <div class="video-box">
+                <p>🎥 Video hướng dẫn cài đặt</p>
+                <a class="video-link-btn" href="${safeUrl}" target="_blank" rel="noopener">▶ Xem video hướng dẫn</a>
+            </div>
+        `;
+    }
+
+    const player = isFile
+        ? `<video src="${embedUrl}" controls playsinline preload="metadata"></video>`
+        : `<iframe src="${embedUrl}" frameborder="0" allowfullscreen
+              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+              referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+
+    return `
+        <div class="video-box">
+            <p>🎥 Video hướng dẫn cài đặt</p>
+            <div class="video-container">${player}</div>
+            <a class="video-open" href="${safeUrl}" target="_blank" rel="noopener">Không xem được? Mở video trong tab mới ↗</a>
+        </div>
+    `;
+}
+
 (async function () {
     const content = document.getElementById('content');
     const params = new URLSearchParams(location.search);
     const token = params.get('t') || params.get('token');
-
-    console.log('[download] token:', token ? token.slice(0, 20) + '...' : 'MISSING');
 
     if (!token) {
         content.innerHTML = `<div class="error-box"><h2>❌ Thiếu token</h2><p>URL không có tham số <code>?t=</code> hoặc <code>?token=</code></p></div>`;
@@ -64,16 +124,15 @@ body { font-family: 'Be Vietnam Pro', sans-serif; background: #f4f6fb; color: #0
     try {
         const url = '/api/order-files/' + encodeURIComponent(token);
         const r = await fetch(url, { cache: 'no-store' });
-        const text = await r.text();
-        let d;
-        try { d = JSON.parse(text); } catch { d = null; }
-
-        console.log('[download] status:', r.status, 'data:', d);
+        const d = await r.json();
 
         if (!r.ok || !d) {
-            content.innerHTML = `<div class="error-box"><h2>❌ Không tải được</h2><p>HTTP ${r.status}</p><p style="font-size:0.75rem;margin-top:8px;">${(text || '').slice(0, 200)}</p></div>`;
+            content.innerHTML = `<div class="error-box"><h2>❌ Không tải được</h2><p>${(d && d.error) ? d.error : 'HTTP ' + r.status}</p></div>`;
             return;
         }
+
+        // Xử lý link video (nếu có)
+        const videoHtml = buildVideoHtml(d.video_url);
 
         if (!d.files || !d.files.length) {
             content.innerHTML = `
@@ -82,6 +141,7 @@ body { font-family: 'Be Vietnam Pro', sans-serif; background: #f4f6fb; color: #0
                     <h1 class="section-title">Danh sách trống</h1>
                     <p class="section-sub">Admin chưa cấu hình file cho sản phẩm này.</p>
                 </div>
+                ${videoHtml}
                 <div class="error-box"><h2>⚠ Đơn ${d.order_code || ''}</h2><p>Product: ${d.product_name || 'N/A'}</p></div>
             `;
             return;
@@ -93,6 +153,9 @@ body { font-family: 'Be Vietnam Pro', sans-serif; background: #f4f6fb; color: #0
                 <div class="prod-name">${d.product_name}</div>
                 <div class="order-code">Mã đơn · ${d.order_code}</div>
             </div>
+
+            ${videoHtml}
+
             ${d.files.map((f, i) => `
                 <div class="file-card">
                     <div class="file-info">
@@ -102,12 +165,12 @@ body { font-family: 'Be Vietnam Pro', sans-serif; background: #f4f6fb; color: #0
                     <a class="file-btn" href="${f.url}" download>⬇ TẢI</a>
                 </div>
             `).join('')}
+
             <div class="note-box">
                 <b>⚠ Lưu ý:</b> Cần cài ESign trước để cài file IPA. Link riêng cho bạn, đừng chia sẻ.
             </div>
         `;
     } catch (e) {
-        console.error('[download] error:', e);
         content.innerHTML = `<div class="error-box"><h2>❌ Lỗi kết nối</h2><p>${e.message}</p></div>`;
     }
 })();
