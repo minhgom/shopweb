@@ -665,19 +665,6 @@ app.get('/api/dl/:token', async (req, res) => {
         else res.destroy();
     }
 });
-        const safe = String(f.n || 'download.ipa').replace(/[^\x20-\x7E]/g, '_').replace(/[\r\n"]/g, '');
-        res.setHeader('Content-Type', f.m || 'application/octet-stream');
-        if (f.s) res.setHeader('Content-Length', String(f.s));
-        res.setHeader('Content-Disposition', `attachment; filename="${safe}"`);
-        res.setHeader('Cache-Control', 'private, no-store');
-        await pipeline(dr.data, res);
-    } catch (e) {
-        console.error('[signed-dl]', e.message);
-        if (!res.headersSent) res.status(502).send('Lỗi tải file');
-        else res.destroy();
-    }
-});
-
 app.get('/api/order-files/:token', (req, res) => {
     const { token } = req.params;
 
