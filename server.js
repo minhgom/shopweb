@@ -650,6 +650,14 @@ app.get('/api/dl/:token', async (req, res) => {
         return res.redirect(f.u);
     }
 
+    // NẾU LÀ FILE GOOGLE DRIVE -> CHUYỂN HƯỚNG THẲNG SANG DRIVE
+    if (f.i) {
+        return res.redirect(`https://drive.google.com/uc?export=download&id=${f.i}`);
+    }
+
+    return res.status(404).send('File không tồn tại');
+});
+
     // NẾU LÀ FILE GOOGLE DRIVE -> LUỒNG CŨ
     try {
         const dr = await drive.files.get({ fileId: f.i, alt: 'media' }, { responseType: 'stream' });
