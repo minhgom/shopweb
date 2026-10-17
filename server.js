@@ -1,4 +1,4 @@
-// QM MOD iOS — Backend v21 (Upstash Redis, Drive Redirect, Mega Support)
+// QM MOD iOS — Backend v21 (Upstash Redis + Drive streaming fix)
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
@@ -8,6 +8,7 @@ const { Resend } = require('resend');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { google } = require('googleapis');
+const { pipeline } = require('stream/promises');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,7 +19,7 @@ const IS_PROD = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
 let COOKIE_SECRET = process.env.COOKIE_SECRET;
 if (!COOKIE_SECRET) {
     COOKIE_SECRET = crypto.randomBytes(32).toString('hex');
-    console.warn('[WARN] Chưa đặt COOKIE_SECRET');
+    console.warn('[WARN] Chưa đặt COOKIE_SECRET (mỗi lần restart sẽ làm mất đăng nhập + link tải cũ)');
 }
 
 // ===== RESEND =====
@@ -66,7 +67,8 @@ if (!HAS_PUBLIC) {
 app.use(express.static(HAS_PUBLIC ? PUBLIC_DIR : __dirname, { dotfiles: 'ignore' }));
 
 // ============================================================
-//  GOOGLE DRIVE
+//  GOOGLE DRIVE — dùng service account để tải file IPA
+//  (file phải được SHARE cho email của service account)
 // ============================================================
 const driveAuth = new google.auth.GoogleAuth({
     keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './drive-service.json',
@@ -74,8 +76,82 @@ const driveAuth = new google.auth.GoogleAuth({
 });
 const drive = google.drive({ version: 'v3', auth: driveAuth });
 
+const driveMetaCache = new Map();
+async function getDriveMeta(fileId, force) {
+    const hit = driveMetaCache.get(fileId);
+    if (!force && hit && hit.exp > Date.now()) return hit.meta;
+    const r = await drive.files.get({
+        fileId,
+        fields: 'id,name,size,mimeType',
+        supportsAllDrives: true
+    });
+    driveMetaCache.set(fileId, { meta: r.data, exp: Date.now() + 10 * 60 * 1000 });
+    return r.data;
+}
+
+function driveErrorInfo(e) {
+    const code = Number(e && (e.code || (e.response && e.response.status))) || 0;
+    if (code === 404) return { status: 404, msg: 'File không tìm thấy trên Drive (sai ID hoặc chưa share cho service account)' };
+    if (code === 403) return { status: 502, msg: 'Drive từ chối quyền truy cập hoặc quá hạn mức tải' };
+    if (code === 416) return { status: 416, msg: 'Range không hợp lệ' };
+    return { status: 502, msg: 'Lỗi tải file' };
+}
+
+function safeFilename(name, fallback) {
+    const s = String(name || fallback || 'download.ipa')
+        .replace(/[^\x20-\x7E]/g, '_')
+        .replace(/[\r\n"\\/]/g, '')
+        .trim();
+    return s || 'download.ipa';
+}
+
+function isMegaUrl(u) {
+    try {
+        const url = new URL(String(u));
+        if (url.protocol !== 'https:') return false;
+        const h = url.hostname.toLowerCase();
+        return h === 'mega.nz' || h === 'mega.co.nz' || h.endsWith('.mega.nz');
+    } catch { return false; }
+}
+
+// Stream file từ Drive về trình duyệt (private, không cần public link)
+async function sendDriveFile(req, res, file) {
+    const meta = await getDriveMeta(file.id);
+    const total = Number(meta.size) || Number(file.size) || null;
+    const filename = safeFilename(file.name || meta.name, 'download.ipa');
+
+    const reqHeaders = {};
+    if (req.headers.range && total) reqHeaders.Range = req.headers.range;
+
+    const dr = await drive.files.get(
+        { fileId: file.id, alt: 'media', supportsAllDrives: true },
+        { responseType: 'stream', headers: reqHeaders }
+    );
+
+    const partial = dr.status === 206;
+    res.status(partial ? 206 : 200);
+    // luôn là octet-stream để trình duyệt LƯU FILE chứ không mở như trang HTML
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Accept-Ranges', 'bytes');
+    if (dr.headers['content-range']) res.setHeader('Content-Range', dr.headers['content-range']);
+    const len = dr.headers['content-length'] || (!partial && total ? String(total) : null);
+    if (len) res.setHeader('Content-Length', String(len));
+    res.setHeader('Content-Disposition',
+        `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    await pipeline(dr.data, res);
+}
+
+function sendDownloadError(res, e, tag) {
+    console.error(`[${tag}]`, e && e.message);
+    if (res.headersSent) return res.destroy();
+    const info = driveErrorInfo(e);
+    res.status(info.status).type('text/plain; charset=utf-8').send(info.msg);
+}
+
 // ============================================================
-//  UPSTASH REDIS
+//  UPSTASH REDIS — storage cho DB
 // ============================================================
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -102,51 +178,69 @@ async function redisSet(key, value) {
     return true;
 }
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 // ============================================================
-//  DB LOAD/SAVE
+//  DB LOAD/SAVE (Upstash)
 // ============================================================
 function emptyDB() {
     return { users: [], products: [], orders: [], nextUserId: 1, nextProductId: 1, nextOrderId: 1 };
 }
 
+// CHỈ trả DB rỗng khi Redis thật sự chưa có dữ liệu.
+// Nếu lỗi mạng/Upstash → throw, để server KHÔNG khởi động rồi ghi đè DB rỗng lên dữ liệu thật.
 async function loadDB() {
-    try {
-        const raw = await redisGet(DB_KEY);
-        if (!raw) {
-            console.warn('[RedisDB] No data, tạo DB mới');
-            return emptyDB();
+    let lastErr;
+    for (let i = 1; i <= 4; i++) {
+        try {
+            const raw = await redisGet(DB_KEY);
+            if (!raw) {
+                console.warn('[RedisDB] Chưa có dữ liệu, tạo DB mới');
+                return emptyDB();
+            }
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            const orders = Array.isArray(parsed.orders) ? parsed.orders : [];
+            const maxOrderId = orders.reduce((m, o) => Math.max(m, Number(o.id) || 0), 0);
+            console.log('[RedisDB] Loaded —', parsed.users?.length || 0, 'users,', parsed.products?.length || 0, 'products');
+            return {
+                users: Array.isArray(parsed.users) ? parsed.users : [],
+                products: Array.isArray(parsed.products) ? parsed.products : [],
+                orders,
+                nextUserId: Number(parsed.nextUserId) || 1,
+                nextProductId: Number(parsed.nextProductId) || 1,
+                nextOrderId: Number(parsed.nextOrderId) || (maxOrderId + 1)
+            };
+        } catch (e) {
+            lastErr = e;
+            console.error(`[RedisDB] Load fail (lần ${i}/4):`, e.message);
+            if (i < 4) await sleep(1500 * i);
         }
-        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        const orders = Array.isArray(parsed.orders) ? parsed.orders : [];
-        const maxOrderId = orders.reduce((m, o) => Math.max(m, Number(o.id) || 0), 0);
-        console.log('[RedisDB] Loaded —', parsed.users?.length || 0, 'users,', parsed.products?.length || 0, 'products');
-        return {
-            users: Array.isArray(parsed.users) ? parsed.users : [],
-            products: Array.isArray(parsed.products) ? parsed.products : [],
-            orders,
-            nextUserId: Number(parsed.nextUserId) || 1,
-            nextProductId: Number(parsed.nextProductId) || 1,
-            nextOrderId: Number(parsed.nextOrderId) || (maxOrderId + 1)
-        };
-    } catch (e) {
-        console.error('[RedisDB] Load fail:', e.message);
-        return emptyDB();
     }
+    throw lastErr;
 }
 
 async function saveDBToStorage(data) {
-    try {
-        await redisSet(DB_KEY, JSON.stringify(data));
-    } catch (e) {
-        console.error('[RedisDB] Save fail:', e.message);
+    const body = JSON.stringify(data);
+    for (let i = 1; i <= 3; i++) {
+        try {
+            await redisSet(DB_KEY, body);
+            return true;
+        } catch (e) {
+            console.error(`[RedisDB] Save fail (lần ${i}/3):`, e.message);
+            if (i < 3) await sleep(800 * i);
+        }
     }
+    return false;
 }
 
+// ===== DB + AUTO SAVE =====
 let db = emptyDB();
+let dbReady = false;
 let saveInFlight = false;
 let saveQueued = false;
 
 async function saveDB() {
+    if (!dbReady) return;
     if (saveInFlight) { saveQueued = true; return; }
     saveInFlight = true;
     saveQueued = false;
@@ -158,18 +252,19 @@ async function saveDB() {
     }
 }
 
+// Flush khi tắt
 process.on('SIGTERM', async () => {
     console.log('[DB] SIGTERM, flushing...');
-    await saveDBToStorage(db);
+    if (dbReady) await saveDBToStorage(db);
     process.exit(0);
 });
 process.on('SIGINT', async () => {
-    await saveDBToStorage(db);
+    if (dbReady) await saveDBToStorage(db);
     process.exit(0);
 });
 
 // ============================================================
-//  PASSWORD & HELPERS
+//  PASSWORD
 // ============================================================
 function hashPassword(password) {
     const salt = crypto.randomBytes(16).toString('hex');
@@ -185,10 +280,10 @@ function verifyPassword(password, stored) {
     } catch { return false; }
 }
 
+// ===== HELPERS =====
 function validateEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 function sanitize(s) { return typeof s === 'string' ? s.replace(/[<>]/g, '').trim().slice(0, 500) : ''; }
 function validPassword(p) { return typeof p === 'string' && p.length >= 6 && p.length <= 200; }
-
 function extractDriveId(url) {
     if (!url) return null;
     let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]{20,})/);
@@ -196,7 +291,6 @@ function extractDriveId(url) {
     m = url.match(/[?&]id=([a-zA-Z0-9_-]{20,})/);
     return m ? m[1] : null;
 }
-
 function safeEqual(a, b) {
     const x = Buffer.from(String(a));
     const y = Buffer.from(String(b));
@@ -204,21 +298,22 @@ function safeEqual(a, b) {
 }
 
 // ============================================================
-//  SIGNED DOWNLOAD TOKEN (3 Ngày)
+//  SIGNED DOWNLOAD TOKEN
+//  i = Drive file id, u = link ngoài (MEGA), n = tên, l = nhãn, s = size, m = mime
 // ============================================================
 function makeDownloadToken(orderCode, files, productName, ttlMs) {
     const payload = {
         o: orderCode,
         n: productName || '',
         f: (files || []).map(f => ({
-            i: f.file_id,
+            i: f.file_id || null,
+            u: f.url || null,
             n: f.name || 'file.ipa',
             l: f.label || 'File',
             s: f.size || null,
-            m: f.mime || 'application/octet-stream',
-            u: f.url || null
+            m: f.mime || 'application/octet-stream'
         })),
-        e: Date.now() + (ttlMs || 3 * 24 * 3600 * 1000)
+        e: Date.now() + (ttlMs || 7 * 24 * 3600 * 1000)
     };
     const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
     const sig = crypto.createHmac('sha256', COOKIE_SECRET).update(body).digest('base64url');
@@ -256,7 +351,7 @@ const COOKIE_OPTS = {
     secure: CROSS_SITE ? true : IS_PROD,
     sameSite: CROSS_SITE ? 'none' : 'lax',
     signed: true,
-    maxAge: 3 * 24 * 3600 * 1000,
+    maxAge: 7 * 24 * 3600 * 1000,
     path: '/'
 };
 const CLEAR_OPTS = {
@@ -267,7 +362,7 @@ const CLEAR_OPTS = {
 };
 
 function signToken(kind, id) {
-    const exp = Date.now() + 3 * 24 * 3600 * 1000;
+    const exp = Date.now() + 7 * 24 * 3600 * 1000;
     const body = `${kind}.${id}.${exp}`;
     const sig = crypto.createHmac('sha256', COOKIE_SECRET).update(body).digest('base64url');
     return `${body}.${sig}`;
@@ -293,7 +388,7 @@ function readId(req, name) {
 }
 
 // ============================================================
-//  ENSURE ADMIN & MIDDLEWARE
+//  ENSURE ADMIN
 // ============================================================
 function ensureAdmin() {
     const envPass = process.env.ADMIN_PASSWORD;
@@ -319,6 +414,7 @@ function ensureAdmin() {
     }
 }
 
+// ===== MIDDLEWARE =====
 function requireLogin(req, res, next) {
     const id = readId(req, 'uid');
     if (!id) return res.status(401).json({ error: 'Chưa đăng nhập' });
@@ -522,7 +618,7 @@ app.post('/api/checkout', (req, res) => {
             product_id,
             order_code: orderCode,
             download_token: downloadToken,
-            token_exp: Date.now() + 3 * 24 * 3600 * 1000,
+            token_exp: Date.now() + 7 * 24 * 3600 * 1000,
             downloads: 0,
             max_dl: 10,
             amount,
@@ -588,7 +684,7 @@ app.post('/api/sepay/webhook', async (req, res) => {
             order.order_code,
             (product && product.files) || [],
             product ? product.name : '',
-            3 * 24 * 3600 * 1000
+            7 * 24 * 3600 * 1000
         );
         order.signed_token = signedToken;
         saveDB();
@@ -637,25 +733,29 @@ app.get('/api/dl-info/:token', (req, res) => {
 });
 
 app.get('/api/dl/:token', async (req, res) => {
-    const { token } = req.params;
-    const payload = verifyDownloadToken(token);
-    if (!payload) return res.status(410).send('Link hết hạn hoặc không hợp lệ');
+    const plain = (code, msg) => res.status(code).type('text/plain; charset=utf-8').send(msg);
+
+    const payload = verifyDownloadToken(req.params.token);
+    if (!payload) return plain(410, 'Link hết hạn hoặc không hợp lệ');
 
     const idx = parseInt(req.query.i || 0);
-    const f = payload.f && payload.f[idx];
-    if (!f || !f.i) return res.status(404).send('File không tồn tại');
+    const f = Number.isInteger(idx) && idx >= 0 && payload.f && payload.f[idx];
+    if (!f) return plain(404, 'File không tồn tại');
 
-    // MEGA
-    if (f.u && f.u.includes('mega.nz')) {
+    // File host ngoài (MEGA) → chuyển hướng
+    if (f.u) {
+        if (!isMegaUrl(f.u)) return plain(404, 'Link không hợp lệ');
         return res.redirect(f.u);
     }
 
-    // DRIVE (Redirect sang link tải của Drive)
-    if (f.i) {
-        return res.redirect(`https://drive.google.com/uc?export=download&id=${f.i}`);
+    // File Google Drive → STREAM QUA SERVER (service account).
+    // KHÔNG redirect sang drive.google.com/uc: file private nên Google trả trang HTML đăng nhập → trình duyệt lưu thành .htm
+    if (!f.i) return plain(404, 'File không tồn tại');
+    try {
+        await sendDriveFile(req, res, { id: f.i, name: f.n, mime: f.m, size: f.s });
+    } catch (e) {
+        sendDownloadError(res, e, 'signed-dl');
     }
-
-    return res.status(404).send('File không tồn tại');
 });
 
 app.get('/api/order-files/:token', (req, res) => {
@@ -702,32 +802,45 @@ app.get('/api/order-files/:token', (req, res) => {
 });
 
 app.get('/api/file/:token/:index', async (req, res) => {
-    const { token, index } = req.params;
-    if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
-    const idx = parseInt(index);
-    if (isNaN(idx) || idx < 0) return res.status(400).json({ error: 'Index sai' });
+    const plain = (code, msg) => res.status(code).type('text/plain; charset=utf-8').send(msg);
+    try {
+        const { token, index } = req.params;
+        if (!token || token.length !== 64) return plain(400, 'Token sai');
+        const idx = parseInt(index);
+        if (isNaN(idx) || idx < 0) return plain(400, 'Index sai');
 
-    const o = db.orders.find(x => x.download_token === token);
-    if (!o) return res.status(404).json({ error: 'Link không tồn tại' });
-    if (o.status !== 'delivered') return res.status(403).json({ error: 'Chưa thanh toán' });
-    if (o.token_exp && o.token_exp <= Date.now()) return res.status(410).json({ error: 'Link hết hạn' });
-    if (o.max_dl && o.downloads >= o.max_dl) return res.status(429).json({ error: 'Hết lượt tải' });
+        const o = db.orders.find(x => x.download_token === token);
+        if (!o) return plain(404, 'Link không tồn tại');
+        if (o.status !== 'delivered') return plain(403, 'Chưa thanh toán');
+        if (o.token_exp && o.token_exp <= Date.now()) return plain(410, 'Link hết hạn');
+        if (o.max_dl && o.downloads >= o.max_dl) return plain(429, 'Hết lượt tải');
 
-    const p = db.products.find(x => x.id === o.product_id);
-    const f = (p && p.files && p.files[idx]);
-    if (!f || !f.file_id) return res.status(404).json({ error: 'File không tồn tại' });
+        const p = db.products.find(x => x.id === o.product_id);
+        const f = (p && p.files && p.files[idx]);
+        if (!f) return plain(404, 'File không tồn tại');
 
-    o.downloads = (o.downloads || 0) + 1;
-    saveDB();
+        // chỉ tính lượt tải với request đầu (không tính các request Range tiếp theo)
+        const isContinuation = req.headers.range && !/^bytes=0-/.test(req.headers.range);
+        if (!isContinuation) {
+            o.downloads = (o.downloads || 0) + 1;
+            saveDB();
+        }
 
-    if (f.url && f.url.includes('mega.nz')) {
-        return res.redirect(f.url);
+        if (f.url) {
+            if (!isMegaUrl(f.url)) return plain(404, 'Link không hợp lệ');
+            return res.redirect(f.url);
+        }
+        if (!f.file_id) return plain(404, 'File không tồn tại');
+
+        await sendDriveFile(req, res, {
+            id: f.file_id,
+            name: f.name || `${p.name}_${idx + 1}.ipa`,
+            mime: f.mime,
+            size: f.size
+        });
+    } catch (e) {
+        sendDownloadError(res, e, 'proxy');
     }
-    if (f.file_id) {
-        return res.redirect(`https://drive.google.com/uc?export=download&id=${f.file_id}`);
-    }
-
-    return res.status(404).json({ error: 'File không tồn tại' });
 });
 
 app.get('/api/file/:token', (req, res) => {
@@ -749,7 +862,7 @@ app.get('/api/my-downloads', requireLogin, (req, res) => {
                     o.order_code,
                     (p && p.files) || [],
                     p ? p.name : '',
-                    3 * 24 * 3600 * 1000
+                    7 * 24 * 3600 * 1000
                 );
             }
             return {
@@ -757,4 +870,246 @@ app.get('/api/my-downloads', requireLogin, (req, res) => {
                 paid_at: o.paid_at, download_token: freshToken,
                 amount: o.amount, created_at: o.created_at,
                 product_name: p ? p.name : '',
-                game: p ?
+                game: p ? p.game : '',
+                video_url: p ? p.video_url : ''
+            };
+        });
+    res.json({ downloads: rows });
+});
+
+// ============================================================
+//  ADMIN
+// ============================================================
+app.post('/api/admin/login', (req, res) => {
+    try {
+        if (!rateLimit('admin:' + req.ip, 10, 15 * 60 * 1000)) {
+            return res.status(429).json({ error: 'Thử quá nhiều lần, đợi 15 phút' });
+        }
+        const username = sanitize(req.body.username);
+        const password = req.body.password;
+
+        if (!username || typeof password !== 'string' || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
+
+        const a = db.users.find(x => x.username === username && x.is_admin);
+        if (!a || !verifyPassword(password, a.password_hash)) {
+            return res.status(401).json({ error: 'Sai tài khoản hoặc mật khẩu' });
+        }
+
+        res.cookie('isAdmin', a.id, COOKIE_OPTS);
+        res.cookie('uid', a.id, COOKIE_OPTS);
+        res.json({
+            success: true,
+            token: signToken('u', a.id),
+            admin_token: signToken('a', a.id),
+            user: { id: a.id, username: a.username, email: a.email, is_admin: true }
+        });
+    } catch (e) {
+        console.error('[admin-login]', e);
+        res.status(500).json({ error: 'Lỗi: ' + e.message });
+    }
+});
+
+app.post('/api/admin/upload-product', requireAdmin, (req, res) => {
+    try {
+        const name = sanitize(req.body.name);
+        const game = sanitize(req.body.game);
+        const price = parseInt(req.body.price);
+        const video_url = sanitize(req.body.video_url || '');
+        const rawFiles = Array.isArray(req.body.files) ? req.body.files : [];
+
+        if (!name || !game || !price) return res.status(400).json({ error: 'Thiếu thông tin' });
+        if (!rawFiles.length) return res.status(400).json({ error: 'Cần ít nhất 1 file' });
+
+        const files = [];
+        for (const f of rawFiles) {
+            const rawUrl = String(f.url || '').trim().slice(0, 1000);
+            const base = {
+                label: sanitize(f.label || 'File'),
+                name: sanitize(f.name || `${name}_${files.length + 1}.ipa`),
+                mime: sanitize(f.mime || 'application/octet-stream'),
+                size: parseInt(f.size) || null
+            };
+
+            if (isMegaUrl(rawUrl)) {
+                files.push({ ...base, file_id: null, url: rawUrl });
+                continue;
+            }
+
+            const fileId = extractDriveId(rawUrl);
+            if (!fileId) return res.status(400).json({ error: `Link Drive/MEGA sai: ${rawUrl || '(trống)'}` });
+            files.push({ ...base, file_id: fileId });
+        }
+
+        const product = {
+            id: db.nextProductId++,
+            name, game, price, files, video_url,
+            created_at: new Date().toISOString()
+        };
+        db.products.push(product);
+        saveDB();
+
+        res.json({ success: true, id: product.id, file_count: files.length });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Lỗi: ' + e.message });
+    }
+});
+
+app.get('/api/admin/products', requireAdmin, (req, res) => {
+    res.json(db.products.slice().reverse().map(p => ({
+        id: p.id, name: p.name, game: p.game, price: p.price,
+        video_url: p.video_url, created_at: p.created_at,
+        file_count: (p.files || []).length, files: p.files || []
+    })));
+});
+
+// Kiểm tra từng file Drive có tải được không + cho biết email service account cần share
+app.get('/api/admin/check-drive', requireAdmin, async (req, res) => {
+    try {
+        let serviceAccount = null;
+        try { serviceAccount = (await driveAuth.getCredentials()).client_email || null; } catch {}
+
+        const out = [];
+        for (const p of db.products) {
+            for (const [i, f] of (p.files || []).entries()) {
+                const row = { product_id: p.id, product: p.name, index: i, label: f.label };
+                if (f.url) {
+                    out.push({ ...row, type: 'external', ok: isMegaUrl(f.url) });
+                    continue;
+                }
+                try {
+                    const m = await getDriveMeta(f.file_id, true);
+                    out.push({ ...row, type: 'drive', ok: true, drive_name: m.name, size: Number(m.size) || null });
+                } catch (e) {
+                    out.push({ ...row, type: 'drive', ok: false, error: driveErrorInfo(e).msg });
+                }
+            }
+        }
+        res.json({
+            share_drive_files_with: serviceAccount,
+            all_ok: out.every(x => x.ok),
+            files: out
+        });
+    } catch (e) {
+        res.status(500).json({ error: 'Lỗi: ' + e.message });
+    }
+});
+
+app.get('/api/admin/orders', requireAdmin, (req, res) => {
+    res.json(db.orders.slice().reverse().slice(0, 200).map(o => {
+        const p = db.products.find(x => x.id === o.product_id);
+        return {
+            id: o.id, order_code: o.order_code, user_email: o.customer_email,
+            status: o.status, amount: o.amount, created_at: o.created_at,
+            download_token: o.download_token,
+            product_name: p ? p.name : '',
+            game: p ? p.game : ''
+        };
+    }));
+});
+
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+    res.json(db.users.slice().reverse().map(u => ({
+        id: u.id, username: u.username, email: u.email,
+        is_banned: u.is_banned, is_admin: u.is_admin, created_at: u.created_at
+    })));
+});
+
+app.post('/api/admin/delete-product/:id', requireAdmin, (req, res) => {
+    const id = parseInt(req.params.id);
+    db.products = db.products.filter(p => p.id !== id);
+    saveDB();
+    res.json({ success: true });
+});
+
+app.post('/api/admin/confirm-order/:code', requireAdmin, async (req, res) => {
+    try {
+        const o = db.orders.find(x => x.order_code === req.params.code);
+        if (!o) return res.status(404).json({ error: 'Không tồn tại' });
+        if (o.status === 'delivered') return res.json({ success: true, already: true });
+
+        o.status = 'delivered';
+        o.paid_at = new Date().toISOString();
+
+        const p = db.products.find(x => x.id === o.product_id);
+        const signedToken = makeDownloadToken(
+            o.order_code,
+            (p && p.files) || [],
+            p ? p.name : '',
+            7 * 24 * 3600 * 1000
+        );
+        o.signed_token = signedToken;
+        saveDB();
+
+        const link = `${BASE_URL}/download.html?t=${signedToken}`;
+        if (resend) {
+            try {
+                await resend.emails.send({
+                    from: FROM_EMAIL, to: o.customer_email,
+                    subject: `Đơn ${o.order_code} — Link tải ${p ? p.name : ''}`,
+                    html: `<p>Đơn <b>${o.order_code}</b> đã thanh toán.</p><p><a href="${link}">MỞ TRANG TẢI</a></p>`
+                });
+            } catch (e) { console.error('mail fail:', e.message); }
+        }
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: 'Lỗi: ' + e.message });
+    }
+});
+
+app.post('/api/admin/reject-order/:code', requireAdmin, (req, res) => {
+    const o = db.orders.find(x => x.order_code === req.params.code);
+    if (o) { o.status = 'rejected'; saveDB(); }
+    res.json({ success: true });
+});
+
+app.post('/api/admin/delete-order/:code', requireAdmin, (req, res) => {
+    db.orders = db.orders.filter(o => o.order_code !== req.params.code);
+    saveDB();
+    res.json({ success: true });
+});
+
+app.post('/api/admin/ban-user/:id', requireAdmin, (req, res) => {
+    const u = db.users.find(x => x.id === parseInt(req.params.id));
+    if (u && !u.is_admin) { u.is_banned = 1; saveDB(); }
+    res.json({ success: true });
+});
+
+app.post('/api/admin/unban-user/:id', requireAdmin, (req, res) => {
+    const u = db.users.find(x => x.id === parseInt(req.params.id));
+    if (u) { u.is_banned = 0; saveDB(); }
+    res.json({ success: true });
+});
+
+// ============================================================
+//  404 + ERROR
+// ============================================================
+app.use((req, res) => res.status(404).send('Không tìm thấy'));
+app.use((err, req, res, next) => {
+    console.error('[FATAL]', err);
+    res.status(500).json({ error: 'Lỗi server' });
+});
+
+// ============================================================
+//  BOOT
+// ============================================================
+(async () => {
+    console.log('[BOOT] Loading DB from Upstash...');
+    try {
+        db = await loadDB();
+    } catch (e) {
+        if (process.env.ALLOW_EMPTY_DB === '1') {
+            console.error('[BOOT] Không đọc được DB, ALLOW_EMPTY_DB=1 nên chạy với DB rỗng');
+            db = emptyDB();
+        } else {
+            console.error('[BOOT] Không đọc được DB từ Upstash → DỪNG để không ghi đè dữ liệu thật:', e.message);
+            process.exit(1);
+        }
+    }
+    dbReady = true;
+    console.log('[DB] ready —', db.users.length, 'users,', db.products.length, 'products,', db.orders.length, 'orders');
+    ensureAdmin();
+
+    app.listen(PORT, () => console.log(`[+] http://localhost:${PORT}`));
+})();
