@@ -1,4 +1,4 @@
-// QM MOD iOS — Backend v20 (Upstash Redis persistence)
+// QM MOD iOS — Backend v21 (Upstash Redis, Drive Redirect, Mega Support)
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
@@ -8,7 +8,6 @@ const { Resend } = require('resend');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { google } = require('googleapis');
-const { pipeline } = require('stream/promises');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -67,7 +66,7 @@ if (!HAS_PUBLIC) {
 app.use(express.static(HAS_PUBLIC ? PUBLIC_DIR : __dirname, { dotfiles: 'ignore' }));
 
 // ============================================================
-//  GOOGLE DRIVE — chỉ dùng để tải file IPA (không lưu DB)
+//  GOOGLE DRIVE
 // ============================================================
 const driveAuth = new google.auth.GoogleAuth({
     keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './drive-service.json',
@@ -76,7 +75,7 @@ const driveAuth = new google.auth.GoogleAuth({
 const drive = google.drive({ version: 'v3', auth: driveAuth });
 
 // ============================================================
-//  UPSTASH REDIS — storage cho DB
+//  UPSTASH REDIS
 // ============================================================
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -104,7 +103,7 @@ async function redisSet(key, value) {
 }
 
 // ============================================================
-//  DB LOAD/SAVE (Upstash)
+//  DB LOAD/SAVE
 // ============================================================
 function emptyDB() {
     return { users: [], products: [], orders: [], nextUserId: 1, nextProductId: 1, nextOrderId: 1 };
@@ -143,7 +142,6 @@ async function saveDBToStorage(data) {
     }
 }
 
-// ===== DB + AUTO SAVE =====
 let db = emptyDB();
 let saveInFlight = false;
 let saveQueued = false;
@@ -160,7 +158,6 @@ async function saveDB() {
     }
 }
 
-// Flush khi tắt
 process.on('SIGTERM', async () => {
     console.log('[DB] SIGTERM, flushing...');
     await saveDBToStorage(db);
@@ -172,7 +169,7 @@ process.on('SIGINT', async () => {
 });
 
 // ============================================================
-//  PASSWORD
+//  PASSWORD & HELPERS
 // ============================================================
 function hashPassword(password) {
     const salt = crypto.randomBytes(16).toString('hex');
@@ -188,10 +185,10 @@ function verifyPassword(password, stored) {
     } catch { return false; }
 }
 
-// ===== HELPERS =====
 function validateEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 function sanitize(s) { return typeof s === 'string' ? s.replace(/[<>]/g, '').trim().slice(0, 500) : ''; }
 function validPassword(p) { return typeof p === 'string' && p.length >= 6 && p.length <= 200; }
+
 function extractDriveId(url) {
     if (!url) return null;
     let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]{20,})/);
@@ -199,13 +196,15 @@ function extractDriveId(url) {
     m = url.match(/[?&]id=([a-zA-Z0-9_-]{20,})/);
     return m ? m[1] : null;
 }
+
 function safeEqual(a, b) {
     const x = Buffer.from(String(a));
     const y = Buffer.from(String(b));
     return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
+
 // ============================================================
-//  SIGNED DOWNLOAD TOKEN
+//  SIGNED DOWNLOAD TOKEN (3 Ngày)
 // ============================================================
 function makeDownloadToken(orderCode, files, productName, ttlMs) {
     const payload = {
@@ -216,9 +215,10 @@ function makeDownloadToken(orderCode, files, productName, ttlMs) {
             n: f.name || 'file.ipa',
             l: f.label || 'File',
             s: f.size || null,
-            m: f.mime || 'application/octet-stream'
+            m: f.mime || 'application/octet-stream',
+            u: f.url || null
         })),
-        e: Date.now() + (ttlMs || 7 * 24 * 3600 * 1000)
+        e: Date.now() + (ttlMs || 3 * 24 * 3600 * 1000)
     };
     const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
     const sig = crypto.createHmac('sha256', COOKIE_SECRET).update(body).digest('base64url');
@@ -256,7 +256,7 @@ const COOKIE_OPTS = {
     secure: CROSS_SITE ? true : IS_PROD,
     sameSite: CROSS_SITE ? 'none' : 'lax',
     signed: true,
-    maxAge: 7 * 24 * 3600 * 1000,
+    maxAge: 3 * 24 * 3600 * 1000,
     path: '/'
 };
 const CLEAR_OPTS = {
@@ -267,7 +267,7 @@ const CLEAR_OPTS = {
 };
 
 function signToken(kind, id) {
-    const exp = Date.now() + 7 * 24 * 3600 * 1000;
+    const exp = Date.now() + 3 * 24 * 3600 * 1000;
     const body = `${kind}.${id}.${exp}`;
     const sig = crypto.createHmac('sha256', COOKIE_SECRET).update(body).digest('base64url');
     return `${body}.${sig}`;
@@ -293,7 +293,7 @@ function readId(req, name) {
 }
 
 // ============================================================
-//  ENSURE ADMIN
+//  ENSURE ADMIN & MIDDLEWARE
 // ============================================================
 function ensureAdmin() {
     const envPass = process.env.ADMIN_PASSWORD;
@@ -319,7 +319,6 @@ function ensureAdmin() {
     }
 }
 
-// ===== MIDDLEWARE =====
 function requireLogin(req, res, next) {
     const id = readId(req, 'uid');
     if (!id) return res.status(401).json({ error: 'Chưa đăng nhập' });
@@ -523,7 +522,7 @@ app.post('/api/checkout', (req, res) => {
             product_id,
             order_code: orderCode,
             download_token: downloadToken,
-            token_exp: Date.now() + 7 * 24 * 3600 * 1000,
+            token_exp: Date.now() + 3 * 24 * 3600 * 1000,
             downloads: 0,
             max_dl: 10,
             amount,
@@ -557,6 +556,7 @@ app.get('/api/order/:code/status', (req, res) => {
         delivered: o.status === 'delivered', paid_at: o.paid_at
     });
 });
+
 // ============================================================
 //  SEPAY WEBHOOK
 // ============================================================
@@ -588,7 +588,7 @@ app.post('/api/sepay/webhook', async (req, res) => {
             order.order_code,
             (product && product.files) || [],
             product ? product.name : '',
-            7 * 24 * 3600 * 1000
+            3 * 24 * 3600 * 1000
         );
         order.signed_token = signedToken;
         saveDB();
@@ -645,12 +645,12 @@ app.get('/api/dl/:token', async (req, res) => {
     const f = payload.f && payload.f[idx];
     if (!f || !f.i) return res.status(404).send('File không tồn tại');
 
-    // NẾU LÀ FILE MEGA -> CHUYỂN HƯỚNG
+    // MEGA
     if (f.u && f.u.includes('mega.nz')) {
         return res.redirect(f.u);
     }
 
-    // NẾU LÀ FILE GOOGLE DRIVE -> CHUYỂN HƯỚNG THẲNG SANG DRIVE
+    // DRIVE (Redirect sang link tải của Drive)
     if (f.i) {
         return res.redirect(`https://drive.google.com/uc?export=download&id=${f.i}`);
     }
@@ -658,21 +658,6 @@ app.get('/api/dl/:token', async (req, res) => {
     return res.status(404).send('File không tồn tại');
 });
 
-    // NẾU LÀ FILE GOOGLE DRIVE -> LUỒNG CŨ
-    try {
-        const dr = await drive.files.get({ fileId: f.i, alt: 'media' }, { responseType: 'stream' });
-        const safe = String(f.n || 'download.ipa').replace(/[^\x20-\x7E]/g, '_').replace(/[\r\n"]/g, '');
-        res.setHeader('Content-Type', f.m || 'application/octet-stream');
-        if (f.s) res.setHeader('Content-Length', String(f.s));
-        res.setHeader('Content-Disposition', `attachment; filename="${safe}"`);
-        res.setHeader('Cache-Control', 'private, no-store');
-        await pipeline(dr.data, res);
-    } catch (e) {
-        console.error('[signed-dl]', e.message);
-        if (!res.headersSent) res.status(502).send('Lỗi tải file');
-        else res.destroy();
-    }
-});
 app.get('/api/order-files/:token', (req, res) => {
     const { token } = req.params;
 
@@ -717,38 +702,32 @@ app.get('/api/order-files/:token', (req, res) => {
 });
 
 app.get('/api/file/:token/:index', async (req, res) => {
-    try {
-        const { token, index } = req.params;
-        if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
-        const idx = parseInt(index);
-        if (isNaN(idx) || idx < 0) return res.status(400).json({ error: 'Index sai' });
+    const { token, index } = req.params;
+    if (!token || token.length !== 64) return res.status(400).json({ error: 'Token sai' });
+    const idx = parseInt(index);
+    if (isNaN(idx) || idx < 0) return res.status(400).json({ error: 'Index sai' });
 
-        const o = db.orders.find(x => x.download_token === token);
-        if (!o) return res.status(404).json({ error: 'Link không tồn tại' });
-        if (o.status !== 'delivered') return res.status(403).json({ error: 'Chưa thanh toán' });
-        if (o.token_exp && o.token_exp <= Date.now()) return res.status(410).json({ error: 'Link hết hạn' });
-        if (o.max_dl && o.downloads >= o.max_dl) return res.status(429).json({ error: 'Hết lượt tải' });
+    const o = db.orders.find(x => x.download_token === token);
+    if (!o) return res.status(404).json({ error: 'Link không tồn tại' });
+    if (o.status !== 'delivered') return res.status(403).json({ error: 'Chưa thanh toán' });
+    if (o.token_exp && o.token_exp <= Date.now()) return res.status(410).json({ error: 'Link hết hạn' });
+    if (o.max_dl && o.downloads >= o.max_dl) return res.status(429).json({ error: 'Hết lượt tải' });
 
-        const p = db.products.find(x => x.id === o.product_id);
-        const f = (p && p.files && p.files[idx]);
-        if (!f || !f.file_id) return res.status(404).json({ error: 'File không tồn tại' });
+    const p = db.products.find(x => x.id === o.product_id);
+    const f = (p && p.files && p.files[idx]);
+    if (!f || !f.file_id) return res.status(404).json({ error: 'File không tồn tại' });
 
-        o.downloads = (o.downloads || 0) + 1;
-        saveDB();
+    o.downloads = (o.downloads || 0) + 1;
+    saveDB();
 
-        const dr = await drive.files.get({ fileId: f.file_id, alt: 'media' }, { responseType: 'stream' });
-        const safe = String(f.name || `${p.name}_${idx + 1}.ipa`).replace(/[^\x20-\x7E]/g, '_').replace(/[\r\n"]/g, '');
-
-        res.setHeader('Content-Type', f.mime || 'application/octet-stream');
-        if (f.size) res.setHeader('Content-Length', String(f.size));
-        res.setHeader('Content-Disposition', `attachment; filename="${safe}"`);
-        res.setHeader('Cache-Control', 'private, no-store');
-        await pipeline(dr.data, res);
-    } catch (e) {
-        console.error('[proxy]', e.message);
-        if (!res.headersSent) res.status(502).json({ error: 'Lỗi tải file' });
-        else res.destroy();
+    if (f.url && f.url.includes('mega.nz')) {
+        return res.redirect(f.url);
     }
+    if (f.file_id) {
+        return res.redirect(`https://drive.google.com/uc?export=download&id=${f.file_id}`);
+    }
+
+    return res.status(404).json({ error: 'File không tồn tại' });
 });
 
 app.get('/api/file/:token', (req, res) => {
@@ -770,7 +749,7 @@ app.get('/api/my-downloads', requireLogin, (req, res) => {
                     o.order_code,
                     (p && p.files) || [],
                     p ? p.name : '',
-                    7 * 24 * 3600 * 1000
+                    3 * 24 * 3600 * 1000
                 );
             }
             return {
@@ -778,196 +757,4 @@ app.get('/api/my-downloads', requireLogin, (req, res) => {
                 paid_at: o.paid_at, download_token: freshToken,
                 amount: o.amount, created_at: o.created_at,
                 product_name: p ? p.name : '',
-                game: p ? p.game : '',
-                video_url: p ? p.video_url : ''
-            };
-        });
-    res.json({ downloads: rows });
-});
-
-// ============================================================
-//  ADMIN
-// ============================================================
-app.post('/api/admin/login', (req, res) => {
-    try {
-        if (!rateLimit('admin:' + req.ip, 10, 15 * 60 * 1000)) {
-            return res.status(429).json({ error: 'Thử quá nhiều lần, đợi 15 phút' });
-        }
-        const username = sanitize(req.body.username);
-        const password = req.body.password;
-
-        if (!username || typeof password !== 'string' || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
-
-        const a = db.users.find(x => x.username === username && x.is_admin);
-        if (!a || !verifyPassword(password, a.password_hash)) {
-            return res.status(401).json({ error: 'Sai tài khoản hoặc mật khẩu' });
-        }
-
-        res.cookie('isAdmin', a.id, COOKIE_OPTS);
-        res.cookie('uid', a.id, COOKIE_OPTS);
-        res.json({
-            success: true,
-            token: signToken('u', a.id),
-            admin_token: signToken('a', a.id),
-            user: { id: a.id, username: a.username, email: a.email, is_admin: true }
-        });
-    } catch (e) {
-        console.error('[admin-login]', e);
-        res.status(500).json({ error: 'Lỗi: ' + e.message });
-    }
-});
-
-app.post('/api/admin/upload-product', requireAdmin, (req, res) => {
-    try {
-        const name = sanitize(req.body.name);
-        const game = sanitize(req.body.game);
-        const price = parseInt(req.body.price);
-        const video_url = sanitize(req.body.video_url || '');
-        const rawFiles = Array.isArray(req.body.files) ? req.body.files : [];
-
-        if (!name || !game || !price) return res.status(400).json({ error: 'Thiếu thông tin' });
-        if (!rawFiles.length) return res.status(400).json({ error: 'Cần ít nhất 1 file' });
-
-        const files = [];
-        for (const f of rawFiles) {
-            const fileId = extractDriveId(f.url || '');
-            if (!fileId) return res.status(400).json({ error: `Link Drive sai: ${f.url || '(trống)'}` });
-            files.push({
-                label: sanitize(f.label || 'File'),
-                file_id: fileId,
-                name: sanitize(f.name || `${name}_${files.length + 1}.ipa`),
-                mime: sanitize(f.mime || 'application/octet-stream'),
-                size: parseInt(f.size) || null
-            });
-        }
-
-        const product = {
-            id: db.nextProductId++,
-            name, game, price, files, video_url,
-            created_at: new Date().toISOString()
-        };
-        db.products.push(product);
-        saveDB();
-
-        res.json({ success: true, id: product.id, file_count: files.length });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'Lỗi: ' + e.message });
-    }
-});
-
-app.get('/api/admin/products', requireAdmin, (req, res) => {
-    res.json(db.products.slice().reverse().map(p => ({
-        id: p.id, name: p.name, game: p.game, price: p.price,
-        video_url: p.video_url, created_at: p.created_at,
-        file_count: (p.files || []).length, files: p.files || []
-    })));
-});
-
-app.get('/api/admin/orders', requireAdmin, (req, res) => {
-    res.json(db.orders.slice().reverse().slice(0, 200).map(o => {
-        const p = db.products.find(x => x.id === o.product_id);
-        return {
-            id: o.id, order_code: o.order_code, user_email: o.customer_email,
-            status: o.status, amount: o.amount, created_at: o.created_at,
-            download_token: o.download_token,
-            product_name: p ? p.name : '',
-            game: p ? p.game : ''
-        };
-    }));
-});
-
-app.get('/api/admin/users', requireAdmin, (req, res) => {
-    res.json(db.users.slice().reverse().map(u => ({
-        id: u.id, username: u.username, email: u.email,
-        is_banned: u.is_banned, is_admin: u.is_admin, created_at: u.created_at
-    })));
-});
-
-app.post('/api/admin/delete-product/:id', requireAdmin, (req, res) => {
-    const id = parseInt(req.params.id);
-    db.products = db.products.filter(p => p.id !== id);
-    saveDB();
-    res.json({ success: true });
-});
-
-app.post('/api/admin/confirm-order/:code', requireAdmin, async (req, res) => {
-    try {
-        const o = db.orders.find(x => x.order_code === req.params.code);
-        if (!o) return res.status(404).json({ error: 'Không tồn tại' });
-        if (o.status === 'delivered') return res.json({ success: true, already: true });
-
-        o.status = 'delivered';
-        o.paid_at = new Date().toISOString();
-
-        const p = db.products.find(x => x.id === o.product_id);
-        const signedToken = makeDownloadToken(
-            o.order_code,
-            (p && p.files) || [],
-            p ? p.name : '',
-            7 * 24 * 3600 * 1000
-        );
-        o.signed_token = signedToken;
-        saveDB();
-
-        const link = `${BASE_URL}/download.html?t=${signedToken}`;
-        if (resend) {
-            try {
-                await resend.emails.send({
-                    from: FROM_EMAIL, to: o.customer_email,
-                    subject: `Đơn ${o.order_code} — Link tải ${p ? p.name : ''}`,
-                    html: `<p>Đơn <b>${o.order_code}</b> đã thanh toán.</p><p><a href="${link}">MỞ TRANG TẢI</a></p>`
-                });
-            } catch (e) { console.error('mail fail:', e.message); }
-        }
-
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Lỗi: ' + e.message });
-    }
-});
-
-app.post('/api/admin/reject-order/:code', requireAdmin, (req, res) => {
-    const o = db.orders.find(x => x.order_code === req.params.code);
-    if (o) { o.status = 'rejected'; saveDB(); }
-    res.json({ success: true });
-});
-
-app.post('/api/admin/delete-order/:code', requireAdmin, (req, res) => {
-    db.orders = db.orders.filter(o => o.order_code !== req.params.code);
-    saveDB();
-    res.json({ success: true });
-});
-
-app.post('/api/admin/ban-user/:id', requireAdmin, (req, res) => {
-    const u = db.users.find(x => x.id === parseInt(req.params.id));
-    if (u && !u.is_admin) { u.is_banned = 1; saveDB(); }
-    res.json({ success: true });
-});
-
-app.post('/api/admin/unban-user/:id', requireAdmin, (req, res) => {
-    const u = db.users.find(x => x.id === parseInt(req.params.id));
-    if (u) { u.is_banned = 0; saveDB(); }
-    res.json({ success: true });
-});
-
-// ============================================================
-//  404 + ERROR
-// ============================================================
-app.use((req, res) => res.status(404).send('Không tìm thấy'));
-app.use((err, req, res, next) => {
-    console.error('[FATAL]', err);
-    res.status(500).json({ error: 'Lỗi server' });
-});
-
-// ============================================================
-//  BOOT
-// ============================================================
-(async () => {
-    console.log('[BOOT] Loading DB from Upstash...');
-    db = await loadDB();
-    console.log('[DB] ready —', db.users.length, 'users,', db.products.length, 'products,', db.orders.length, 'orders');
-    ensureAdmin();
-
-    app.listen(PORT, () => console.log(`[+] http://localhost:${PORT}`));
-})();
+                game: p ?
