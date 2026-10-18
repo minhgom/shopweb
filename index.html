@@ -126,7 +126,9 @@
             <h2 class="section-title">CHỌN GAME BẠN MUỐN MOD</h2>
         </div>
 
-        <div class="categories-grid">
+        <!-- Các thẻ bên dưới là bản gốc của bạn (dự phòng).
+             Khi admin có danh mục, script ở cuối trang sẽ thay bằng danh mục từ admin. -->
+        <div class="categories-grid" id="categoriesGrid">
             <div class="category-card" onclick="filterCategory('BUSSID')">
                 <div class="category-bg" style="background-image: url('images/bussid-bg.jpg');"></div>
                 <div class="category-shade"></div>
@@ -224,7 +226,7 @@
             </select>
         </div>
 
-        <div class="tabs">
+        <div class="tabs" id="gameTabs">
             <button class="tab active" data-game="all">TẤT CẢ</button>
             <button class="tab" data-game="BUSSID">BUS SIMULATOR</button>
             <button class="tab" data-game="GTA SAN">GTA SAN</button>
@@ -479,6 +481,106 @@
             }, { passive: true });
             onScroll();
         });
+    })();
+    </script>
+
+    <!-- ============================================================
+         [MỚI] DANH MỤC + TAB LẤY TỪ ADMIN
+         - Chỉ THÊM vào, không sửa gì ở trên. Nếu admin chưa có danh mục
+           hoặc server lỗi thì trang giữ nguyên bản gốc của bạn.
+         - Thẻ danh mục dùng đúng class cũ và gọi filterCategory(...) như cũ,
+           nên lọc sản phẩm vẫn do script.js xử lý.
+         ============================================================ -->
+    <script>
+    (function () {
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+        function safeImg(u) {
+            u = String(u || '').trim();
+            return /^(\/api\/img\/[a-f0-9]{16}|\/?images\/[\w\-.\/]+|https:\/\/[^\s"'<>()]+)$/i.test(u) ? u : '';
+        }
+        function norm(s) { return String(s || '').trim().toLowerCase(); }
+        function callFilter(key) {
+            if (typeof window.filterCategory === 'function') window.filterCategory(key);
+        }
+
+        function renderCategories(cats) {
+            var grid = document.getElementById('categoriesGrid');
+            if (!grid) return;
+            grid.innerHTML = cats.map(function (c) {
+                var bg = safeImg(c.bg), logo = safeImg(c.logo);
+                return '<div class="category-card" role="button" tabindex="0" data-cat="' + esc(c.key) + '">' +
+                    '<div class="category-bg"' + (bg ? ' style="background-image: url(\'' + esc(bg) + '\');"' : '') + '></div>' +
+                    '<div class="category-shade"></div>' +
+                    (c.badge_text ? '<div class="category-badge ' + esc(c.badge_type) + '">' + esc(c.badge_text) + '</div>' : '') +
+                    '<div class="category-content">' +
+                        (logo ? '<img src="' + esc(logo) + '" alt="' + esc(c.name) + '" class="category-logo" loading="lazy" onerror="this.style.display=\'none\'">' : '') +
+                        '<div class="category-info">' +
+                            '<div class="category-name">' + esc(c.name) + '</div>' +
+                            '<div class="category-note">' + esc(c.note) + '</div>' +
+                            (c.price_text ? '<div class="category-price">' + esc(c.price_text) + '</div>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="category-arrow">→</div>' +
+                '</div>';
+            }).join('');
+
+            grid.addEventListener('click', function (e) {
+                var card = e.target.closest('[data-cat]');
+                if (card) callFilter(card.dataset.cat);
+            });
+            grid.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                var card = e.target.closest('[data-cat]');
+                if (card) { e.preventDefault(); callFilter(card.dataset.cat); }
+            });
+        }
+
+        // Giữ nguyên nút "TẤT CẢ" gốc (script.js đã gắn sự kiện cho nó), chỉ làm lại các tab game
+        function renderTabs(cats, products) {
+            var box = document.getElementById('gameTabs');
+            if (!box) return;
+            var all = box.querySelector('.tab[data-game="all"]');
+            Array.prototype.forEach.call(box.querySelectorAll('.tab'), function (t) { if (t !== all) t.remove(); });
+
+            var seen = {}, games = [];
+            cats.forEach(function (c) { if (!seen[norm(c.key)]) { seen[norm(c.key)] = 1; games.push(c.key); } });
+            (products || []).forEach(function (p) { if (p.game && !seen[norm(p.game)]) { seen[norm(p.game)] = 1; games.push(p.game); } });
+
+            var mine = [];
+            games.forEach(function (g) {
+                var b = document.createElement('button');
+                b.className = 'tab';
+                b.setAttribute('data-game', g);
+                b.textContent = String(g).toUpperCase();
+                b.addEventListener('click', function () {
+                    callFilter(g);
+                    Array.prototype.forEach.call(box.querySelectorAll('.tab'), function (t) { t.classList.toggle('active', t === b); });
+                });
+                box.appendChild(b);
+                mine.push(b);
+            });
+            if (all) all.addEventListener('click', function () {
+                mine.forEach(function (t) { t.classList.remove('active'); });
+            });
+        }
+
+        function load() {
+            Promise.all([
+                fetch('/api/categories', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return []; }),
+                fetch('/api/products', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return []; })
+            ]).then(function (res) {
+                var cats = Array.isArray(res[0]) ? res[0] : [];
+                if (!cats.length) return;            // chưa có danh mục → giữ bản gốc
+                renderCategories(cats);
+                renderTabs(cats, Array.isArray(res[1]) ? res[1] : []);
+            });
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
+        else load();
     })();
     </script>
 </body>

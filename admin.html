@@ -1,381 +1,533 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel — QM Shop</title>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Be Vietnam Pro', sans-serif;
-            background: #f4f6fb; color: #0a0a0a;
-            min-height: 100vh; padding: 40px 20px;
-        }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .box {
-            background: #fff; border-radius: 16px; padding: 32px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin-bottom: 20px;
-        }
-        .login-box { max-width: 420px; margin: 100px auto; }
-        h1 { font-size: 1.5rem; margin-bottom: 20px; }
-        h2 { font-size: 1.1rem; margin-bottom: 16px; }
-        .header-row {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
-        }
-        input, textarea, select {
-            width: 100%; padding: 12px 14px; margin-bottom: 10px;
-            border-radius: 10px; border: 1.5px solid rgba(10,10,10,0.15);
-            background: #f5f6f7; font-family: inherit; font-size: 0.9rem;
-            outline: none; transition: all 0.2s;
-        }
-        textarea { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; resize: vertical; min-height: 120px; line-height: 1.6; }
-        input:focus, textarea:focus, select:focus { border-color: #0a0a0a; background: #fff; }
-        label.field-label {
-            display: block; font-size: 0.72rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 0.06em;
-            margin-bottom: 6px; color: #6b7280;
-        }
-        button {
-            padding: 12px 22px; background: #0a0a0a; color: #fff; border: none;
-            border-radius: 10px; font-weight: 700; font-family: inherit; cursor: pointer;
-            font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
-            transition: all 0.3s;
-        }
-        button:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,10,10,0.2); }
-        button:disabled { opacity: 0.6; cursor: not-allowed; }
-        .full { width: 100%; margin-top: 8px; }
-        .hint {
-            font-size: 0.75rem; color: #6b7280; margin-top: -4px; margin-bottom: 10px;
-            font-family: 'JetBrains Mono', monospace; line-height: 1.6;
-        }
-        .hint code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; color: #e63946; font-weight: 700; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .item {
-            padding: 16px 18px; background: #f5f6f7; border-radius: 12px;
-            margin-bottom: 10px; font-size: 0.85rem;
-            font-family: 'JetBrains Mono', monospace;
-            display: flex; justify-content: space-between; align-items: center;
-            gap: 12px; flex-wrap: wrap;
-        }
-        .item b { color: #e63946; }
-        .item-content { flex: 1; min-width: 200px; }
-        .item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn-reject {
-            background: #e63946 !important; color: #fff !important;
-            padding: 8px 14px !important; font-size: 0.72rem !important;
-        }
-        .btn-confirm {
-            background: #16a34a !important; color: #fff !important;
-            padding: 8px 14px !important; font-size: 0.72rem !important;
-        }
-        .status {
-            display: inline-block; padding: 3px 10px; border-radius: 6px;
-            font-size: 0.7rem; font-weight: 700; margin-left: 6px;
-        }
-        .status-paid { background: #16a34a; color: #fff; }
-        .status-pending { background: #f59e0b; color: #fff; }
-        .status-failed { background: #e63946; color: #fff; }
-        .file-chip {
-            display: inline-flex; align-items: center; gap: 4px;
-            background: rgba(22,163,74,0.1); color: #16a34a;
-            padding: 3px 8px; border-radius: 6px;
-            font-size: 0.68rem; font-weight: 700;
-            border: 1px solid rgba(22,163,74,0.25);
-            margin: 3px 4px 0 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — QM MOD iOS</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root { --red:#e63946; --green:#16a34a; --ink:#0a0a0a; --mute:#6b7280; --line:rgba(10,10,10,.1); --bg:#f4f6fb; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Be Vietnam Pro',sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; padding:24px 16px 80px; }
+.wrap { max-width:1080px; margin:0 auto; }
+.card { background:#fff; border-radius:16px; padding:22px; box-shadow:0 4px 20px rgba(0,0,0,.06); margin-bottom:16px; }
+h1 { font-size:1.3rem; font-weight:900; } h2 { font-size:1rem; font-weight:800; }
+.muted { color:var(--mute); font-size:.8rem; }
+button { font-family:inherit; cursor:pointer; border:0; }
+.btn { padding:11px 18px; background:var(--ink); color:#fff; border-radius:10px; font-weight:800; font-size:.78rem; letter-spacing:.04em; text-transform:uppercase; transition:transform .15s, box-shadow .15s; }
+.btn:hover { transform:translateY(-1px); box-shadow:0 8px 20px rgba(10,10,10,.18); }
+.btn:disabled { opacity:.55; cursor:wait; transform:none; box-shadow:none; }
+.btn.ghost { background:#f1f3f7; color:var(--ink); } .btn.red { background:var(--red); } .btn.green { background:var(--green); } .btn.sm { padding:7px 12px; font-size:.7rem; }
+:focus-visible { outline:2px solid var(--red); outline-offset:2px; }
+.login { max-width:400px; margin:90px auto; } .login h1 { margin-bottom:16px; }
+.top { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:16px; }
+.stat { background:#f7f8fb; border-radius:12px; padding:14px 16px; } .stat b { display:block; font-size:1.4rem; font-weight:900; } .stat span { font-size:.72rem; color:var(--mute); font-weight:600; }
+.tabs { display:flex; gap:6px; margin:18px 0 14px; background:#fff; padding:6px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,.06); overflow-x:auto; }
+.tab { flex:1; padding:11px 16px; background:transparent; border-radius:8px; font-weight:800; font-size:.8rem; color:var(--mute); white-space:nowrap; }
+.tab.active { background:var(--ink); color:#fff; }
+.sec-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.row { display:flex; align-items:center; gap:14px; padding:12px; border:1px solid var(--line); border-radius:12px; margin-bottom:10px; background:#fff; }
+.thumb { width:64px; height:64px; border-radius:10px; background:#eceef3; flex:none; display:flex; align-items:center; justify-content:center; color:#9aa0ac; font-weight:900; font-size:1.2rem; overflow:hidden; }
+.thumb img { width:100%; height:100%; object-fit:cover; } .thumb.contain img { object-fit:contain; padding:6px; }
+.row-main { flex:1; min-width:0; } .row-title { font-weight:800; font-size:.92rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.row-sub { font-size:.76rem; color:var(--mute); margin-top:3px; word-break:break-word; }
+.row-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.pill { display:inline-block; padding:2px 8px; border-radius:6px; font-size:.66rem; font-weight:800; background:#eef0f5; color:#444; }
+.pill.new,.pill.ok { background:#dcfce7; color:#15803d; } .pill.sale,.pill.bad { background:#fee2e2; color:#b91c1c; }
+.pill.hot,.pill.wait { background:#ffedd5; color:#c2410c; } .pill.vip { background:#ede9fe; color:#6d28d9; }
+.empty { text-align:center; color:#9ca3af; padding:36px 10px; font-size:.85rem; }
+.overlay { position:fixed; inset:0; background:rgba(10,10,10,.55); display:none; align-items:flex-start; justify-content:center; padding:24px 12px; z-index:50; overflow-y:auto; }
+.overlay.open { display:flex; }
+.modal { background:#fff; border-radius:16px; width:100%; max-width:640px; padding:24px; position:relative; box-shadow:0 24px 60px rgba(0,0,0,.3); margin:auto; }
+.modal h2 { font-size:1.1rem; margin-bottom:16px; padding-right:30px; }
+.x { position:absolute; top:12px; right:14px; background:none; font-size:1.6rem; color:var(--mute); line-height:1; }
+label.lb { display:block; font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--mute); margin:0 0 6px; }
+input, select, textarea { width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:10px; background:#f7f8fb; font:inherit; font-size:.88rem; outline:none; margin-bottom:12px; }
+input:focus, select:focus, textarea:focus { border-color:var(--ink); background:#fff; }
+textarea { font-family:'JetBrains Mono',monospace; font-size:.8rem; line-height:1.65; min-height:130px; resize:vertical; }
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; } .g3 { display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px; }
+@media (max-width:560px) { .g2,.g3 { grid-template-columns:1fr; } .row { flex-wrap:wrap; } .row-actions { width:100%; justify-content:flex-start; } }
+.hint { font-size:.74rem; color:var(--mute); line-height:1.6; margin:-4px 0 12px; }
+.hint code, .code { background:#eef0f5; padding:1px 6px; border-radius:4px; color:var(--red); font-weight:700; font-family:'JetBrains Mono',monospace; word-break:break-all; }
+.foot { display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
+.img-field { display:flex; gap:12px; align-items:center; margin-bottom:12px; padding:10px; border:1.5px dashed var(--line); border-radius:12px; background:#fafbfd; }
+.img-field .thumb { width:72px; height:72px; } .img-ctl { flex:1; min-width:0; } .img-ctl .btns { display:flex; gap:6px; flex-wrap:wrap; }
+.img-ctl small { display:block; margin-top:6px; color:var(--mute); font-size:.7rem; }
+.img-url { margin:8px 0 0 !important; padding:7px 10px !important; font-size:.74rem !important; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 12px; min-height:22px; }
+.chip { display:inline-flex; gap:5px; padding:3px 9px; border-radius:7px; font-size:.7rem; font-weight:700; background:rgba(22,163,74,.1); color:var(--green); border:1px solid rgba(22,163,74,.25); }
+.chip.err { background:rgba(230,57,70,.08); color:var(--red); border-color:rgba(230,57,70,.3); }
+#toasts { position:fixed; right:14px; bottom:14px; display:flex; flex-direction:column; gap:8px; z-index:99; }
+.toast { background:var(--ink); color:#fff; padding:12px 16px; border-radius:10px; font-size:.84rem; font-weight:600; box-shadow:0 10px 30px rgba(0,0,0,.25); max-width:340px; }
+.toast.err { background:var(--red); } .toast.ok { background:var(--green); }
+.drive-line { display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line); font-size:.8rem; }
+.steps { background:#f7f8fb; border-radius:12px; padding:14px 16px; font-size:.8rem; line-height:1.9; margin-bottom:16px; }
+.qr-test { text-align:center; margin-top:10px; } .qr-test img { max-width:230px; width:100%; border-radius:10px; border:1px solid var(--line); }
+.kv { display:flex; gap:8px; align-items:center; margin-bottom:12px; } .kv input { margin:0; }
+</style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="container">
-
-    <div id="loginBox" class="box login-box">
-        <h1>⚙ Admin Login</h1>
-        <input type="text" id="adminUser" placeholder="Username" value="admin">
-        <input type="password" id="adminPass" placeholder="Password">
-        <button class="full" id="loginBtn">ĐĂNG NHẬP</button>
-    </div>
-
-    <div id="panel" style="display:none;">
-
-        <div class="box">
-            <div class="header-row">
-                <h1>⚙ Admin Panel</h1>
-                <button id="logoutBtn">ĐĂNG XUẤT</button>
-            </div>
-        </div>
-
-        <div class="box">
-            <h2>📤 Thêm sản phẩm (nhiều file IPA)</h2>
-            <form id="productForm">
-                <div class="form-row">
-                    <div>
-                        <label class="field-label">Tên sản phẩm</label>
-                        <input type="text" name="name" placeholder="VD: Bus Simulator Indonesia" required>
-                    </div>
-                    <div>
-                        <label class="field-label">Game</label>
-                        <input type="text" name="game" placeholder="VD: BUSSID" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div>
-                        <label class="field-label">Giá (đồng)</label>
-                        <input type="number" name="price" placeholder="VD: 25000" required>
-                    </div>
-                    <div>
-                        <label class="field-label">Link video demo (tuỳ chọn)</label>
-                        <input type="url" name="video_url" placeholder="https://...">
-                    </div>
-                </div>
-
-                <label class="field-label">Danh sách file (mỗi dòng 1 file)</label>
-                <textarea id="filesInput" placeholder="ESign 2.0 | https://drive.google.com/file/d/AAA/view | esign.ipa
-Bus Simulator Indonesia | https://drive.google.com/file/d/BBB/view | BUSSID.ipa
-File xe khách | https://drive.google.com/file/d/CCC/view | XeKhach.zip"></textarea>
-                <div class="hint">
-                    Định dạng: <code>Tên hiển thị</code> | <code>Link Drive</code> | <code>Tên file khi tải</code><br>
-                    Dấu <b>|</b> phân cách bắt buộc. Khách sẽ tải lần lượt từ trên xuống.
-                </div>
-
-                <button type="submit" class="full" id="addBtn">THÊM SẢN PHẨM</button>
-            </form>
-        </div>
-
-        <div class="box">
-            <h2>📦 Sản phẩm đã có</h2>
-            <div id="productsList"></div>
-        </div>
-
-        <div class="box">
-            <h2>📋 Đơn hàng</h2>
-            <div id="ordersList"></div>
-        </div>
-
-    </div>
+<div id="loginBox" class="card login">
+    <h1>⚙ Đăng nhập Admin</h1>
+    <input id="adminUser" placeholder="Tên đăng nhập" value="admin" autocomplete="username">
+    <input id="adminPass" type="password" placeholder="Mật khẩu" autocomplete="current-password">
+    <button class="btn" id="loginBtn" style="width:100%">Đăng nhập</button>
 </div>
 
+<div id="panel" style="display:none">
+    <div class="card">
+        <div class="top">
+            <div><h1>⚙ QM MOD iOS — Quản trị</h1><p class="muted">Danh mục, sản phẩm, ảnh, thanh toán SePay và đơn hàng</p></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <a class="btn ghost" href="index.html" target="_blank" style="text-decoration:none;display:inline-block">Xem trang chủ</a>
+                <button class="btn ghost" id="driveBtn">Kiểm tra Drive</button>
+                <button class="btn" id="logoutBtn">Đăng xuất</button>
+            </div>
+        </div>
+        <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="products">📦 Sản phẩm</button>
+        <button class="tab" data-tab="cats">🎮 Danh mục</button>
+        <button class="tab" data-tab="orders">🧾 Đơn hàng</button>
+        <button class="tab" data-tab="settings">💳 Cài đặt thanh toán</button>
+    </div>
+
+    <div class="card" id="tab-products">
+        <div class="sec-head"><h2>Sản phẩm</h2><button class="btn" id="addProductBtn">+ Thêm sản phẩm</button></div>
+        <div id="productsList"></div>
+    </div>
+
+    <div class="card" id="tab-cats" style="display:none">
+        <div class="sec-head">
+            <div><h2>Danh mục — thẻ game ngoài trang chủ</h2><p class="muted">Thêm hoặc xoá ở đây thì trang chủ tự đổi theo.</p></div>
+            <button class="btn" id="addCatBtn">+ Thêm danh mục</button>
+        </div>
+        <div id="catsList"></div>
+    </div>
+
+    <div class="card" id="tab-orders" style="display:none">
+        <div class="sec-head">
+            <h2>Đơn hàng</h2>
+            <select id="orderFilter" style="width:auto;margin:0">
+                <option value="all">Tất cả</option><option value="pending">Chờ chuyển khoản</option>
+                <option value="delivered">Đã gửi</option><option value="rejected">Từ chối</option>
+            </select>
+        </div>
+        <div id="ordersList"></div>
+    </div>
+
+    <div class="card" id="tab-settings" style="display:none">
+        <h2 style="margin-bottom:6px">Cài đặt thanh toán SePay</h2>
+        <p class="muted" style="margin-bottom:14px">Nhập một lần, khách mua hàng sẽ thấy mã QR đúng tài khoản của bạn. Tiền vào là hệ thống tự báo thành công và gửi link tải.</p>
+
+        <div class="steps">
+            <b>3 bước cài đặt:</b><br>
+            1. Điền ngân hàng + số tài khoản bên dưới, bấm Lưu.<br>
+            2. Bấm “Tạo key”, bấm Lưu, rồi copy key.<br>
+            3. Vào <b>my.sepay.vn → Tích hợp Webhooks → Thêm webhook</b>: dán URL bên dưới, kiểu chứng thực chọn <b>API Key</b> và dán key vừa copy.
+        </div>
+
+        <div class="g2">
+            <div><label class="lb">Ngân hàng (theo SePay)</label><input id="sBank" placeholder="VD: MBBank, Vietcombank, ACB, VPBank"></div>
+            <div><label class="lb">Số tài khoản</label><input id="sAcc" inputmode="numeric" placeholder="0383415468"></div>
+        </div>
+        <label class="lb">Tên chủ tài khoản (hiện cho khách xem, tuỳ chọn)</label>
+        <input id="sName" placeholder="NGUYEN VAN A">
+
+        <label class="lb">API Key webhook SePay</label>
+        <div class="kv"><input id="sKey" placeholder="Bấm Tạo key" spellcheck="false"><button class="btn ghost sm" id="genKey" type="button">Tạo key</button><button class="btn ghost sm" id="copyKey" type="button">Chép</button></div>
+
+        <label class="lb">URL webhook (dán vào SePay)</label>
+        <div class="kv"><input id="sHook" readonly><button class="btn ghost sm" id="copyHook" type="button">Chép</button></div>
+
+        <div id="sStatus" class="hint"></div>
+        <div class="foot"><button class="btn ghost" id="qrTest" type="button">Xem thử mã QR</button><button class="btn green" id="sSave">Lưu cài đặt</button></div>
+        <div class="qr-test" id="qrBox"></div>
+    </div>
+</div>
+</div>
+
+<!-- MODAL SẢN PHẨM -->
+<div class="overlay" id="pOverlay">
+<div class="modal" role="dialog" aria-modal="true">
+    <button class="x" data-close aria-label="Đóng">×</button>
+    <h2 id="pTitle">Thêm sản phẩm</h2>
+    <label class="lb">Tên sản phẩm</label><input id="pName" placeholder="VD: Bus Simulator Indonesia Mod">
+    <div class="g3">
+        <div><label class="lb">Thuộc danh mục</label><select id="pGame"></select></div>
+        <div><label class="lb">Giá (đồng)</label><input id="pPrice" type="number" inputmode="numeric" placeholder="25000"></div>
+        <div><label class="lb">Link video HD</label><input id="pVideo" placeholder="https://youtu.be/..."></div>
+    </div>
+    <label class="lb">Mô tả ngắn (tuỳ chọn)</label><input id="pNote" placeholder="VD: Full xe, full tiền">
+    <label class="lb">Ảnh sản phẩm (tuỳ chọn)</label><div id="pImage"></div>
+    <label class="lb">Link tải — mỗi dòng 1 link</label>
+    <textarea id="pFiles" spellcheck="false" placeholder="https://drive.google.com/file/d/AAAA/view&#10;https://drive.google.com/file/d/BBBB/view&#10;ESign | https://drive.google.com/file/d/CCCC/view"></textarea>
+    <div class="chips" id="pChips"></div>
+    <div class="hint">Chỉ cần <b>dán link</b> Google Drive hoặc MEGA, mỗi file một dòng. Tên file lấy tự động từ Drive. Muốn đặt tên hiển thị riêng: <span class="code">Tên | link</span>.</div>
+    <div class="foot"><button class="btn ghost" data-close>Huỷ</button><button class="btn green" id="pSave">Lưu sản phẩm</button></div>
+</div>
+</div>
+
+<!-- MODAL DANH MỤC -->
+<div class="overlay" id="cOverlay">
+<div class="modal" role="dialog" aria-modal="true">
+    <button class="x" data-close aria-label="Đóng">×</button>
+    <h2 id="cTitle">Thêm danh mục</h2>
+    <div class="g2">
+        <div><label class="lb">Mã game (để gom sản phẩm)</label><input id="cKey" placeholder="VD: BUSSID"></div>
+        <div><label class="lb">Tên hiển thị</label><input id="cName" placeholder="VD: Bus Simulator Indonesia"></div>
+    </div>
+    <label class="lb">Mô tả ngắn</label><input id="cNote" placeholder="VD: Mod xe khách cho iOS">
+    <div class="g3">
+        <div><label class="lb">Giá hiển thị (trống = tự lấy giá thấp nhất)</label><input id="cPrice" placeholder="25K"></div>
+        <div><label class="lb">Nhãn góc thẻ</label><input id="cBadge" placeholder="NEW" maxlength="12"></div>
+        <div><label class="lb">Màu nhãn</label>
+            <select id="cBadgeType"><option value="">Mặc định</option><option value="new">Xanh</option><option value="sale">Đỏ</option><option value="hot">Cam</option><option value="vip">Tím</option></select></div>
+    </div>
+    <label class="lb">Ảnh bìa (ngang, rộng)</label><div id="cBg"></div>
+    <label class="lb">Logo game (vuông, nền trong suốt càng đẹp)</label><div id="cLogo"></div>
+    <label class="lb">Thứ tự hiển thị (số nhỏ hiện trước)</label><input id="cSort" type="number" placeholder="1">
+    <div class="foot"><button class="btn ghost" data-close>Huỷ</button><button class="btn green" id="cSave">Lưu danh mục</button></div>
+</div>
+</div>
+
+<div class="overlay" id="dOverlay">
+<div class="modal"><button class="x" data-close aria-label="Đóng">×</button><h2>Kiểm tra Google Drive</h2><div id="driveBody" class="muted">Đang kiểm tra...</div></div>
+</div>
+<div id="toasts" aria-live="polite"></div>
+
 <script>
-async function adminLogin() {
-    const username = document.getElementById('adminUser').value;
-    const password = document.getElementById('adminPass').value;
-    if (!username || !password) return alert('Nhập username và password');
+(function () {
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    const money = n => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+    const safeImg = u => /^(\/api\/img\/[a-f0-9]{16}|\/?images\/[\w\-./]+|https:\/\/[^\s"'<>()]+)$/i.test(u || '') ? u : '';
+    let products = [], cats = [], orders = [], editingProduct = null, editingCat = null, pImageField, cBgField, cLogoField;
 
-    try {
-        const res = await fetch('/api/admin/login', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-        if (data.success) {
-            // Lưu token trực tiếp vào localStorage (thay cho QMAuth.save)
-            if (data.admin_token) localStorage.setItem('admin_token', data.admin_token);
-            if (data.token) localStorage.setItem('token', data.token);
-            if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
-            localStorage.setItem('is_admin', '1');
-
-            document.getElementById('loginBox').style.display = 'none';
-            document.getElementById('panel').style.display = 'block';
-            loadProducts();
-            loadOrders();
-            setInterval(loadOrders, 30000);
-        } else {
-            alert('Lỗi: ' + (data.error || 'Sai tài khoản'));
-        }
-    } catch (err) {
-        alert('Lỗi kết nối: ' + err.message);
+    function toast(msg, type) {
+        const t = document.createElement('div'); t.className = 'toast ' + (type || ''); t.textContent = msg;
+        $('toasts').appendChild(t); setTimeout(() => t.remove(), 3800);
     }
-}
+    async function api(url, opts) {
+        opts = opts || {};
+        const headers = Object.assign({}, opts.headers || {});
+        if (opts.body && typeof opts.body !== 'string') { headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(opts.body); }
+        const tk = localStorage.getItem('admin_token');
+        if (tk) headers['Authorization'] = 'Bearer ' + tk;
+        const r = await fetch(url, Object.assign({}, opts, { headers, credentials: 'include' }));
+        let d = null; try { d = await r.json(); } catch (e) {}
+        if (r.status === 403 && url.indexOf('/admin/login') < 0) { showLogin(); throw new Error('Phiên đăng nhập đã hết, hãy đăng nhập lại'); }
+        if (!r.ok) throw new Error((d && d.error) || ('Lỗi ' + r.status));
+        return d;
+    }
+    function openM(id) { $(id).classList.add('open'); }
+    function closeAll() { document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open')); }
+    document.addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target.classList.contains('overlay')) closeAll(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+    const copy = (txt, msg) => { if (navigator.clipboard) navigator.clipboard.writeText(txt); toast(msg || 'Đã chép', 'ok'); };
 
-async function adminLogout() {
-    try { await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) {}
-    // Xoá sạch token (thay cho QMAuth.clear)
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('is_admin');
-    location.reload();
-}
-
-async function loadProducts() {
-    try {
-        const res = await fetch('/api/admin/products', { credentials: 'same-origin' });
-        const data = await res.json();
-        const el = document.getElementById('productsList');
-        if (!data.length) {
-            el.innerHTML = '<p style="color:#999;">Chưa có sản phẩm</p>';
-            return;
-        }
-        el.innerHTML = data.map(p => {
-            const files = p.files || [];
-            const chips = files.map(f => `<span class="file-chip">📄 ${f.label}</span>`).join('');
-            return `
-                <div class="item">
-                    <div class="item-content">
-                        <b>ID ${p.id}</b> · ${p.name} · ${p.game} · ${p.price.toLocaleString('vi-VN')}đ
-                        · <span style="color:#16a34a;">${p.file_count} file</span>
-                        <div style="margin-top:6px;">${chips}</div>
-                    </div>
-                    <div class="item-actions">
-                        <button class="btn-reject" data-del-product="${p.id}" data-name="${p.name}">🗑 XOÁ</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        el.querySelectorAll('[data-del-product]').forEach(btn => {
-            btn.addEventListener('click', () => deleteProduct(parseInt(btn.dataset.delProduct), btn.dataset.name));
+    /* ===== ẢNH ===== */
+    function loadImage(file) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file), img = new Image();
+            img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Không đọc được ảnh này')); };
+            img.src = url;
         });
-    } catch (err) { console.error(err); }
-}
-
-async function loadOrders() {
-    try {
-        const res = await fetch('/api/admin/orders', { credentials: 'same-origin' });
-        const data = await res.json();
-        const el = document.getElementById('ordersList');
-        if (!data.length) {
-            el.innerHTML = '<p style="color:#999;">Chưa có đơn hàng</p>';
-            return;
+    }
+    async function shrink(file, maxSide, keepAlpha) {
+        const img = await loadImage(file);
+        const k = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+        const ctx = c.getContext('2d');
+        if (!keepAlpha) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); }
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        const type = keepAlpha ? 'image/webp' : 'image/jpeg';
+        let q = 0.86, out = c.toDataURL(type, q);
+        while (out.length > 520000 && q > 0.4) { q -= 0.1; out = c.toDataURL(type, q); }
+        if (keepAlpha && !out.startsWith('data:image/webp')) out = c.toDataURL('image/png');
+        return out;
+    }
+    function ImageField(mount, opts) {
+        opts = opts || {}; let value = '';
+        mount.innerHTML = `<div class="img-field"><div class="thumb ${opts.contain ? 'contain' : ''}"></div><div class="img-ctl">
+            <div class="btns"><button type="button" class="btn sm ghost" data-pick>Chọn ảnh từ máy</button><button type="button" class="btn sm ghost" data-clear>Xoá ảnh</button></div>
+            <input class="img-url" placeholder="hoặc dán link ảnh https://..." spellcheck="false"><small>${esc(opts.hint || '')}</small>
+            <input type="file" accept="image/png,image/jpeg,image/webp" hidden></div></div>`;
+        const thumb = mount.querySelector('.thumb'), file = mount.querySelector('input[type=file]'), urlIn = mount.querySelector('.img-url'), pickBtn = mount.querySelector('[data-pick]');
+        function paint() {
+            const u = safeImg(value);
+            thumb.innerHTML = u ? `<img src="${esc(u)}" alt="">` : '＋';
+            urlIn.value = value && !/^\/api\/img\//.test(value) ? value : '';
         }
-        el.innerHTML = data.map(o => {
-            let badge = '';
-            if (o.status === 'delivered') badge = '<span class="status status-paid">✓ ĐÃ GỬI</span>';
-            else if (o.status === 'pending') badge = '<span class="status status-pending">⏳ CHỜ CK</span>';
-            else badge = '<span class="status status-failed">✗ TỪ CHỐI</span>';
+        pickBtn.addEventListener('click', () => file.click());
+        mount.querySelector('[data-clear]').addEventListener('click', () => { value = ''; paint(); });
+        urlIn.addEventListener('change', () => {
+            const v = urlIn.value.trim();
+            if (v && !safeImg(v)) return toast('Link ảnh phải bắt đầu bằng https://', 'err');
+            value = v; paint();
+        });
+        file.addEventListener('change', async () => {
+            const f = file.files && file.files[0]; file.value = ''; if (!f) return;
+            pickBtn.disabled = true; pickBtn.textContent = 'Đang tải ảnh...';
+            try {
+                const data = await shrink(f, opts.maxSide || 900, !!opts.alpha);
+                value = (await api('/api/admin/upload-image', { method: 'POST', body: { data } })).url; paint();
+            } catch (e) { toast(e.message, 'err'); }
+            pickBtn.disabled = false; pickBtn.textContent = 'Chọn ảnh từ máy';
+        });
+        paint();
+        return { get: () => value, set: v => { value = v || ''; paint(); } };
+    }
 
-            const actions = o.status === 'pending'
-                ? `<button class="btn-confirm" data-confirm="${o.order_code}">✓ XÁC NHẬN</button>
-                   <button class="btn-reject" data-reject="${o.order_code}">✗ TỪ CHỐI</button>`
-                : `<button class="btn-reject" data-delete="${o.order_code}">🗑 XOÁ</button>`;
-
-            return `
-                <div class="item">
-                    <div class="item-content">
-                        <b>${o.order_code}</b> · ${o.user_email || '—'} · ${o.product_name} ${badge}
-                        <div style="font-size:0.75rem;color:#999;margin-top:4px;">
-                            ${o.amount ? o.amount.toLocaleString('vi-VN') + 'đ · ' : ''}${new Date(o.created_at).toLocaleString('vi-VN')}
-                        </div>
-                    </div>
-                    <div class="item-actions">${actions}</div>
-                </div>
-            `;
-        }).join('');
-        el.querySelectorAll('[data-confirm]').forEach(b => b.addEventListener('click', () => confirmOrder(b.dataset.confirm)));
-        el.querySelectorAll('[data-reject]').forEach(b => b.addEventListener('click', () => rejectOrder(b.dataset.reject)));
-        el.querySelectorAll('[data-delete]').forEach(b => b.addEventListener('click', () => deleteOrder(b.dataset.delete)));
-    } catch (err) { console.error(err); }
-}
-
-async function confirmOrder(code) {
-    if (!confirm('Xác nhận đã nhận tiền cho đơn ' + code + '? Sẽ gửi mail link tải ngay.')) return;
-    try {
-        const res = await fetch('/api/admin/confirm-order/' + code, { method: 'POST', credentials: 'same-origin' });
-        const data = await res.json();
-        if (data.success) { alert('✓ Đã xác nhận ' + code); loadOrders(); }
-        else alert('Lỗi: ' + data.error);
-    } catch (err) { alert('Lỗi: ' + err.message); }
-}
-
-async function rejectOrder(code) {
-    if (!confirm('Từ chối đơn ' + code + '?')) return;
-    try {
-        const res = await fetch('/api/admin/reject-order/' + code, { method: 'POST', credentials: 'same-origin' });
-        const data = await res.json();
-        if (data.success) { alert('✗ Đã từ chối ' + code); loadOrders(); }
-        else alert('Lỗi: ' + data.error);
-    } catch (err) { alert('Lỗi: ' + err.message); }
-}
-
-async function deleteOrder(code) {
-    if (!confirm('Xoá vĩnh viễn đơn ' + code + '?')) return;
-    try {
-        const res = await fetch('/api/admin/delete-order/' + code, { method: 'POST', credentials: 'same-origin' });
-        const data = await res.json();
-        if (data.success) { alert('🗑 Đã xoá ' + code); loadOrders(); }
-        else alert('Lỗi: ' + data.error);
-    } catch (err) { alert('Lỗi: ' + err.message); }
-}
-
-async function deleteProduct(id, name) {
-    if (!confirm('Xoá sản phẩm "' + name + '"?')) return;
-    try {
-        const res = await fetch('/api/admin/delete-product/' + id, { method: 'POST', credentials: 'same-origin' });
-        const data = await res.json();
-        if (data.success) { alert('🗑 Đã xoá'); loadProducts(); }
-        else alert('Lỗi: ' + data.error);
-    } catch (err) { alert('Lỗi: ' + err.message); }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('loginBtn').addEventListener('click', adminLogin);
-    document.getElementById('logoutBtn').addEventListener('click', adminLogout);
-    document.getElementById('adminPass').addEventListener('keypress', e => {
-        if (e.key === 'Enter') adminLogin();
-    });
-
-    document.getElementById('productForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const form = e.target;
-
-        const lines = document.getElementById('filesInput').value
-            .split('\n').map(l => l.trim()).filter(Boolean);
-
-        if (!lines.length) return alert('Nhập ít nhất 1 file!');
-
-        const files = [];
-        for (const line of lines) {
-            const parts = line.split('|').map(s => s.trim());
-            const label = parts[0] || 'File';
-            const url = parts[1] || '';
-            const fname = parts[2] || `${label}.ipa`;
-
-            if (!url) return alert('Thiếu link Drive ở dòng:\n' + line);
-            if (!/drive\.google\.com/.test(url)) return alert('Link không phải Google Drive:\n' + line);
-
-            files.push({ label, url, name: fname, mime: 'application/octet-stream' });
-        }
-
-        const body = {
-            name: form.name.value.trim(),
-            game: form.game.value.trim(),
-            price: parseInt(form.price.value),
-            video_url: form.video_url.value.trim(),
-            files
-        };
-
-        if (!body.name || !body.game || !body.price) return alert('Điền đủ tên, game, giá');
-
-        const btn = document.getElementById('addBtn');
-        btn.textContent = 'ĐANG LƯU...';
-        btn.disabled = true;
-
+    /* ===== ĐĂNG NHẬP ===== */
+    function showLogin() { $('panel').style.display = 'none'; $('loginBox').style.display = 'block'; }
+    function showPanel() { $('loginBox').style.display = 'none'; $('panel').style.display = 'block'; refreshAll(); }
+    async function login() {
+        const username = $('adminUser').value.trim(), password = $('adminPass').value;
+        if (!username || !password) return toast('Nhập tên đăng nhập và mật khẩu', 'err');
+        $('loginBtn').disabled = true;
         try {
-            const res = await fetch('/api/admin/upload-product', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert('✓ Thêm thành công! Số file: ' + data.file_count);
-                form.reset();
-                document.getElementById('filesInput').value = '';
-                loadProducts();
-            } else {
-                alert('Lỗi: ' + data.error);
-            }
-        } catch (err) {
-            alert('Lỗi: ' + err.message);
-        }
-        btn.textContent = 'THÊM SẢN PHẨM';
-        btn.disabled = false;
+            const d = await api('/api/admin/login', { method: 'POST', body: { username, password } });
+            if (d.admin_token) localStorage.setItem('admin_token', d.admin_token);
+            if (d.token) localStorage.setItem('token', d.token);
+            if (d.user) localStorage.setItem('user', JSON.stringify(d.user));
+            localStorage.setItem('is_admin', '1');
+            showPanel();
+        } catch (e) { toast(e.message, 'err'); }
+        $('loginBtn').disabled = false;
+    }
+    async function logout() {
+        try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); } catch (e) {}
+        ['admin_token', 'token', 'user', 'is_admin'].forEach(k => localStorage.removeItem(k));
+        location.reload();
+    }
+
+    /* ===== TẢI DỮ LIỆU ===== */
+    async function refreshAll() { await Promise.all([loadCats(), loadProducts(), loadOrders(), loadSettings()]); renderStats(); }
+    async function loadCats() { try { cats = await api('/api/categories'); } catch (e) { cats = []; } renderCats(); }
+    async function loadProducts() { try { products = await api('/api/admin/products'); } catch (e) { products = []; } renderProducts(); }
+    async function loadOrders() { try { orders = await api('/api/admin/orders'); } catch (e) { orders = []; } renderOrders(); }
+    function renderStats() {
+        const delivered = orders.filter(o => o.status === 'delivered');
+        const revenue = delivered.reduce((s, o) => s + (Number(o.amount) || 0), 0);
+        $('stats').innerHTML = [[products.length, 'Sản phẩm'], [cats.length, 'Danh mục'], [orders.filter(o => o.status === 'pending').length, 'Đơn chờ chuyển khoản'], [delivered.length, 'Đơn đã gửi'], [money(revenue), 'Doanh thu']]
+            .map(a => `<div class="stat"><b>${esc(a[0])}</b><span>${a[1]}</span></div>`).join('');
+    }
+    $('tabs').addEventListener('click', e => {
+        const b = e.target.closest('.tab'); if (!b) return;
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === b));
+        ['products', 'cats', 'orders', 'settings'].forEach(n => $('tab-' + n).style.display = (n === b.dataset.tab) ? '' : 'none');
     });
-});
+
+    /* ===== CÀI ĐẶT THANH TOÁN ===== */
+    async function loadSettings() {
+        try {
+            const s = await api('/api/admin/settings');
+            $('sBank').value = s.bank_name || ''; $('sAcc').value = s.bank_account || ''; $('sName').value = s.account_name || '';
+            $('sKey').value = s.sepay_key || ''; $('sHook').value = s.webhook_url || (location.origin + '/api/sepay/webhook');
+            $('sStatus').innerHTML = (s.sepay_key ? '✅ Đã có API key.' : '⚠ Chưa có API key — chưa tự nhận tiền được.') + ' · ' +
+                (s.resend_ready ? '✅ Gửi mail được.' : '⚠ Chưa cài RESEND_API_KEY, khách vẫn thấy link tải ngay trên web.') + ' · ' +
+                (s.drive_ok ? '✅ Google Drive OK.' : '⚠ Google Drive chưa sẵn sàng (bấm Kiểm tra Drive).');
+        } catch (e) {}
+    }
+    $('genKey').addEventListener('click', () => {
+        const a = new Uint8Array(18); crypto.getRandomValues(a);
+        $('sKey').value = 'qm' + Array.from(a, b => b.toString(16).padStart(2, '0')).join('');
+        toast('Đã tạo key — nhớ bấm Lưu cài đặt');
+    });
+    $('copyKey').addEventListener('click', () => copy($('sKey').value, 'Đã chép API key'));
+    $('copyHook').addEventListener('click', () => copy($('sHook').value, 'Đã chép URL webhook'));
+    $('qrTest').addEventListener('click', () => {
+        const bank = $('sBank').value.trim(), acc = $('sAcc').value.trim();
+        if (!bank || !acc) return toast('Nhập ngân hàng và số tài khoản trước', 'err');
+        $('qrBox').innerHTML = `<img src="https://qr.sepay.vn/img?acc=${encodeURIComponent(acc)}&bank=${encodeURIComponent(bank)}&amount=10000&des=QMTEST" alt="QR thử"><p class="muted" style="margin-top:6px">QR thử 10.000đ. Nếu không hiện, kiểm tra lại tên ngân hàng.</p>`;
+    });
+    $('sSave').addEventListener('click', async () => {
+        $('sSave').disabled = true;
+        try {
+            await api('/api/admin/settings', { method: 'POST', body: { bank_name: $('sBank').value, bank_account: $('sAcc').value, account_name: $('sName').value, sepay_key: $('sKey').value } });
+            toast('Đã lưu cài đặt thanh toán', 'ok'); loadSettings();
+        } catch (e) { toast(e.message, 'err'); }
+        $('sSave').disabled = false;
+    });
+
+    /* ===== DANH MỤC ===== */
+    function renderCats() {
+        const el = $('catsList');
+        if (!cats.length) { el.innerHTML = '<div class="empty">Chưa có danh mục. Bấm “+ Thêm danh mục”.</div>'; return; }
+        el.innerHTML = cats.map(c => `<div class="row">
+            <div class="thumb">${safeImg(c.bg) ? `<img src="${esc(c.bg)}" alt="">` : esc((c.name || '?')[0])}</div>
+            <div class="row-main"><div class="row-title">${esc(c.name)} ${c.badge_text ? `<span class="pill ${esc(c.badge_type)}">${esc(c.badge_text)}</span>` : ''}</div>
+            <div class="row-sub">Mã: <b>${esc(c.key)}</b> · ${esc(c.price_text || 'chưa có giá')} · ${c.product_count} sản phẩm${c.note ? ' · ' + esc(c.note) : ''}</div></div>
+            <div class="row-actions"><button class="btn sm ghost" data-edit-cat="${c.id}">Sửa</button><button class="btn sm red" data-del-cat="${c.id}">Xoá</button></div></div>`).join('');
+    }
+    $('catsList').addEventListener('click', e => {
+        const ed = e.target.closest('[data-edit-cat]'), dl = e.target.closest('[data-del-cat]');
+        if (ed) openCat(cats.find(c => c.id === parseInt(ed.dataset.editCat)));
+        if (dl) delCat(cats.find(c => c.id === parseInt(dl.dataset.delCat)));
+    });
+    $('addCatBtn').addEventListener('click', () => openCat(null));
+    function openCat(c) {
+        editingCat = c;
+        $('cTitle').textContent = c ? 'Sửa danh mục' : 'Thêm danh mục';
+        $('cKey').value = c ? c.key : ''; $('cName').value = c ? c.name : ''; $('cNote').value = c ? c.note : '';
+        $('cPrice').value = c ? (c.price_text || '') : ''; $('cBadge').value = c ? c.badge_text : ''; $('cBadgeType').value = c ? c.badge_type : '';
+        $('cSort').value = c ? c.sort : (cats.length + 1);
+        cBgField.set(c ? c.bg : ''); cLogoField.set(c ? c.logo : '');
+        openM('cOverlay');
+    }
+    $('cSave').addEventListener('click', async () => {
+        const body = { id: editingCat ? editingCat.id : undefined, key: $('cKey').value.trim(), name: $('cName').value.trim(), note: $('cNote').value.trim(),
+            price_text: $('cPrice').value.trim(), badge_text: $('cBadge').value.trim(), badge_type: $('cBadgeType').value, bg: cBgField.get(), logo: cLogoField.get(), sort: $('cSort').value };
+        if (!body.key || !body.name) return toast('Cần nhập mã game và tên hiển thị', 'err');
+        $('cSave').disabled = true;
+        try { await api('/api/admin/category', { method: 'POST', body }); toast('Đã lưu danh mục', 'ok'); closeAll(); await refreshAll(); }
+        catch (e) { toast(e.message, 'err'); }
+        $('cSave').disabled = false;
+    });
+    async function delCat(c) {
+        if (!c || !confirm('Xoá danh mục "' + c.name + '" khỏi trang chủ?')) return;
+        let withProducts = false;
+        if (c.product_count > 0) withProducts = confirm('Danh mục này có ' + c.product_count + ' sản phẩm.\n\nOK = xoá luôn các sản phẩm\nHuỷ = giữ lại sản phẩm (chỉ xoá thẻ danh mục)');
+        try {
+            const r = await api('/api/admin/delete-category/' + c.id + (withProducts ? '?products=1' : ''), { method: 'POST' });
+            toast('Đã xoá' + (r.removed_products ? ' + ' + r.removed_products + ' sản phẩm' : ''), 'ok'); await refreshAll();
+        } catch (e) { toast(e.message, 'err'); }
+    }
+
+    /* ===== SẢN PHẨM ===== */
+    function renderProducts() {
+        const el = $('productsList');
+        if (!products.length) { el.innerHTML = '<div class="empty">Chưa có sản phẩm. Bấm “+ Thêm sản phẩm”.</div>'; return; }
+        el.innerHTML = products.map(p => {
+            const cat = cats.find(c => c.key.toLowerCase() === String(p.game).toLowerCase());
+            const pic = safeImg(p.image) || (cat && safeImg(cat.bg)) || '';
+            return `<div class="row"><div class="thumb">${pic ? `<img src="${esc(pic)}" alt="">` : esc((p.name || '?')[0])}</div>
+                <div class="row-main"><div class="row-title">${esc(p.name)} <span class="pill">${esc(p.game)}</span></div>
+                <div class="row-sub">ID ${p.id} · ${money(p.price)} · ${p.file_count} file${p.video_url ? ' · có video' : ''}${cat ? '' : ' · <b style="color:#e63946">chưa có danh mục “' + esc(p.game) + '”</b>'}</div></div>
+                <div class="row-actions"><button class="btn sm ghost" data-edit-p="${p.id}">Sửa</button><button class="btn sm red" data-del-p="${p.id}">Xoá</button></div></div>`;
+        }).join('');
+    }
+    $('productsList').addEventListener('click', e => {
+        const ed = e.target.closest('[data-edit-p]'), dl = e.target.closest('[data-del-p]');
+        if (ed) openProduct(products.find(p => p.id === parseInt(ed.dataset.editP)));
+        if (dl) delProduct(products.find(p => p.id === parseInt(dl.dataset.delP)));
+    });
+    $('addProductBtn').addEventListener('click', () => {
+        if (!cats.length) return toast('Hãy tạo ít nhất 1 danh mục trước (tab Danh mục)', 'err');
+        openProduct(null);
+    });
+    function fillGameSelect(current) {
+        const keys = cats.map(c => c.key);
+        if (current && !keys.some(k => k.toLowerCase() === current.toLowerCase())) keys.push(current);
+        $('pGame').innerHTML = keys.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('');
+        const match = current && keys.find(k => k.toLowerCase() === current.toLowerCase());
+        if (match) $('pGame').value = match;
+    }
+    const fileToLine = f => (f.label ? f.label + ' | ' : '') + (f.url ? f.url : (f.file_id ? 'https://drive.google.com/file/d/' + f.file_id + '/view' : ''));
+    function openProduct(p) {
+        editingProduct = p;
+        $('pTitle').textContent = p ? 'Sửa sản phẩm #' + p.id : 'Thêm sản phẩm';
+        $('pName').value = p ? p.name : ''; fillGameSelect(p ? p.game : '');
+        $('pPrice').value = p ? p.price : ''; $('pVideo').value = p ? (p.video_url || '') : ''; $('pNote').value = p ? (p.note || '') : '';
+        pImageField.set(p ? p.image : '');
+        $('pFiles').value = p ? (p.files || []).map(fileToLine).join('\n') : '';
+        previewFiles(); openM('pOverlay');
+    }
+    function parseFiles(text) {
+        const out = [], errs = [];
+        text.split('\n').map(l => l.trim()).filter(Boolean).forEach((line, i) => {
+            const parts = line.split('|').map(s => s.trim()).filter(Boolean);
+            const urlPart = parts.find(x => /^https?:\/\//i.test(x));
+            if (!urlPart) return errs.push('Dòng ' + (i + 1) + ': thiếu link');
+            const isDrive = /drive\.google\.com/i.test(urlPart), isMega = /^https:\/\/(?:[\w-]+\.)?mega\.(?:nz|co\.nz)\//i.test(urlPart);
+            if (!isDrive && !isMega) return errs.push('Dòng ' + (i + 1) + ': chỉ nhận link Google Drive hoặc MEGA');
+            const others = parts.filter(x => x !== urlPart);
+            out.push({ label: others[0] || '', url: urlPart, name: others[1] || '' });
+        });
+        return { files: out, errs };
+    }
+    function previewFiles() {
+        const { files, errs } = parseFiles($('pFiles').value);
+        $('pChips').innerHTML = files.map((f, i) => `<span class="chip">📄 File ${i + 1}${f.label ? ': ' + esc(f.label) : ''}</span>`).join('') + errs.map(m => `<span class="chip err">⚠ ${esc(m)}</span>`).join('');
+    }
+    $('pFiles').addEventListener('input', previewFiles);
+    $('pSave').addEventListener('click', async () => {
+        const { files, errs } = parseFiles($('pFiles').value);
+        const body = { name: $('pName').value.trim(), game: $('pGame').value, price: parseInt($('pPrice').value), video_url: $('pVideo').value.trim(), note: $('pNote').value.trim(), image: pImageField.get(), files };
+        if (!body.name) return toast('Nhập tên sản phẩm', 'err');
+        if (!body.game) return toast('Chọn danh mục', 'err');
+        if (!(body.price > 0)) return toast('Nhập giá hợp lệ', 'err');
+        if (errs.length) return toast(errs[0], 'err');
+        if (!files.length) return toast('Dán ít nhất 1 link file', 'err');
+        $('pSave').disabled = true; $('pSave').textContent = 'Đang lưu...';
+        try {
+            const r = await api(editingProduct ? '/api/admin/update-product/' + editingProduct.id : '/api/admin/upload-product', { method: 'POST', body });
+            toast((editingProduct ? 'Đã cập nhật' : 'Đã thêm') + ' — ' + r.file_count + ' file', 'ok'); closeAll(); await refreshAll();
+        } catch (e) { toast(e.message, 'err'); }
+        $('pSave').disabled = false; $('pSave').textContent = 'Lưu sản phẩm';
+    });
+    async function delProduct(p) {
+        if (!p || !confirm('Xoá sản phẩm "' + p.name + '"?')) return;
+        try { await api('/api/admin/delete-product/' + p.id, { method: 'POST' }); toast('Đã xoá sản phẩm', 'ok'); await refreshAll(); }
+        catch (e) { toast(e.message, 'err'); }
+    }
+
+    /* ===== ĐƠN HÀNG ===== */
+    function renderOrders() {
+        const f = $('orderFilter').value, list = orders.filter(o => f === 'all' || o.status === f), el = $('ordersList');
+        if (!list.length) { el.innerHTML = '<div class="empty">Không có đơn nào</div>'; return; }
+        el.innerHTML = list.map(o => {
+            const badge = o.status === 'delivered' ? '<span class="pill ok">ĐÃ GỬI</span>' : o.status === 'pending' ? '<span class="pill wait">CHỜ CK</span>' : '<span class="pill bad">TỪ CHỐI</span>';
+            const acts = o.status === 'pending'
+                ? `<button class="btn sm green" data-ok="${esc(o.order_code)}">Xác nhận</button><button class="btn sm red" data-no="${esc(o.order_code)}">Từ chối</button>`
+                : `<button class="btn sm red" data-rm="${esc(o.order_code)}">Xoá</button>`;
+            return `<div class="row"><div class="row-main"><div class="row-title">${esc(o.order_code)} ${badge}</div>
+                <div class="row-sub">${esc(o.user_email || '—')} · ${esc(o.product_name || 'Sản phẩm đã xoá')} · ${money(o.amount)} · ${new Date(o.created_at).toLocaleString('vi-VN')}</div></div>
+                <div class="row-actions">${acts}</div></div>`;
+        }).join('');
+    }
+    $('orderFilter').addEventListener('change', renderOrders);
+    $('ordersList').addEventListener('click', async e => {
+        const ok = e.target.closest('[data-ok]'), no = e.target.closest('[data-no]'), rm = e.target.closest('[data-rm]');
+        try {
+            if (ok) { if (!confirm('Xác nhận đã nhận tiền đơn ' + ok.dataset.ok + '? Hệ thống sẽ gửi mail link tải.')) return; await api('/api/admin/confirm-order/' + ok.dataset.ok, { method: 'POST' }); toast('Đã xác nhận', 'ok'); }
+            else if (no) { if (!confirm('Từ chối đơn ' + no.dataset.no + '?')) return; await api('/api/admin/reject-order/' + no.dataset.no, { method: 'POST' }); toast('Đã từ chối'); }
+            else if (rm) { if (!confirm('Xoá vĩnh viễn đơn ' + rm.dataset.rm + '?')) return; await api('/api/admin/delete-order/' + rm.dataset.rm, { method: 'POST' }); toast('Đã xoá đơn'); }
+            else return;
+            await loadOrders(); renderStats();
+        } catch (err) { toast(err.message, 'err'); }
+    });
+
+    /* ===== DRIVE ===== */
+    $('driveBtn').addEventListener('click', async () => {
+        $('driveBody').innerHTML = 'Đang kiểm tra...'; openM('dOverlay');
+        try {
+            const d = await api('/api/admin/check-drive');
+            let h = `<p style="margin-bottom:10px;color:${d.all_ok ? '#16a34a' : '#e63946'};font-weight:700">${esc(d.hint)}</p>`;
+            if (d.share_drive_files_with) h += `<p class="muted" style="margin-bottom:10px">Share file Drive cho: <b>${esc(d.share_drive_files_with)}</b></p>`;
+            h += (d.files || []).map(f => `<div class="drive-line"><span>${esc(f.product)} · ${esc(f.label || 'File ' + (f.index + 1))}</span><b style="color:${f.ok ? '#16a34a' : '#e63946'}">${f.ok ? 'OK' : esc(f.error || 'Lỗi')}</b></div>`).join('');
+            $('driveBody').innerHTML = h;
+        } catch (e) { $('driveBody').textContent = e.message; }
+    });
+
+    /* ===== KHỞI TẠO ===== */
+    pImageField = ImageField($('pImage'), { maxSide: 800, hint: 'Để trống thì dùng ảnh bìa của danh mục.' });
+    cBgField = ImageField($('cBg'), { maxSide: 1000, hint: 'Nên dùng ảnh ngang, tối thiểu 800px.' });
+    cLogoField = ImageField($('cLogo'), { maxSide: 320, alpha: true, contain: true, hint: 'Logo PNG nền trong suốt sẽ đẹp nhất.' });
+    $('loginBtn').addEventListener('click', login);
+    $('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+    $('logoutBtn').addEventListener('click', logout);
+    api('/api/admin/products').then(() => showPanel()).catch(() => {});
+    setInterval(() => { if ($('panel').style.display !== 'none') loadOrders().then(renderStats); }, 30000);
+})();
 </script>
 </body>
 </html>
